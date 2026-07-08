@@ -1,0 +1,2 @@
+# keep data.json byte-stable (no CRLF conversion) so the change-detection diff is pure content
+data.json -text

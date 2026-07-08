@@ -86,7 +86,13 @@ def build():
 
 
 def git_push(n):
-    msg = f"data: refresh snapshot ({n} identities)"
+    # only push when data.json actually changed — avoids empty commits and
+    # needless GitHub Pages rebuilds (Pages allows ~10 builds/hour)
+    changed = subprocess.run(["git", "-C", HERE, "diff", "--quiet", "--", "data.json"]).returncode
+    if changed == 0:
+        print("no data change — skip push")
+        return
+    msg = f"data: refresh snapshot ({n} CSPs)"
     subprocess.run(["git", "-C", HERE, "add", "data.json"], check=True)
     subprocess.run(["git", "-C", HERE, "-c", "commit.gpgsign=false", "commit", "-q", "-m", msg], check=True)
     subprocess.run(["git", "-C", HERE, "push", "-q", "origin", "main"], check=True)
