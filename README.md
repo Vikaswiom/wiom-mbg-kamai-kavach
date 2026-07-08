@@ -6,6 +6,15 @@ of four mutually-exclusive states: `keepgoing` · `almost` · `secured` · `nole
 
 No build step, no framework, no external assets — just open `index.html`.
 
+## Docs
+
+- [`docs/CALCULATIONS.md`](./docs/CALCULATIONS.md) — the full calculation spec: raw
+  inputs, screen routing, every derived formula, per-screen copy, IST handling, events,
+  worked examples, and the go-live backend contract. **Single source of truth for the numbers.**
+- [`docs/mbg-poller-reference.md`](./docs/mbg-poller-reference.md) — the consolidated
+  MBG/CI poller · CleverTap reference (the four APIs, measurement gotchas, HTML in-app
+  rules, and Appendix A with the exact poller formulas this page mirrors).
+
 ## How it works
 
 ```
