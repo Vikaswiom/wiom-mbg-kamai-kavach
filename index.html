@@ -75,7 +75,8 @@ var SAMPLE = {
   "100004": { userId:"100004", installs:0,  denom:0,  pending:0, tickets:[] }        // → noleads
 };
 function getCspData(){
-  var id = new URLSearchParams(location.search).get('cspId');
+  var q = new URLSearchParams(location.search);
+  var id = q.get('cspId') || q.get('cspid') || q.get('csp_id') || q.get('id');  // accept any casing
   return SAMPLE[id] || SAMPLE[Object.keys(SAMPLE)[0]];
 }
 </script>
