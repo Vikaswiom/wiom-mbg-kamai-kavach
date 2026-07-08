@@ -1,0 +1,201 @@
+<!doctype html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>गारंटी कमाई — Kamai Kavach</title><style>
+:root{--maroon:#3f2a44;--purple:#6D17CE;--purpbg:#F4EBFC;--pill:#EBDDFB;--green:#008043;--green-bg:#E6F6EE;
+--amber:#B85C00;--amberbar:#E08A1E;--red:#D9202F;--yellow:#FFF6DA;--yellowline:#F2D98A;--text:#181022;
+--t2:#6b6478;--t3:#a8a2b4;--card:#fff;--screen:#F7F5FA;--line:#ECE7F2;--stroke2:#DED8EA;}
+*{box-sizing:border-box;margin:0;font-family:"Noto Sans Devanagari","Segoe UI","Nirmala UI",system-ui,sans-serif;}
+html,body{background:var(--screen);}
+.wrap{min-height:100vh;background:var(--screen);color:var(--text);max-width:430px;margin:0 auto;}
+.hdr{background:var(--maroon);color:#fff;padding:13px 15px;display:flex;align-items:center;gap:11px;}
+.hdr .bk{font-size:17px;opacity:.9;cursor:pointer;}.hdr .t{font-size:15.5px;font-weight:700;flex:1;}.hdr .bell{font-size:14px;opacity:.85;}
+.subhdr{background:var(--maroon);color:#e8dcec;padding:0 15px 11px;display:flex;justify-content:space-between;font-size:12px;font-weight:600;}
+.body{padding:13px;display:flex;flex-direction:column;gap:11px;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px;}
+.k{font-size:12px;color:var(--t2);font-weight:600;}
+.earn-amt{font-size:30px;font-weight:800;letter-spacing:-1px;margin:5px 0 3px;}
+.earn-sub{font-size:11.5px;color:var(--green);font-weight:700;}
+.wyh-top{display:flex;align-items:baseline;gap:7px;margin:5px 0 2px;}
+.wyh-pct{font-size:31px;font-weight:800;letter-spacing:-1.5px;}.wyh-need60{font-size:12.5px;color:var(--t3);font-weight:700;}
+.bar{position:relative;height:11px;background:#EDEAF2;border-radius:6px;margin:12px 0 4px;}
+.bar .fill{position:absolute;left:0;top:0;bottom:0;border-radius:6px;transition:width .7s;}
+.bar .mk{position:absolute;left:60%;top:-4px;bottom:-4px;width:2px;background:#2a2130;}
+.wyh-need{font-size:14px;font-weight:800;margin-top:9px;}.wyh-line{font-size:11.5px;color:var(--t2);line-height:1.5;margin-top:3px;}
+.f-green .wyh-pct{color:var(--green)}.f-green .fill{background:var(--green)}.f-green .wyh-need{color:var(--green)}
+.f-amber .wyh-pct{color:var(--amber)}.f-amber .fill{background:var(--amberbar)}.f-amber .wyh-need{color:var(--amber)}
+.f-red .wyh-pct{color:var(--red)}.f-red .fill{background:var(--red)}.f-red .wyh-need{color:var(--red)}
+.f-idle .wyh-pct{color:var(--t2)}.f-idle .fill{background:var(--stroke2)}
+.act{background:var(--yellow);border:1px solid var(--yellowline);border-radius:15px;padding:13px;}
+.act .h{font-size:14px;font-weight:800;color:#7a4a00;}.act .s{font-size:11.5px;color:#8a6a30;font-weight:600;margin:8px 0 8px;}
+.tkt{background:#fff;border:1px solid #efe3c4;border-radius:11px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;cursor:pointer;}
+.tkt .tn{font-size:12.5px;font-weight:700;}.tkt .tc{font-size:11px;font-weight:800;color:var(--purple);white-space:nowrap;}
+.notkt{display:none;font-size:11.5px;color:#8a6a30;font-weight:600;}
+.prot{background:var(--purpbg);border:1px solid #e6d6fa;border-radius:16px;padding:14px;}
+.prot .ph{font-size:12.5px;font-weight:800;color:var(--purple);}
+.prot .big{font-size:24px;font-weight:800;color:var(--purple);letter-spacing:-1px;margin:6px 0 2px;}.prot .big span{font-size:13px;font-weight:700;color:#4a2a86;}
+.prot .when{font-size:11.5px;font-weight:800;color:#4a2a86;margin:8px 0 8px;}
+.cond{background:#fff;border:1px solid #ecdefb;border-radius:11px;padding:9px 11px;display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px;}
+.cond .cl{font-size:12px;font-weight:700;display:flex;gap:7px;align-items:center;}.cond .cl .em{font-size:14px;}
+.cond .cp{font-size:10px;font-weight:800;color:var(--purple);background:var(--pill);padding:3px 9px;border-radius:999px;white-space:nowrap;}
+.prot .sb{font-size:11.5px;font-weight:800;color:#3a1a70;margin:9px 0 4px;}.prot .li{font-size:11.5px;color:#5a4a86;line-height:1.7;}
+.foot{font-size:11px;color:var(--t3);text-align:center;padding:2px 6px 14px;line-height:1.5;}
+.demo{max-width:430px;margin:0 auto;padding:10px 13px 24px;font-size:11.5px;color:var(--t2);}
+.demo a{color:var(--purple);font-weight:700;text-decoration:none;}
+</style></head><body><div class=wrap><div class=hdr><span class=bk id=cta>←</span><span class=t>गारंटी कमाई</span><span class=bell>🔔</span></div><div class=subhdr><span><span id=v_month>—</span> का हिसाब</span><span>इस महीने <span id=v_days>0</span> दिन बाकी</span></div><div class=body><div class=card><div class=k>इस महीने नए कनेक्शन से कमाया</div><div class=earn-amt>₹<span id=v_installpay>0</span></div><div class=earn-sub id=v_earnsub>↑ हर नए कनेक्शन पर ₹300 · कोई ऊपरी सीमा नहीं</div></div><div class="card f-amber" id=whcard><div class=k>आप कहाँ हैं</div><div class=wyh-top><span class=wyh-pct><span id=v_pct>0</span><span id=v_pctsign>%</span></span><span class=wyh-need60>/ 60% चाहिए</span></div><div class=bar><div class=fill id=v_fill style="width:0%"></div><div class=mk></div></div><div class=wyh-need id=v_needline>—</div><div class=wyh-line id=v_subline>—</div></div><div class="act " id=actcard><div class=h>🔥 अगला कनेक्शन ज़रूर लगाएं</div><div class=s id=thead>खुले टिकट — पहले ये लगाएं:</div><div class=tkt id=trow1><span class=tn>इंस्टॉल <span id=d1n></span> · <span id=d1a></span></span><span class=tc>समय तय करें ›</span></div><div class=tkt id=trow2><span class=tn>इंस्टॉल <span id=d2n></span> · <span id=d2a></span></span><span class=tc>समय तय करें ›</span></div><div class=notkt id=notkt>अभी कोई खुला टिकट नहीं — जो आए, उसी दिन समय तय करें।</div></div><div class=prot id=guar><div class=ph>🛡 आपकी सुरक्षा</div><div class=big>₹10,000 <span>तक कमाई पूरी होगी</span></div><div class=when>कब लागू? — दोनों बातें ज़रूरी</div><div class=cond><div class=cl><span class=em>🔧</span>आपका 60% पूरा हो</div><span class=cp>आपका वादा</span></div><div class=cond><div class=cl><span class=em>📉</span>फिर भी कमाई ₹10,000 से कम रहे</div><span class=cp>व्योम की कमी</span></div><div class=sb>साफ़ बात</div><div class=li>· सिर्फ़ नए कनेक्शन की कमाई गिनी जाएगी<br>· बाकी आमदनी इससे अलग</div></div><div class=foot>प्रोग्राम सिर्फ़ 3 महीने का।</div></div></div><div class=demo id=demo></div>
+
+<!-- ============================================================================
+     DATA SOURCE  —  the ONE place to change when you move to the real platform.
+
+     Right now (static GitHub hosting, no backend/API yet) each CSP's RAW inputs
+     live in the SAMPLE map below and the viewer is picked by ?cspId= in the URL.
+
+     When you wire your in-house platform (user is authenticated → backend knows
+     who they are), replace getCspData() with a call to your endpoint, e.g.:
+
+         async function getCspData(){
+           const r = await fetch('/api/mbg/me', {credentials:'include'}); // session cookie
+           return await r.json();   // { userId, installs, denom, pending, tickets:[{no,area,cid}] }
+         }
+
+     The RAW inputs (installs / denom / pending / tickets) are exactly what the
+     poller derives from PROD_DB...INSTALL_EXECUTION_CANDIDATES (see Appendix A).
+     Everything else (screen, pct, needed, next_pct, installpay, topup, days_left,
+     month, id) is COMPUTED below with the exact poller formulas — do not push
+     those pre-computed; compute them here so the logic stays in one place.
+     ============================================================================ -->
+<script>
+// ---- sample per-CSP raw inputs (replace with your backend; see comment above) ----
+var SAMPLE = {
+  "100001": { userId:"100001", installs:7,  denom:14, pending:5, tickets:[
+                {no:"#8213", area:"zone_012", cid:"EXEC-CANDIDATE-0000-8213"},
+                {no:"#4419", area:"zone_007", cid:"EXEC-CANDIDATE-0000-4419"}] },   // → almost
+  "100002": { userId:"100002", installs:9,  denom:12, pending:3, tickets:[
+                {no:"#7761", area:"zone_003", cid:"EXEC-CANDIDATE-0000-7761"}] },   // → secured
+  "100003": { userId:"100003", installs:2,  denom:11, pending:9, tickets:[
+                {no:"#1290", area:"zone_021", cid:"EXEC-CANDIDATE-0000-1290"},
+                {no:"#3355", area:"zone_015", cid:"EXEC-CANDIDATE-0000-3355"}] },   // → keepgoing
+  "100004": { userId:"100004", installs:0,  denom:0,  pending:0, tickets:[] }        // → noleads
+};
+function getCspData(){
+  var id = new URLSearchParams(location.search).get('cspId');
+  return SAMPLE[id] || SAMPLE[Object.keys(SAMPLE)[0]];
+}
+</script>
+
+<!-- ===== EXACT MBG CALCULATION (mirrors Appendix A of the reference doc) ===== -->
+<script>
+function computeMBG(d){
+  var PAY=300, GATE=0.60, FLOOR=10000;
+  var installs = +d.installs||0, denom = +d.denom||0, pending = +d.pending||0;
+  var total = denom + pending;
+
+  // round half-to-even, to match Python's round()
+  function pyRound(x){ var f=Math.floor(x), r=x-f; if(r<0.5)return f; if(r>0.5)return f+1; return (f%2===0)?f:f+1; }
+
+  // route() — mutually-exclusive screen
+  var screen = total===0 ? 'noleads'
+             : (denom>0 && installs/denom > GATE) ? 'secured'
+             : ((installs+pending) > GATE*total) ? 'almost'
+             : 'keepgoing';
+
+  // IST calendar facts (universal — same for every CSP)
+  var HIm = ['जनवरी','फ़रवरी','मार्च','अप्रैल','मई','जून','जुलाई','अगस्त','सितंबर','अक्टूबर','नवंबर','दिसंबर'];
+  var ist = new Date(Date.now() + 330*60000);
+  var im1 = ist.getUTCMonth()+1;                                              // 1-based IST month
+  var dim = new Date(Date.UTC(ist.getUTCFullYear(), im1, 0)).getUTCDate();    // days in this IST month
+
+  return {
+    screen     : screen,
+    installs   : installs,
+    denom      : denom,                                                       // mbg_leads
+    pending    : pending,
+    pct        : denom>0 ? pyRound(100*installs/denom) : 0,                   // mbg_pct
+    next_pct   : pyRound(100*(installs+1)/(denom+1)),                        // mbg_next_pct
+    needed     : total>0 ? Math.max(1, Math.floor(GATE*total)+1 - installs) : 0, // mbg_needed
+    installpay : (PAY*installs).toLocaleString('en-US'),                     // mbg_installpay (₹, comma-grouped)
+    topup      : Math.max(0, FLOOR - PAY*installs),                          // mbg_topup
+    days_left  : Math.max(0, dim - ist.getUTCDate()),                        // mbg_days_left (IST)
+    month      : 'महीना ' + Math.max(1, im1 - 6),                            // mbg_month (program month, Jul=1)
+    month_hi   : HIm[im1-1],                                                  // (calendar name, if you prefer it)
+    id         : String(d.userId||'').padStart(6,'0'),                       // mbg_id
+    tkt_n      : Math.min(2, (d.tickets||[]).length),                        // mbg_tkt_n
+    tickets    : (d.tickets||[]).slice(0,2)
+  };
+}
+</script>
+
+<!-- ===== RENDER + EVENT TRACKING ===== -->
+<script>
+(function(){
+  var d = getCspData();
+  var m = computeMBG(d);
+  function set(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
+
+  // ---- in-house analytics hook (no CleverTap here) ----
+  // Wire this to your own event pipeline. Kept as a bridge-safe no-op + console log.
+  function track(name){
+    try{ var b=window.CleverTap; if(b&&b.pushEvent){b.pushEvent(name);} }catch(e){}
+    try{ if(window.console) console.log('[MBG event]', name, 'csp='+m.id); }catch(e){}
+    // e.g.: navigator.sendBeacon('/api/track', JSON.stringify({event:name, cspId:m.id}));
+  }
+
+  // ---- scalar values ----
+  set('v_month', m.month);
+  set('v_days',  m.days_left);
+  set('v_installpay', m.installpay);
+  var fill=document.getElementById('v_fill'); if(fill) fill.style.width = Math.min(100,m.pct)+'%';
+
+  // ---- per-screen COPY: the parts that differ between the four screens ----
+  // (tickets / guarantee / footer are identical across all screens)
+  var EARN = '↑ हर नए कनेक्शन पर ₹300 · कोई ऊपरी सीमा नहीं';
+  var COPY = {
+    keepgoing:{ cls:'f-red',   pct:function(m){return m.pct;}, sign:'%', earnSub:EARN,
+                need:function(m){return m.needed+' कनेक्शन और चाहिए';},
+                line:function(m){return m.denom+' मिले · '+m.installs+' लगे = '+m.pct+'% · ऐसे ही चला तो महीना 60% से नीचे बंद होगा';} },
+    almost:{    cls:'f-amber', pct:function(m){return m.pct;}, sign:'%', earnSub:EARN,
+                need:function(m){return m.needed+' कनेक्शन और — 60% पार';},
+                line:function(m){return m.denom+' मिले · '+m.installs+' लगे = '+m.pct+'% · अगला लगते ही '+m.next_pct+'%';} },
+    secured:{   cls:'f-green', pct:function(m){return m.pct;}, sign:'%', earnSub:EARN,
+                need:function(m){return '✓ 60% पार';},
+                line:function(m){return m.denom+' मिले · '+m.installs+' लगे = '+m.pct+'% · नए कनेक्शन आने पर % बदल सकता है';} },
+    noleads:{   cls:'f-idle',  pct:function(m){return '—';},  sign:'',  earnSub:'0 कनेक्शन — पहला जल्द आएगा', needColor:'#1d6b43',
+                need:function(m){return 'गिनती पहले कनेक्शन से शुरू होगी';},
+                line:function(m){return 'व्योम कनेक्शन भेज रहा है — जो आए, उसी दिन लगाएं';} }
+  };
+  var c = COPY[m.screen] || COPY.keepgoing;
+
+  // colour + copy driven by the computed screen
+  var wh=document.getElementById('whcard'); if(wh) wh.className='card '+c.cls;
+  set('v_earnsub', c.earnSub);
+  set('v_pct', c.pct(m));
+  set('v_pctsign', c.sign);
+  set('v_needline', c.need(m));
+  var nl=document.getElementById('v_needline'); if(nl) nl.style.color = c.needColor || '';
+  set('v_subline',  c.line(m));
+
+  // ---- tickets ----
+  for(var i=0;i<2;i++){
+    var t=m.tickets[i], row=document.getElementById('trow'+(i+1));
+    if(!t||!t.no){ if(row)row.style.display='none'; continue; }
+    set('d'+(i+1)+'n', t.no); set('d'+(i+1)+'a', t.area||'');
+    row.setAttribute('data-cid', t.cid||'');
+    row.addEventListener('click', function(){ track('MBG_Ticket_'+m.screen); /* TODO: navigate to ticket via data-cid */ });
+  }
+  if(m.tkt_n===0){ var n=document.getElementById('notkt'); if(n)n.style.display='block';
+                   var th=document.getElementById('thead'); if(th)th.style.display='none'; }
+
+  // ---- header / guarantee / scroll events ----
+  var cta=document.getElementById('cta'); if(cta) cta.addEventListener('click', function(){ track('MBG_Click_'+m.screen); history.length>1?history.back():null; });
+  var gu=document.getElementById('guar'); if(gu) gu.addEventListener('click', function(){ track('MBG_TapGuarantee_'+m.screen); });
+  var scd=false; function onScr(){ if(scd)return; scd=true; track('MBG_Scroll_'+m.screen); }
+  window.addEventListener('scroll',onScr,{passive:true});
+  try{ if(window.IntersectionObserver){ var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){track('MBG_Saw'+e.target.getAttribute('data-ev')+'_'+m.screen);io.unobserve(e.target);}});},{threshold:0.55});
+    ['actcard','guar'].forEach(function(id){var el=document.getElementById(id);if(el){el.setAttribute('data-ev',id==='actcard'?'Tickets':'Guarantee');io.observe(el);}}); } }catch(e){}
+
+  // view event (with the true routed screen)
+  track('MBG_View_'+m.screen);
+
+  // ---- little demo switcher (remove when behind real auth) ----
+  var demo=document.getElementById('demo');
+  if(demo){ demo.innerHTML = 'demo — routed screen: <b>'+m.screen+'</b> · switch CSP: '
+      + Object.keys(SAMPLE).map(function(k){return '<a href="?cspId='+k+'">'+k+'</a>';}).join(' · '); }
+})();
+</script></body></html>
