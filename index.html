@@ -42,42 +42,30 @@ html,body{background:var(--screen);}
 </style></head><body><div class=wrap><div class=hdr><span class=bk id=cta>←</span><span class=t>गारंटी कमाई</span><span class=bell>🔔</span></div><div class=subhdr><span><span id=v_month>—</span> का हिसाब</span><span>इस महीने <span id=v_days>0</span> दिन बाकी</span></div><div class=body><div class=card><div class=k>इस महीने नए कनेक्शन से कमाया</div><div class=earn-amt>₹<span id=v_installpay>0</span></div><div class=earn-sub id=v_earnsub>↑ हर नए कनेक्शन पर ₹300 · कोई ऊपरी सीमा नहीं</div></div><div class="card f-amber" id=whcard><div class=k>आप कहाँ हैं</div><div class=wyh-top><span class=wyh-pct><span id=v_pct>0</span><span id=v_pctsign>%</span></span><span class=wyh-need60>/ 60% चाहिए</span></div><div class=bar><div class=fill id=v_fill style="width:0%"></div><div class=mk></div></div><div class=wyh-need id=v_needline>—</div><div class=wyh-line id=v_subline>—</div></div><div class="act " id=actcard><div class=h>🔥 अगला कनेक्शन ज़रूर लगाएं</div><div class=s id=thead>खुले टिकट — पहले ये लगाएं:</div><div class=tkt id=trow1><span class=tn>इंस्टॉल <span id=d1n></span> · <span id=d1a></span></span><span class=tc>समय तय करें ›</span></div><div class=tkt id=trow2><span class=tn>इंस्टॉल <span id=d2n></span> · <span id=d2a></span></span><span class=tc>समय तय करें ›</span></div><div class=notkt id=notkt>अभी कोई खुला टिकट नहीं — जो आए, उसी दिन समय तय करें।</div></div><div class=prot id=guar><div class=ph>🛡 आपकी सुरक्षा</div><div class=big>₹10,000 <span>तक कमाई पूरी होगी</span></div><div class=when>कब लागू? — दोनों बातें ज़रूरी</div><div class=cond><div class=cl><span class=em>🔧</span>आपका 60% पूरा हो</div><span class=cp>आपका वादा</span></div><div class=cond><div class=cl><span class=em>📉</span>फिर भी कमाई ₹10,000 से कम रहे</div><span class=cp>व्योम की कमी</span></div><div class=sb>साफ़ बात</div><div class=li>· सिर्फ़ नए कनेक्शन की कमाई गिनी जाएगी<br>· बाकी आमदनी इससे अलग</div></div><div class=foot>प्रोग्राम सिर्फ़ 3 महीने का।</div></div></div><div class=demo id=demo></div>
 
 <!-- ============================================================================
-     DATA SOURCE  —  the ONE place to change when you move to the real platform.
+     DATA SOURCE — real per-CSP snapshot in data.json (refreshed by refresh.py).
 
-     Right now (static GitHub hosting, no backend/API yet) each CSP's RAW inputs
-     live in the SAMPLE map below and the viewer is picked by ?cspId= in the URL.
+     data.json = { "meta":{...}, "data": { "<userId>": { userId, installs, denom,
+     pending, tickets:[{no,area,cid}] } } }  — the RAW inputs the poller derives from
+     PROD_DB...INSTALL_EXECUTION_CANDIDATES (see docs/CALCULATIONS.md). Everything else
+     (screen, pct, needed, next_pct, installpay, topup, days_left, month) is COMPUTED
+     client-side below with the exact poller formulas.
 
-     When you wire your in-house platform (user is authenticated → backend knows
-     who they are), replace getCspData() with a call to your endpoint, e.g.:
+     loadData() fetches the snapshot; getCspData(DATA) picks the viewer via ?cspId=
+     (any casing) and falls back to a zero/noleads record for an unknown id.
 
-         async function getCspData(){
-           const r = await fetch('/api/mbg/me', {credentials:'include'}); // session cookie
-           return await r.json();   // { userId, installs, denom, pending, tickets:[{no,area,cid}] }
-         }
-
-     The RAW inputs (installs / denom / pending / tickets) are exactly what the
-     poller derives from PROD_DB...INSTALL_EXECUTION_CANDIDATES (see Appendix A).
-     Everything else (screen, pct, needed, next_pct, installpay, topup, days_left,
-     month, id) is COMPUTED below with the exact poller formulas — do not push
-     those pre-computed; compute them here so the logic stays in one place.
+     GOING LIVE on the authenticated platform: replace loadData()/getCspData() with a
+     single call to your backend — GET /api/mbg/me (session identifies the CSP) →
+     { userId, installs, denom, pending, tickets:[...] }. Nothing else changes.
      ============================================================================ -->
 <script>
-// ---- sample per-CSP raw inputs (replace with your backend; see comment above) ----
-var SAMPLE = {
-  "100001": { userId:"100001", installs:7,  denom:14, pending:5, tickets:[
-                {no:"#8213", area:"zone_012", cid:"EXEC-CANDIDATE-0000-8213"},
-                {no:"#4419", area:"zone_007", cid:"EXEC-CANDIDATE-0000-4419"}] },   // → almost
-  "100002": { userId:"100002", installs:9,  denom:12, pending:3, tickets:[
-                {no:"#7761", area:"zone_003", cid:"EXEC-CANDIDATE-0000-7761"}] },   // → secured
-  "100003": { userId:"100003", installs:2,  denom:11, pending:9, tickets:[
-                {no:"#1290", area:"zone_021", cid:"EXEC-CANDIDATE-0000-1290"},
-                {no:"#3355", area:"zone_015", cid:"EXEC-CANDIDATE-0000-3355"}] },   // → keepgoing
-  "100004": { userId:"100004", installs:0,  denom:0,  pending:0, tickets:[] }        // → noleads
-};
-function getCspData(){
+async function loadData(){
+  try{ var r = await fetch('data.json', {cache:'no-store'}); return (await r.json()).data || {}; }
+  catch(e){ return {}; }   // file:// or fetch blocked → empty → any id reads as noleads
+}
+function getCspData(DATA){
   var q = new URLSearchParams(location.search);
-  var id = q.get('cspId') || q.get('cspid') || q.get('csp_id') || q.get('id');  // accept any casing
-  return SAMPLE[id] || SAMPLE[Object.keys(SAMPLE)[0]];
+  var id = q.get('cspId') || q.get('cspid') || q.get('csp_id') || q.get('id') || '';  // any casing
+  return DATA[id] || { userId:id, installs:0, denom:0, pending:0, tickets:[] };        // unknown id → noleads
 }
 </script>
 
@@ -125,8 +113,9 @@ function computeMBG(d){
 
 <!-- ===== RENDER + EVENT TRACKING ===== -->
 <script>
-(function(){
-  var d = getCspData();
+(async function(){
+  var DATA = await loadData();
+  var d = getCspData(DATA);
   var m = computeMBG(d);
   function set(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
 
@@ -196,7 +185,9 @@ function computeMBG(d){
 
   // ---- little demo switcher (remove when behind real auth) ----
   var demo=document.getElementById('demo');
-  if(demo){ demo.innerHTML = 'demo — routed screen: <b>'+m.screen+'</b> · switch CSP: '
-      + Object.keys(SAMPLE).map(function(k){return '<a href="?cspId='+k+'">'+k+'</a>';}).join(' · '); }
+  if(demo){ var EX=[['10453','secured'],['11950','almost'],['9388','keepgoing'],['000000','noleads']];
+    demo.innerHTML = 'demo — routed screen: <b>'+m.screen+'</b> · try: '
+      + EX.map(function(e){return '<a href="?cspId='+e[0]+'">'+e[1]+'</a>';}).join(' · ')
+      + ' · <span style="color:#a8a2b4">'+ (DATA[d.userId]?'real CSP '+m.id:'unknown id → noleads') +'</span>'; }
 })();
 </script></body></html>

@@ -50,12 +50,29 @@ else — earnings card, ticket action card, ₹10,000 guarantee card, footer —
 | `days_left` | days remaining in the current **IST** calendar month |
 | `month` | `"महीना " + (IST_month − 6)` (program month, Jul = 1) |
 
+## Data — real snapshot + refresh
+
+Per-CSP data lives in **`data.json`** (`{ meta, data: { "<userId>": {installs, denom,
+pending, tickets} } }`), a real snapshot pulled from Metabase/Snowflake. The page fetches
+it, picks the viewer by `?cspId=`, and computes everything client-side. An **unknown
+userId falls back to noleads** (safe default).
+
+Refresh it with **`refresh.py`** (runs `sql/metrics.sql`, rewrites `data.json`):
+
+```
+python refresh.py           # pull + write data.json
+python refresh.py --push     # pull + write + git commit & push (redeploys Pages)
+```
+
+`refresh.py` reads `METABASE_API_KEY` from `C:\credentials\.env` — **never committed**.
+Schedule it (Task Scheduler / cron) to keep the snapshot fresh, like the poller.
+
 ## Viewing / demo
 
-- Open `index.html` directly, or via GitHub Pages.
-- Pick a CSP with `?cspId=` — e.g. `.../?cspId=100002`.
-- Sample CSPs (one per screen): `100001` almost · `100002` secured · `100003` keepgoing · `100004` noleads.
-- A demo switcher at the bottom links all four (remove it once behind real auth).
+- Open via GitHub Pages, pick a CSP with `?cspId=<userId>` (any casing works).
+- Real examples (one per screen): `10453` secured · `11950` almost · `9388` keepgoing · any unknown id (e.g. `000000`) → noleads.
+- A demo switcher at the bottom links these (remove it once behind real auth).
+- Note: opening the file via `file://` can't `fetch` `data.json` (browser CORS) → shows noleads. Use the hosted URL.
 
 ## Going live on the real platform
 

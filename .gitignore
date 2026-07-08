@@ -1,0 +1,6 @@
+# never commit secrets or scratch
+.env
+*.env
+raw.json
+__pycache__/
+*.pyc
