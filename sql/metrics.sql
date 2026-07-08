@@ -70,17 +70,19 @@ tk AS (
     MAX(CASE WHEN rn=2 THEN EXECUTION_CANDIDATE_ID END) AS t2_cid
   FROM tk_ranked WHERE rn<=2 GROUP BY CSP_ID
 ),
-ids AS (
-  SELECT DISTINCT u.ID::string AS user_id, u.CSP_ID AS csp_id
-  FROM PROD_DB.CSP_GATEWAY_SERVICE_CSP_GATEWAY_SERVICE.CSP_USER u
-  WHERE u._FIVETRAN_ACTIVE=TRUE AND u.STATUS='ACTIVE'
-    AND u.ROLE IN ('OWNER','MANAGER','MANAGER_PLUS') AND u.ID IS NOT NULL
+owner AS (   -- one representative userId per CSP (for mbg_id / tracking), owner preferred
+  SELECT CSP_ID,
+    MAX_BY(ID::string, CASE ROLE WHEN 'OWNER' THEN 3 WHEN 'MANAGER_PLUS' THEN 2 ELSE 1 END) AS user_id
+  FROM PROD_DB.CSP_GATEWAY_SERVICE_CSP_GATEWAY_SERVICE.CSP_USER
+  WHERE _FIVETRAN_ACTIVE=TRUE AND STATUS='ACTIVE'
+    AND ROLE IN ('OWNER','MANAGER','MANAGER_PLUS') AND ID IS NOT NULL
+  GROUP BY CSP_ID
 )
-SELECT i.user_id, i.csp_id,
+SELECT m.CSP_ID AS csp_id, o.user_id,
   m.installs, m.denom, m.pending,
   tk.t1_no, tk.t1_area, tk.t1_cid, tk.t2_no, tk.t2_area, tk.t2_cid
-FROM ids i
-JOIN metrics m ON m.CSP_ID = i.csp_id
-LEFT JOIN tk ON tk.CSP_ID = i.csp_id
+FROM metrics m
+LEFT JOIN tk    ON tk.CSP_ID = m.CSP_ID
+LEFT JOIN owner o ON o.CSP_ID = m.CSP_ID
 WHERE (m.installs + m.denom + m.pending) > 0
 ORDER BY m.installs DESC, m.denom DESC

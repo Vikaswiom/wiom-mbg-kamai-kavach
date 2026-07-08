@@ -50,14 +50,18 @@ else — earnings card, ticket action card, ₹10,000 guarantee card, footer —
 | `days_left` | days remaining in the current **IST** calendar month |
 | `month` | `"महीना " + (IST_month − 6)` (program month, Jul = 1) |
 
-## Data — real snapshot + refresh
+## Data — two modes
 
-Per-CSP data lives in **`data.json`** (`{ meta, data: { "<userId>": {installs, denom,
-pending, tickets} } }`), a real snapshot pulled from Metabase/Snowflake. The page fetches
-it, picks the viewer by `?cspId=`, and computes everything client-side. An **unknown
-userId falls back to noleads** (safe default).
+Everything is keyed by **cspId** (e.g. `a0a0b1`) and passed as `?cspId=` (any casing).
+An **unknown cspId falls back to noleads** (safe default).
 
-Refresh it with **`refresh.py`** (runs `sql/metrics.sql`, rewrites `data.json`):
+**Mode 1 — Live per tap (recommended):** set `PROXY_URL` in `index.html` to a deployed
+Apps Script proxy. On every open the page fetches *fresh* data for that cspId from
+Metabase. See [`docs/live-proxy/`](./docs/live-proxy/) (2-min deploy).
+
+**Mode 2 — Baked snapshot (default, no deploy):** `data.json` holds a real snapshot
+(`{ meta, data: { "<cspId>": {installs,denom,pending,tickets} } }`) pulled from Metabase.
+Refresh with **`refresh.py`** (runs `sql/metrics.sql`, rewrites `data.json`):
 
 ```
 python refresh.py           # pull + write data.json
@@ -65,14 +69,16 @@ python refresh.py --push     # pull + write + git commit & push (redeploys Pages
 ```
 
 `refresh.py` reads `METABASE_API_KEY` from `C:\credentials\.env` — **never committed**.
-Schedule it (Task Scheduler / cron) to keep the snapshot fresh, like the poller.
+Schedule it (Task Scheduler / cron) to keep the snapshot fresh.
+
+The page tries the proxy first (if `PROXY_URL` set), then falls back to `data.json`.
 
 ## Viewing / demo
 
-- Open via GitHub Pages, pick a CSP with `?cspId=<userId>` (any casing works).
-- Real examples (one per screen): `10453` secured · `11950` almost · `9388` keepgoing · any unknown id (e.g. `000000`) → noleads.
-- A demo switcher at the bottom links these (remove it once behind real auth).
-- Note: opening the file via `file://` can't `fetch` `data.json` (browser CORS) → shows noleads. Use the hosted URL.
+- Open via GitHub Pages, pick a CSP with `?cspId=<cspId>` (e.g. `a0b9y0`).
+- Real examples (one per screen): `a0b9y0` secured · `a0b9y4` almost · `a0b5w1` keepgoing · any unknown id (e.g. `zzzzzz`) → noleads.
+- The bottom demo line shows the routed screen + whether data came **(live)** or **(snapshot)**.
+- Note: opening via `file://` can't `fetch` the data (browser CORS) → shows noleads. Use the hosted URL.
 
 ## Going live on the real platform
 

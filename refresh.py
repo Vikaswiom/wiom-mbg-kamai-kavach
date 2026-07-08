@@ -59,10 +59,11 @@ def build():
 
     data = {}
     for r in rows:
-        uid = str(r[idx["USER_ID"]])
+        cid = str(r[idx["CSP_ID"]])                       # key by cspId (e.g. a0a0b1)
         tickets = [t for t in (ticket(r, 1), ticket(r, 2)) if t]
-        data[uid] = {
-            "userId":   uid,
+        data[cid] = {
+            "cspId":    cid,
+            "userId":   str(r[idx["USER_ID"]] or ""),     # representative identity (for mbg_id/tracking)
             "installs": int(r[idx["INSTALLS"]] or 0),
             "denom":    int(r[idx["DENOM"]] or 0),
             "pending":  int(r[idx["PENDING"]] or 0),

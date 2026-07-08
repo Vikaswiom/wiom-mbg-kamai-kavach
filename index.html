@@ -58,14 +58,34 @@ html,body{background:var(--screen);}
      { userId, installs, denom, pending, tickets:[...] }. Nothing else changes.
      ============================================================================ -->
 <script>
-async function loadData(){
-  try{ var r = await fetch('data.json', {cache:'no-store'}); return (await r.json()).data || {}; }
-  catch(e){ return {}; }   // file:// or fetch blocked → empty → any id reads as noleads
-}
-function getCspData(DATA){
+// ► Paste your deployed Apps Script /exec URL here to go LIVE PER TAP (fresh from
+//   Metabase for the requested cspId). Leave "" to serve the baked data.json snapshot.
+//   See docs/live-proxy/README.md for the 2-minute deploy.
+var PROXY_URL = "";
+
+function cspIdFromUrl(){
   var q = new URLSearchParams(location.search);
-  var id = q.get('cspId') || q.get('cspid') || q.get('csp_id') || q.get('id') || '';  // any casing
-  return DATA[id] || { userId:id, installs:0, denom:0, pending:0, tickets:[] };        // unknown id → noleads
+  return q.get('cspId') || q.get('cspid') || q.get('csp_id') || q.get('id') || '';   // any casing
+}
+// Returns { cspId, userId, installs, denom, pending, tickets:[{no,area,cid}] }
+async function getCspData(){
+  var id = cspIdFromUrl();
+  var noleads = { cspId:id, userId:id, installs:0, denom:0, pending:0, tickets:[] };
+  // 1) LIVE per tap — proxy queries Metabase for THIS cspId, right now
+  if(PROXY_URL && id){
+    try{
+      var sep = PROXY_URL.indexOf('?')>-1 ? '&' : '?';
+      var r = await fetch(PROXY_URL + sep + 'cspId=' + encodeURIComponent(id), {cache:'no-store'});
+      var j = await r.json();
+      if(j && j.installs!==undefined) return j;      // proxy returns the same raw shape
+    }catch(e){}
+  }
+  // 2) fallback — baked snapshot (instant; refreshed by refresh.py)
+  try{
+    var s = await fetch('data.json', {cache:'no-store'});
+    var DATA = (await s.json()).data || {};
+    return DATA[id] || noleads;                        // unknown id → noleads
+  }catch(e){ return noleads; }
 }
 </script>
 
@@ -104,7 +124,7 @@ function computeMBG(d){
     days_left  : Math.max(0, dim - ist.getUTCDate()),                        // mbg_days_left (IST)
     month      : 'महीना ' + Math.max(1, im1 - 6),                            // mbg_month (program month, Jul=1)
     month_hi   : HIm[im1-1],                                                  // (calendar name, if you prefer it)
-    id         : String(d.userId||'').padStart(6,'0'),                       // mbg_id
+    id         : String(d.cspId||d.userId||''),                              // mbg_id (cspId for in-house)
     tkt_n      : Math.min(2, (d.tickets||[]).length),                        // mbg_tkt_n
     tickets    : (d.tickets||[]).slice(0,2)
   };
@@ -114,8 +134,7 @@ function computeMBG(d){
 <!-- ===== RENDER + EVENT TRACKING ===== -->
 <script>
 (async function(){
-  var DATA = await loadData();
-  var d = getCspData(DATA);
+  var d = await getCspData();
   var m = computeMBG(d);
   function set(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
 
@@ -185,9 +204,10 @@ function computeMBG(d){
 
   // ---- little demo switcher (remove when behind real auth) ----
   var demo=document.getElementById('demo');
-  if(demo){ var EX=[['10453','secured'],['11950','almost'],['9388','keepgoing'],['000000','noleads']];
+  if(demo){ var EX=[['a0b9y0','secured'],['a0b9y4','almost'],['a0b5w1','keepgoing'],['zzzzzz','noleads']];
+    var real=(d.installs+d.denom+d.pending)>0;
     demo.innerHTML = 'demo — routed screen: <b>'+m.screen+'</b> · try: '
       + EX.map(function(e){return '<a href="?cspId='+e[0]+'">'+e[1]+'</a>';}).join(' · ')
-      + ' · <span style="color:#a8a2b4">'+ (DATA[d.userId]?'real CSP '+m.id:'unknown id → noleads') +'</span>'; }
+      + ' · <span style="color:#a8a2b4">'+ (real?'real CSP '+m.id+(PROXY_URL?' (live)':' (snapshot)'):'unknown id → noleads') +'</span>'; }
 })();
 </script></body></html>
