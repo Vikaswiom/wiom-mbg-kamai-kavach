@@ -65,7 +65,7 @@ var PROXY_URL = "";
 //   {cid} = full execution-candidate id · {no} = ticket number (without #).
 //   Set this to your app's install-ticket route (ask the app dev for the exact URI).
 //   Empty "" = row still taps + tracks but doesn't navigate.
-var TICKET_LINK = "wiom://install/{cid}";
+var TICKET_LINK = "https://csp.wiom.in/task/install/{cid}";
 
 function cspIdFromUrl(){
   var q = new URLSearchParams(location.search);
