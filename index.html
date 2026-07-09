@@ -63,6 +63,12 @@ html,body{background:var(--screen);}
 //   See docs/live-proxy/README.md for the 2-minute deploy.
 var PROXY_URL = "";
 
+// ► Deep link opened when a ticket row ("समय तय करें ›") is tapped.
+//   {cid} = full execution-candidate id · {no} = ticket number (without #).
+//   Set this to your app's install-ticket route (ask the app dev for the exact URI).
+//   Empty "" = row still taps + tracks but doesn't navigate.
+var TICKET_LINK = "wiom://install/{cid}";
+
 function cspIdFromUrl(){
   var q = new URLSearchParams(location.search);
   return q.get('cspId') || q.get('cspid') || q.get('csp_id') || q.get('id') || '';   // any casing
@@ -180,13 +186,23 @@ function computeMBG(d){
   var nl=document.getElementById('v_needline'); if(nl) nl.style.color = c.needColor || '';
   set('v_subline',  c.line(m));
 
-  // ---- tickets ----
+  // ---- tickets (row tap = track + open that ticket's page in the app) ----
+  function openTicket(cid, no){
+    if(!cid || !TICKET_LINK) return;
+    var url = TICKET_LINK.replace('{cid}', encodeURIComponent(cid))
+                         .replace('{no}',  encodeURIComponent((no||'').replace('#','')));
+    try{ var b=window.CleverTap; if(b&&b.openDeepLink){ b.openDeepLink(url); return; } }catch(e){}
+    window.location.href = url;   // custom scheme (wiom://…) or an https route
+  }
   for(var i=0;i<2;i++){
     var t=m.tickets[i], row=document.getElementById('trow'+(i+1));
     if(!t||!t.no){ if(row)row.style.display='none'; continue; }
     set('d'+(i+1)+'n', t.no); set('d'+(i+1)+'a', t.area||'');
-    row.setAttribute('data-cid', t.cid||'');
-    row.addEventListener('click', function(){ track('MBG_Ticket_'+m.screen); /* TODO: navigate to ticket via data-cid */ });
+    row.setAttribute('data-cid', t.cid||''); row.setAttribute('data-no', t.no||'');
+    row.addEventListener('click', function(){
+      track('MBG_Ticket_'+m.screen);
+      openTicket(this.getAttribute('data-cid'), this.getAttribute('data-no'));   // read from row → correct ticket
+    });
   }
   if(m.tkt_n===0){ var n=document.getElementById('notkt'); if(n)n.style.display='block';
                    var th=document.getElementById('thead'); if(th)th.style.display='none'; }
