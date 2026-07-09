@@ -69,7 +69,9 @@ python refresh.py --push     # pull + write + git commit & push (redeploys Pages
 ```
 
 `refresh.py` reads `METABASE_API_KEY` from `C:\credentials\.env` — **never committed**.
-Schedule it (Task Scheduler / cron) to keep the snapshot fresh.
+Schedule it (Task Scheduler / cron) to keep the snapshot fresh — currently a Windows
+task **"MBG Kamai Kavach Refresh"** runs `run_refresh.bat` **every 15 minutes** (pushes
+only when data changed). Ticket rows are **informational only** (no tap / navigation).
 
 The page tries the proxy first (if `PROXY_URL` set), then falls back to `data.json`.
 
@@ -98,7 +100,7 @@ from `INSTALL_EXECUTION_CANDIDATES`). All screen routing and number-crunching st
 `computeMBG()` so the logic lives in one place.
 
 Also swap the in-house analytics hook `track()` (currently a console log) for your own
-event pipeline, and give the ticket rows a real deep-link/navigation via `data-cid`.
+event pipeline. (Ticket rows are informational only — no tap/navigation.)
 
 ## Hosting on GitHub Pages
 

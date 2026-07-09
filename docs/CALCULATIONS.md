@@ -152,7 +152,7 @@ suffix is the computed screen (`keepgoing`/`almost`/`secured`/`noleads`):
 - `MBG_Scroll_<screen>` — first scroll
 - `MBG_SawTickets_<screen>` / `MBG_SawGuarantee_<screen>` — card ≥55% visible
 - `MBG_TapGuarantee_<screen>` — guarantee card tapped (non-clickable; tap only tracked)
-- `MBG_Ticket_<screen>` — a ticket row tapped (deep-link via `data-cid`, TBD)
+- (ticket rows are informational only — no tap event / no navigation)
 - `MBG_Click_<screen>` — back arrow ("Exit")
 
 ---
@@ -179,5 +179,5 @@ GET /api/mbg/me            (session cookie identifies the CSP)
 ```
 
 Nothing else changes — routing, copy, and all numbers stay in `computeMBG()` /
-`COPY[screen]`. Also: wire `track()` to your event pipeline, and give ticket rows real
-navigation using `data-cid`.
+`COPY[screen]`. Also: wire `track()` to your event pipeline. (Ticket rows are
+informational only — no tap/navigation.)
