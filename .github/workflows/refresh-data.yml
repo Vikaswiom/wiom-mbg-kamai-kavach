@@ -9,7 +9,9 @@ name: refresh-data
 
 on:
   schedule:
-    - cron: "*/15 * * * *" # UTC; Actions may add a few minutes of delay
+    # 15-min cadence on off-peak minutes — GitHub's scheduler drops slots at the
+    # congested :00/:15/:30/:45 marks, so odd minutes fire far more reliably
+    - cron: "4,19,34,49 * * * *" # UTC; Actions may still add a few minutes of delay
   workflow_dispatch: {} # manual "Run workflow" button for testing
 
 # never let two refreshes race each other
