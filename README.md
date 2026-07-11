@@ -68,10 +68,18 @@ python refresh.py           # pull + write data.json
 python refresh.py --push     # pull + write + git commit & push (redeploys Pages)
 ```
 
-`refresh.py` reads `METABASE_API_KEY` from `C:\credentials\.env` — **never committed**.
-Schedule it (Task Scheduler / cron) to keep the snapshot fresh — currently a Windows
-task **"MBG Kamai Kavach Refresh"** runs `run_refresh.bat` **every 15 minutes** (pushes
-only when data changed). Ticket rows are **informational only** (no tap / navigation).
+`refresh.py` reads `METABASE_API_KEY` from the **environment** (CI), falling back to
+`C:\credentials\.env` for local runs — **never committed**.
+
+**Scheduled refresh runs in GitHub Actions**
+([`.github/workflows/refresh-data.yml`](./.github/workflows/refresh-data.yml)): every
+15 minutes it pulls fresh metrics and pushes `data.json` **only when the data changed**.
+`--push` hard-syncs the clone to `origin/main` before committing, so pushes to `main`
+by other people can never wedge the pipeline (this is what silently killed the old
+laptop-based refresh). One-time setup: add the repo secret **`METABASE_API_KEY`**
+(Settings → Secrets and variables → Actions). The old Windows Task Scheduler job
+("MBG Kamai Kavach Refresh") must be **disabled** — CI is the single writer now.
+Ticket rows are **informational only** (no tap / navigation).
 
 The page tries the proxy first (if `PROXY_URL` set), then falls back to `data.json`.
 

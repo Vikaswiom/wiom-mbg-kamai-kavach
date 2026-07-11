@@ -1,0 +1,55 @@
+# Scheduled data refresh — replaces the old Windows Task Scheduler job.
+#
+# Every 15 minutes: run refresh.py against Metabase and push data.json to main
+# (only when the data actually changed), which redeploys GitHub Pages.
+#
+# One-time setup: add the repo secret METABASE_API_KEY
+# (Settings → Secrets and variables → Actions → New repository secret).
+name: refresh-data
+
+on:
+  schedule:
+    - cron: "*/15 * * * *" # UTC; Actions may add a few minutes of delay
+  workflow_dispatch: {} # manual "Run workflow" button for testing
+
+# never let two refreshes race each other
+concurrency:
+  group: refresh-data
+  cancel-in-progress: false
+
+permissions:
+  contents: write # push data.json to main
+  pages: write # request a Pages rebuild after the push
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: refresh snapshot + push if changed
+        id: refresh
+        env:
+          METABASE_API_KEY: ${{ secrets.METABASE_API_KEY }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          BEFORE=$(git rev-parse HEAD)
+          python3 refresh.py --push
+          if [ "$BEFORE" != "$(git rev-parse HEAD)" ]; then
+            echo "pushed=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "pushed=no" >> "$GITHUB_OUTPUT"
+          fi
+
+      # pushes made with GITHUB_TOKEN don't reliably trigger the branch-based
+      # Pages build, so request one explicitly whenever new data was pushed
+      - name: request Pages rebuild
+        if: steps.refresh.outputs.pushed == 'yes'
+        run: |
+          curl -sS -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pages/builds"

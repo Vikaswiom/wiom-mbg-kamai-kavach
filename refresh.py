@@ -13,7 +13,15 @@ Usage:
     python refresh.py           # pull + write data.json
     python refresh.py --push    # pull + write + git commit & push (redeploys Pages)
 
-Secrets: reads METABASE_API_KEY from C:\\credentials\\.env (never committed).
+Runs on a schedule in GitHub Actions (.github/workflows/refresh-data.yml).
+
+Secrets: reads METABASE_API_KEY from the environment (CI), falling back to
+C:\\credentials\\.env for local runs (never committed).
+
+NOTE on --push: it hard-syncs this clone to origin/main before committing
+(the snapshot is fully regenerated each run, so nothing of value can be lost),
+which means any local-only commits or edits in the clone are DISCARDED.
+Run it only from a dedicated refresh clone or CI, never a working dev copy.
 """
 import os, sys, json, subprocess, urllib.request
 from datetime import datetime, timezone, timedelta
@@ -26,11 +34,17 @@ IST  = timezone(timedelta(hours=5, minutes=30))
 
 
 def api_key():
-    with open(ENV, encoding="utf-8") as f:
-        for line in f:
-            if line.startswith("METABASE_API_KEY="):
-                return line.split("=", 1)[1].strip().strip('"').strip("'")
-    raise SystemExit("METABASE_API_KEY not found in " + ENV)
+    key = os.environ.get("METABASE_API_KEY", "").strip()
+    if key:
+        return key
+    try:
+        with open(ENV, encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("METABASE_API_KEY="):
+                    return line.split("=", 1)[1].strip().strip('"').strip("'")
+    except OSError:
+        pass
+    raise SystemExit("METABASE_API_KEY not set in the environment and not found in " + ENV)
 
 
 def run_sql(sql):
@@ -86,17 +100,42 @@ def build():
 
 
 def git_push(n):
-    # only push when data.json actually changed — avoids empty commits and
-    # needless GitHub Pages rebuilds (Pages allows ~10 builds/hour)
-    changed = subprocess.run(["git", "-C", HERE, "diff", "--quiet", "--", "data.json"]).returncode
-    if changed == 0:
-        print("no data change — skip push")
-        return
+    def git(*args, check=False):
+        return subprocess.run(["git", "-C", HERE, *args], check=check)
+
+    # refuse to run from a feature-branch checkout — the hard sync below would
+    # clobber it (this script's push flow is main-only by design)
+    branch = subprocess.run(["git", "-C", HERE, "rev-parse", "--abbrev-ref", "HEAD"],
+                            capture_output=True, text=True, check=True).stdout.strip()
+    if branch != "main":
+        raise SystemExit(f"--push must run from a 'main' checkout (this clone is on '{branch}')")
+
+    # keep the fresh snapshot in memory: the sync below resets the working tree
+    path = os.path.join(HERE, "data.json")
+    with open(path, encoding="utf-8") as f:
+        fresh = f.read()
+
     msg = f"data: refresh snapshot ({n} CSPs)"
-    subprocess.run(["git", "-C", HERE, "add", "data.json"], check=True)
-    subprocess.run(["git", "-C", HERE, "-c", "commit.gpgsign=false", "commit", "-q", "-m", msg], check=True)
-    subprocess.run(["git", "-C", HERE, "push", "-q", "origin", "main"], check=True)
-    print("pushed -> GitHub Pages will redeploy in ~1 min")
+    for attempt in range(1, 4):
+        # hard-sync to origin/main FIRST — main moves under this job (other people
+        # push UI/docs commits), and a plain push from a stale clone is rejected
+        # as non-fast-forward, which is exactly how the old pipeline died
+        git("fetch", "origin", "main", check=True)
+        git("reset", "--hard", "FETCH_HEAD", check=True)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(fresh)
+        # only push when data.json actually changed — avoids empty commits and
+        # needless GitHub Pages rebuilds (Pages allows ~10 builds/hour)
+        if git("diff", "--quiet", "--", "data.json").returncode == 0:
+            print("no data change — skip push")
+            return
+        git("add", "data.json", check=True)
+        git("-c", "commit.gpgsign=false", "commit", "-q", "-m", msg, check=True)
+        if git("push", "-q", "origin", "HEAD:main").returncode == 0:
+            print("pushed -> GitHub Pages will redeploy in ~1 min")
+            return
+        print(f"push rejected (main moved mid-run?) — resync and retry {attempt}/3")
+    raise SystemExit("push failed after 3 attempts")
 
 
 if __name__ == "__main__":
