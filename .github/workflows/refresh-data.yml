@@ -24,6 +24,7 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 10 # a hung Metabase query must never wedge a runner
     steps:
       - uses: actions/checkout@v4
         with:
