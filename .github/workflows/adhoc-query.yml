@@ -1,0 +1,42 @@
+# TEMPORARY ad-hoc query runner — deleted right after use.
+name: adhoc-query
+on:
+  workflow_dispatch: {}
+permissions: {}
+jobs:
+  query:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: date-wise installs for a0b6t9 since June 1
+        env:
+          METABASE_API_KEY: ${{ secrets.METABASE_API_KEY }}
+        run: |
+          python3 - <<'EOF'
+          import os, json, urllib.request
+          SQL = """
+          WITH base AS (
+            SELECT CONNECTION_ID,
+              MAX(CASE WHEN OTP_VERIFIED=TRUE OR INSTALLATION_COMPLETED_AT IS NOT NULL OR COMPLETED_STEP>=7 THEN 1 ELSE 0 END) AS has_installed,
+              MAX(CASE WHEN CONFIRMED_SLOT_AT IS NOT NULL THEN 1 ELSE 0 END) AS reached_slot,
+              TO_DATE(DATEADD(minute,330,COALESCE(MAX(INSTALLATION_COMPLETED_AT),MAX(UPDATED_AT)))) AS install_date
+            FROM PROD_DB.CSP_TAS_SERVICE_CSP_TAS_SERVICE.INSTALL_EXECUTION_CANDIDATES
+            WHERE _FIVETRAN_ACTIVE=TRUE AND CSP_ID='a0b6t9'
+              AND UPDATED_AT >= DATEADD(day,-120,CURRENT_DATE)
+            GROUP BY CONNECTION_ID
+          )
+          SELECT TO_CHAR(install_date,'YYYY-MM-DD') AS install_day, COUNT(*) AS installs
+          FROM base
+          WHERE has_installed=1 AND reached_slot=1 AND install_date >= DATE '2026-06-01'
+          GROUP BY install_day
+          ORDER BY install_day
+          """
+          body = json.dumps({"database":113,"type":"native","native":{"query":SQL}}).encode()
+          req = urllib.request.Request("https://metabase.wiom.in/api/dataset", data=body,
+              headers={"x-api-key": os.environ["METABASE_API_KEY"], "Content-Type":"application/json"})
+          d = json.load(urllib.request.urlopen(req, timeout=120))
+          rows = d["data"]["rows"]
+          print("RESULT_START")
+          for r in rows: print(r[0], r[1])
+          print("RESULT_END total:", sum(r[1] for r in rows))
+          EOF
