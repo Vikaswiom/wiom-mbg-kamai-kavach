@@ -7,7 +7,9 @@ per-CSP RAW inputs the banner needs, and writes data.json (committed to the repo
 served alongside index.html on GitHub Pages).
 
 The page computes screen/pct/needed/etc. itself from these raw inputs — this script
-only supplies { userId, installs, denom, pending, tickets:[{no,area,cid}] } per identity.
+only supplies { userId, installs, denom, pending, committed, tickets:[{no,area,cid}] }
+per identity. (committed = open leads whose CURRENT attempt has a confirmed slot;
+used by the almost screen's needed.)
 
 Usage:
     python refresh.py           # pull + write data.json
@@ -78,10 +80,11 @@ def build():
         data[cid] = {
             "cspId":    cid,
             "userId":   str(r[idx["USER_ID"]] or ""),     # representative identity (for mbg_id/tracking)
-            "installs": int(r[idx["INSTALLS"]] or 0),
-            "denom":    int(r[idx["DENOM"]] or 0),
-            "pending":  int(r[idx["PENDING"]] or 0),
-            "tickets":  tickets,
+            "installs":  int(r[idx["INSTALLS"]] or 0),
+            "denom":     int(r[idx["DENOM"]] or 0),
+            "pending":   int(r[idx["PENDING"]] or 0),
+            "committed": int(r[idx["COMMITTED"]] or 0),
+            "tickets":   tickets,
         }
 
     out = {

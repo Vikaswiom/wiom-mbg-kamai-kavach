@@ -43,7 +43,7 @@ html,body{background:var(--screen);}
      DATA SOURCE — real per-CSP snapshot in data.json (refreshed by refresh.py).
 
      data.json = { "meta":{...}, "data": { "<userId>": { userId, installs, denom,
-     pending, tickets:[{no,area,cid}] } } }  — the RAW inputs the poller derives from
+     pending, committed, tickets:[{no,area,cid}] } } }  — the RAW inputs the poller derives from
      PROD_DB...INSTALL_EXECUTION_CANDIDATES (see docs/CALCULATIONS.md). Everything else
      (screen, pct, needed, next_pct, installpay, topup, days_left, month) is COMPUTED
      client-side below with the exact poller formulas.
@@ -53,7 +53,7 @@ html,body{background:var(--screen);}
 
      GOING LIVE on the authenticated platform: replace loadData()/getCspData() with a
      single call to your backend — GET /api/mbg/me (session identifies the CSP) →
-     { userId, installs, denom, pending, tickets:[...] }. Nothing else changes.
+     { userId, installs, denom, pending, committed, tickets:[...] }. Nothing else changes.
      ============================================================================ -->
 <script>
 // ► Paste your deployed Apps Script /exec URL here to go LIVE PER TAP (fresh from
@@ -70,7 +70,7 @@ function cspIdFromUrl(){
 // Returns { cspId, userId, installs, denom, pending, tickets:[{no,area,cid}] }
 async function getCspData(){
   var id = cspIdFromUrl();
-  var noleads = { cspId:id, userId:id, installs:0, denom:0, pending:0, tickets:[] };
+  var noleads = { cspId:id, userId:id, installs:0, denom:0, pending:0, committed:0, tickets:[] };
   // 1) LIVE per tap — proxy queries Metabase for THIS cspId, right now
   if(PROXY_URL && id){
     try{
@@ -94,6 +94,10 @@ async function getCspData(){
 function computeMBG(d){
   var PAY=300, GATE=0.60, FLOOR=10000;
   var installs = +d.installs||0, denom = +d.denom||0, pending = +d.pending||0;
+  // committed = open leads whose CURRENT attempt has a confirmed slot.
+  // If the snapshot predates this field, fall back to all pending — that makes
+  // the almost-needed formula degrade to the old total-based number, not to 0.
+  var committed = d.committed==null ? pending : (+d.committed||0);
   var total = denom + pending;
 
   // round half-to-even, to match Python's round()
@@ -118,7 +122,12 @@ function computeMBG(d){
     pending    : pending,
     pct        : denom>0 ? pyRound(100*installs/denom) : 0,                   // mbg_pct
     next_pct   : pyRound(100*(installs+1)/(denom+1)),                        // mbg_next_pct
-    needed     : total>0 ? Math.max(1, Math.floor(GATE*total)+1 - installs) : 0, // mbg_needed
+    // mbg_needed — almost screen projects ONLY slot-confirmed open leads
+    // (committed) into the denominator: those will mature, pre-slot ones may not.
+    // Other screens keep the total-based formula.
+    needed     : total>0 ? (screen==='almost'
+                   ? Math.max(1, Math.floor(GATE*(denom+committed))+1 - installs)
+                   : Math.max(1, Math.floor(GATE*total)+1 - installs)) : 0,
     installpay : (PAY*installs).toLocaleString('en-US'),                     // mbg_installpay (₹, comma-grouped)
     topup      : Math.max(0, FLOOR - PAY*installs),                          // mbg_topup
     days_left  : Math.max(0, dim - ist.getUTCDate()),                        // mbg_days_left (IST)
