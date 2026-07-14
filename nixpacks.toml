@@ -1,0 +1,9 @@
+# Railway / Nixpacks build config.
+# The repo is a static site (banner at /, analytics dashboard at
+# /analytics-dashboard/) served by server.py, which also self-refreshes both
+# data files from Metabase on a timer. Stdlib only — nothing to install.
+[phases.setup]
+nixPkgs = ["python311"]
+
+[start]
+cmd = "python server.py"

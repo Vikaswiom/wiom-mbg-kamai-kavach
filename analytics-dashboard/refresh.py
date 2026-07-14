@@ -28,7 +28,16 @@ def get_api_key():
     raise RuntimeError("METABASE_API_KEY not set (env var or C:\\credentials\\.env)")
 
 
-API_KEY = get_api_key()
+_API_KEY = None
+
+
+def api_key():
+    """Resolved lazily (and cached) — importing this module must never fail just
+    because the key isn't set; server.py catches that at refresh time instead."""
+    global _API_KEY
+    if _API_KEY is None:
+        _API_KEY = get_api_key()
+    return _API_KEY
 
 
 def log(msg):
@@ -42,7 +51,7 @@ def run_sql(sql):
     payload = {"database": 113, "type": "native", "native": {"query": sql}}
     req = urllib.request.Request(
         URL, data=json.dumps(payload).encode(),
-        headers={"x-api-key": API_KEY, "Content-Type": "application/json"}, method="POST")
+        headers={"x-api-key": api_key(), "Content-Type": "application/json"}, method="POST")
     with urllib.request.urlopen(req, timeout=300) as resp:
         data = json.loads(resp.read().decode())
     cols = [c["name"] for c in data["data"]["cols"]]
@@ -54,7 +63,9 @@ def by_group(rows):
     return {r["GRP"]: r for r in rows}
 
 
-def main():
+def build():
+    """Re-run the queries and rewrite data.js. No git — safe to call from the
+    live server's background refresh thread (server.py). Returns the data dict."""
     log("start")
     csp = by_group(run_sql(open(os.path.join(REPO, "query_csp_funnel.sql")).read()))
     seg = {r["SEGMENT"]: r for r in run_sql(
@@ -126,6 +137,13 @@ def main():
     out += "window.DASHBOARD_DATA = " + json.dumps(data, indent=2) + ";\n"
     with open(os.path.join(REPO, "data.js"), "w", encoding="utf-8") as f:
         f.write(out)
+    log("built data.js (" + data["last_updated"] + ")")
+    return data
+
+
+def main():
+    """CLI / GitHub Actions path: build, then commit + push data.js."""
+    data = build()
 
     git = lambda *a: subprocess.run(["git", "-C", REPO, *a], check=True,
                                     capture_output=True, text=True)
