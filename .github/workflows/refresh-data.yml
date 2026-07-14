@@ -1,7 +1,8 @@
-# Scheduled data refresh — replaces the old Windows Task Scheduler job.
+# Scheduled data refresh for the root banner (data.json).
 #
 # Every 15 minutes: run refresh.py against Metabase and push data.json to main
-# (only when the data actually changed), which redeploys GitHub Pages.
+# (only when the data actually changed). The push auto-redeploys the Railway
+# service (Wiom-using-AI/wiom-mbg-kamai-kavach), which serves the live site.
 #
 # One-time setup: add the repo secret METABASE_API_KEY
 # (Settings → Secrets and variables → Actions → New repository secret).
@@ -20,8 +21,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write # push data.json to main
-  pages: write # request a Pages rebuild after the push
+  contents: write # push data.json to main (Railway redeploys on push)
 
 jobs:
   refresh:
@@ -33,36 +33,9 @@ jobs:
           ref: main
 
       - name: refresh snapshot + push if changed
-        id: refresh
         env:
           METABASE_API_KEY: ${{ secrets.METABASE_API_KEY }}
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          BEFORE=$(git rev-parse HEAD)
           python3 refresh.py --push
-          if [ "$BEFORE" != "$(git rev-parse HEAD)" ]; then
-            echo "pushed=yes" >> "$GITHUB_OUTPUT"
-          else
-            echo "pushed=no" >> "$GITHUB_OUTPUT"
-          fi
-
-      # pushes made with GITHUB_TOKEN don't trigger the branch-based Pages
-      # build, so request one explicitly whenever new data was pushed.
-      # MUST fail loudly if the request is rejected — a silent failure here
-      # means the site serves stale data while every run still shows green.
-      - name: request Pages rebuild
-        if: steps.refresh.outputs.pushed == 'yes'
-        run: |
-          for i in 1 2 3; do
-            CODE=$(curl -sS -o /tmp/pages_resp.json -w "%{http_code}" -X POST \
-              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/${{ github.repository }}/pages/builds")
-            echo "attempt $i -> HTTP $CODE"
-            cat /tmp/pages_resp.json || true
-            if [ "$CODE" = "201" ]; then exit 0; fi
-            sleep 5
-          done
-          echo "::error::Pages rebuild request kept failing (last HTTP $CODE) — the live site will serve STALE data until Pages rebuilds. Fix: Settings → Pages → set Source to 'GitHub Actions' and convert this workflow to actions/deploy-pages."
-          exit 1
