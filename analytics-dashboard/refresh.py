@@ -1,14 +1,20 @@
 #!/usr/bin/env python
 """Refresh the MBG banner analytics dashboard: re-run Metabase queries, regenerate
-data.js, commit and push. Lives as the analytics-dashboard/ subfolder of the shared
-banner repo (Wiom-using-AI/wiom-mbg-kamai-kavach) and is served on Railway by
-server.py. Runs hourly via the root .github/workflows/refresh-dashboard.yml job."""
+data.js, commit and push.
+
+This file is kept byte-identical in both homes of the dashboard:
+  * Vikaswiom/wiom-mbg-banner-dashboard  — standalone repo, served on GitHub Pages
+  * Wiom-using-AI/wiom-mbg-kamai-kavach  — as analytics-dashboard/, served on Railway
+    (there, server.py also calls build() directly on a timer)
+
+build() is pure (no git) so the Railway server can call it; main() adds the
+commit + push and is what the GitHub Actions job runs."""
 import json, os, subprocess, urllib.request
 from datetime import datetime, timezone, timedelta
 
-# REPO = this subfolder (analytics-dashboard/). git -C REPO still resolves the repo
-# root above it, so add/commit/push operate on the whole monorepo but only stage
-# this folder's data.js.
+# REPO = the directory holding this file — the repo root in the standalone repo, or
+# the analytics-dashboard/ subfolder in the monorepo. Either way `git -C REPO` resolves
+# the enclosing repo, and staging "data.js" stages the copy next to this script.
 REPO = os.path.dirname(os.path.abspath(__file__))
 URL = "https://metabase.wiom.in/api/dataset"
 IST = timezone(timedelta(hours=5, minutes=30))
