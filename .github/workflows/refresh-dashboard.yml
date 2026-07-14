@@ -1,0 +1,41 @@
+# Scheduled data refresh for the analytics dashboard (analytics-dashboard/ subfolder).
+#
+# Sibling of refresh-data.yml (which refreshes the root banner's data.json). This one
+# runs analytics-dashboard/refresh.py, which regenerates analytics-dashboard/data.js and
+# pushes it (rebase + retry, so it never collides with the banner job on the same main).
+#
+# Uses the same repo secret METABASE_API_KEY.
+name: refresh-dashboard
+
+on:
+  schedule:
+    # offset from the banner job's 4,19,34,49 so the two never fire on the same minute
+    - cron: "9,39 * * * *" # UTC; twice hourly
+  workflow_dispatch: {} # manual "Run workflow" button
+
+concurrency:
+  group: refresh-dashboard
+  cancel-in-progress: false
+
+permissions:
+  contents: write # push analytics-dashboard/data.js to main
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: refresh dashboard data.js and push if changed
+        working-directory: analytics-dashboard
+        env:
+          METABASE_API_KEY: ${{ secrets.METABASE_API_KEY }}
+        run: python refresh.py

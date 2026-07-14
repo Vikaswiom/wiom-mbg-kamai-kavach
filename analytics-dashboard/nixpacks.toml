@@ -1,0 +1,8 @@
+# Railway / Nixpacks build config for the MBG banner analysis dashboard.
+# It's a static site (index.html + data.js) served by a tiny stdlib Python
+# server — no dependencies, so we just install Python and run server.py.
+[phases.setup]
+nixPkgs = ["python311"]
+
+[start]
+cmd = "python server.py"
