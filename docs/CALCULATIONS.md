@@ -22,6 +22,7 @@ Constants: `PAY = 300` (₹ per install) · `GATE = 0.60` (60% target) · `FLOOR
   "installs": 7,                 // installed connections this month
   "denom":    14,                // customer-confirmed connections that reached an END STATE this month (= mbg_leads)
   "pending":  5,                 // all OPEN leads (the live pipeline)
+  "committed": 2,                // OPEN leads whose CURRENT attempt has a customer-confirmed slot (⊆ pending; used by the almost screen's `needed`)
   "tickets":  [                  // top-2 OPEN install tickets, already ranked
     { "no": "#8213", "area": "zone_012", "cid": "EXEC-CANDIDATE-0000-8213" },
     { "no": "#4419", "area": "zone_007", "cid": "EXEC-CANDIDATE-0000-4419" }
@@ -35,12 +36,19 @@ Source: `PROD_DB.CSP_TAS_SERVICE_CSP_TAS_SERVICE.INSTALL_EXECUTION_CANDIDATES`
 `MAX_BY(field, UPDATED_AT)`. Per connection:
 
 - `has_installed = MAX(OTP_VERIFIED=TRUE OR INSTALLATION_COMPLETED_AT IS NOT NULL OR COMPLETED_STEP>=7)`
-- `reached_slot  = MAX(CONFIRMED_SLOT_AT IS NOT NULL)`  ← "customer confirmed a slot"
+- `reached_slot  = MAX(CONFIRMED_SLOT_AT IS NOT NULL)`  ← "customer confirmed a slot" (sticky across attempts — kept for denom)
+- `own_slot_latest = MAX_BY(CONFIRMED_SLOT_AT, UPDATED_AT) IS NOT NULL`  ← the **current**
+  attempt has a confirmed slot. NOT sticky: a connection retried after a failed
+  slot-confirmed attempt correctly drops back to 0. Feeds `committed`.
 - `last_date     = TO_DATE(DATEADD(minute, 330, MAX(UPDATED_AT)))`  (IST)
 - **bucket** (first match wins): `installed` · `csp_denied` (DECLINED) · `csp_no_show`
   · `csp_abandoned` · `csp_timeout` (P41) · `cust_cancel_after_slot` ·
-  `cust_cancel_before_slot` · `install_failed` · `system_other` · `cancelled_onsite` ·
-  else `open`.
+  `cust_cancel_before_slot` · `install_failed` · **`csp_retryx`**
+  (`CANCELLED_BY_UPSTREAM AND REASON_CODE='RETRY_EXHAUSTION'` — re-assigned until the
+  retry cap blew; ~72% of those attempts died as CSP no-show P74 / CSP timeout P41, so
+  it counts **against** the CSP) · `system_other` · `cancelled_onsite` · else `open`.
+  `csp_retryx` is matched **before** the `system_other` catch-all and is **not** in the
+  exclusion set — slot-confirmed retry-exhaustion leads count in `denom`/`mbg_leads`.
 
 Then per CSP (`last_date >= MS`):
 
@@ -49,6 +57,7 @@ Then per CSP (`last_date >= MS`):
 | `installs` | `bucket='installed' AND reached_slot=1` |
 | `denom` (`mbg_leads`) | `reached_slot=1 AND bucket NOT IN ('open','system_other')` |
 | `pending` | `bucket='open'` (whole live pipeline, incl. not-yet-confirmed) |
+| `committed` | `bucket='open' AND own_slot_latest=1` (open leads that **will** mature) |
 
 **OPEN install ticket** = `CURRENT_STATE IN` (ACCEPTED, AWAITING_SLOT_PROPOSAL,
 SLOT_SELECTED, AWAITING_CUSTOMER_SLOT_CONFIRMATION, SLOT_CONFIRMED_BY_CUSTOMER,
@@ -93,7 +102,7 @@ keepgoing  otherwise
 |---|---|---|
 | `pct` | `round(100 * installs / denom)`, `0` if `denom==0` | `round` = **half-to-even** (Python). `1/8 → 12`, not 13. |
 | `next_pct` | `round(100 * (installs+1) / (denom+1))` | rate if one more confirmed lead installs (an install adds to **both** installs and denom) |
-| `needed` | `max(1, floor(0.60*total) + 1 - installs)` if `total>0` else `0` | ⚠️ uses **total (denom+pending)**, NOT denom |
+| `needed` | **almost screen:** `max(1, floor(0.60*(denom+committed)) + 1 - installs)` · **all other screens:** `max(1, floor(0.60*total) + 1 - installs)` if `total>0` else `0` | ⚠️ the almost screen projects **only slot-confirmed open leads** (`committed`) into the denominator — those *will* mature; pre-slot leads may never confirm. Keep-going/secured/noleads keep the total-based formula. |
 | `installpay` | `300 * installs`, comma-grouped (`"2,100"`) | Western grouping (Python `"{:,}"`) |
 | `topup` | `max(0, 10000 - 300*installs)` | remaining ₹ to the guarantee floor |
 | `days_left` | days remaining in the current **IST** calendar month | computed client-side in IST — see §5 |
@@ -101,9 +110,19 @@ keepgoing  otherwise
 | `id` | `String(userId).padStart(6,'0')` | `mbg_id` |
 
 ### `needed`, worked
-For `installs=7, denom=14, pending=5` → `total=19`:
-`needed = max(1, floor(0.60*19)+1 - 7) = max(1, 11+1-7) = 5`.
-Check: `(7+5)/(14+5) = 12/19 = 63.2% ≥ 60% ✓`, and `(7+4)/(14+4) = 61.1%` (4 not enough at the confirmed rate — the poller's `floor(0.60*total)+1` accounts for open pending too).
+
+**Keep-going (total-based):** `installs=2, denom=11, pending=9` → `total=20`:
+`needed = max(1, floor(0.60*20)+1 - 2) = max(1, 12+1-2) = 11`.
+
+**Almost (committed-based) — Sai Cable (a0a6y4):** 6 installs / 10 matured (60%),
+8 pending of which **2 committed** (open leads #9798, #e5f6 with confirmed slots):
+- old: `floor(0.60×(10+8))+1−6` = **5** ❌ — counted all 8 pending, including pre-slot
+  leads the customer may never confirm
+- new: `floor(0.60×(10+2))+1−6` = **2** ✅ — only the leads that will actually mature
+
+Check: after 2 more installs `(6+2)/(10+2) = 8/12 = 66.7% > 60%` ✓, while 1 more gives
+`7/11 = 63.6%`… also >60% — but `floor(0.60×12)+1 = 8` installs is the poller's
+guaranteed-pass bar once both committed leads mature into the denominator.
 
 ---
 
@@ -159,12 +178,16 @@ suffix is the computed screen (`keepgoing`/`almost`/`secured`/`noleads`):
 
 ## 7. Worked examples (the sample CSPs in `index.html`)
 
-| cspId | installs / denom / pending | screen | pct | needed | next_pct | installpay | topup |
+| cspId | installs / denom / pending / committed | screen | pct | needed | next_pct | installpay | topup |
 |---|---|---|---|---|---|---|---|
-| 100001 | 7 / 14 / 5 | almost | 50% | 5 | 53% | ₹2,100 | ₹7,900 |
-| 100002 | 9 / 12 / 3 | secured | 75% | 1 | 77% | ₹2,700 | ₹7,300 |
-| 100003 | 2 / 11 / 9 | keepgoing | 18% | 11 | 25% | ₹600 | ₹9,400 |
-| 100004 | 0 / 0 / 0 | noleads | — | 0 | — | ₹0 | ₹10,000 |
+| 100001 | 7 / 14 / 5 / 5 | almost | 50% | 5 | 53% | ₹2,100 | ₹7,900 |
+| 100005 | 7 / 14 / 5 / 2 | almost | 50% | 3 | 53% | ₹2,100 | ₹7,900 |
+| 100002 | 9 / 12 / 3 / — | secured | 75% | 1 | 77% | ₹2,700 | ₹7,300 |
+| 100003 | 2 / 11 / 9 / — | keepgoing | 18% | 11 | 25% | ₹600 | ₹9,400 |
+| 100004 | 0 / 0 / 0 / — | noleads | — | 0 | — | ₹0 | ₹10,000 |
+
+(`committed` only affects `needed` on the **almost** screen — compare 100001 vs 100005:
+same pipeline, fewer slot-confirmed leads → smaller, truthful `needed`. `—` = unused.)
 
 ---
 
@@ -175,7 +198,7 @@ inputs from §1 for the logged-in CSP:
 
 ```
 GET /api/mbg/me            (session cookie identifies the CSP)
-200 → { userId, installs, denom, pending, tickets:[{no,area,cid}] }
+200 → { userId, installs, denom, pending, committed, tickets:[{no,area,cid}] }
 ```
 
 Nothing else changes — routing, copy, and all numbers stay in `computeMBG()` /

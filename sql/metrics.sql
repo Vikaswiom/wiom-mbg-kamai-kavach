@@ -6,6 +6,9 @@ WITH base AS (
     MAX_BY(FAILURE_SUBREASON_CODE, UPDATED_AT) AS fsc,
     MAX(CASE WHEN OTP_VERIFIED=TRUE OR INSTALLATION_COMPLETED_AT IS NOT NULL OR COMPLETED_STEP>=7 THEN 1 ELSE 0 END) AS has_installed,
     MAX(CASE WHEN CONFIRMED_SLOT_AT IS NOT NULL THEN 1 ELSE 0 END) AS reached_slot,
+    -- the CURRENT attempt has a customer-confirmed slot (not sticky across retries:
+    -- a connection retried after a failed slot-confirmed attempt must NOT keep it)
+    CASE WHEN MAX_BY(CONFIRMED_SLOT_AT, UPDATED_AT) IS NOT NULL THEN 1 ELSE 0 END AS own_slot_latest,
     TO_DATE(DATEADD(minute,330,MAX(UPDATED_AT))) AS last_date
   FROM PROD_DB.CSP_TAS_SERVICE_CSP_TAS_SERVICE.INSTALL_EXECUTION_CANDIDATES
   WHERE _FIVETRAN_ACTIVE=TRUE AND CSP_ID IS NOT NULL
@@ -23,6 +26,10 @@ bucketed AS (
       WHEN last_state='CANCELLED_BY_CUSTOMER' AND reached_slot=1 THEN 'cust_cancel_after_slot'
       WHEN last_state='CANCELLED_BY_CUSTOMER' AND reached_slot=0 THEN 'cust_cancel_before_slot'
       WHEN last_state='INSTALLATION_REPORTED_FAILED' THEN 'install_failed'
+      -- RETRY_EXHAUSTION = re-assigned until the retry cap blew; ~72% of those
+      -- attempts died as CSP no-show/timeout, so it counts AGAINST the CSP
+      -- (in denom), unlike the excused system_other catch-all below
+      WHEN last_state='CANCELLED_BY_UPSTREAM' AND rc='RETRY_EXHAUSTION' THEN 'csp_retryx'
       WHEN last_state='CANCELLED_BY_UPSTREAM' THEN 'system_other'
       WHEN last_state='INSTALLATION_CANCELLED_ONSITE' THEN 'cancelled_onsite'
       ELSE 'open'
@@ -33,7 +40,8 @@ metrics AS (
   SELECT CSP_ID,
     COUNT_IF(bucket='installed' AND reached_slot=1 AND last_date>=DATE '2026-07-01') AS installs,
     COUNT_IF(reached_slot=1 AND bucket NOT IN ('open','system_other') AND last_date>=DATE '2026-07-01') AS denom,
-    COUNT_IF(bucket='open') AS pending
+    COUNT_IF(bucket='open') AS pending,
+    COUNT_IF(bucket='open' AND own_slot_latest=1) AS committed
   FROM bucketed
   GROUP BY CSP_ID
 ),
@@ -79,7 +87,7 @@ owner AS (   -- one representative userId per CSP (for mbg_id / tracking), owner
   GROUP BY CSP_ID
 )
 SELECT m.CSP_ID AS csp_id, o.user_id,
-  m.installs, m.denom, m.pending,
+  m.installs, m.denom, m.pending, m.committed,
   tk.t1_no, tk.t1_area, tk.t1_cid, tk.t2_no, tk.t2_area, tk.t2_cid
 FROM metrics m
 LEFT JOIN tk    ON tk.CSP_ID = m.CSP_ID
