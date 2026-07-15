@@ -26,6 +26,25 @@ of a `try` block and killed the entire script.
 **Use `/* block comments */ ` only.** Before shipping, sanity-check that the
 script still parses after flattening:
 
+## ⚠️ Rule: event properties must be a JSON string on Android
+
+On Android the in-app WebView's `window.CleverTap` bridge is a native Java
+interface: `pushEvent(String name, String propsJson)`. Passing a plain JS
+object (`pushEvent(name, {a:1})`) does **not** marshal across the bridge —
+the props arrive as garbage, the native side's JSON parse throws, and the
+event is silently dropped. Always send `JSON.stringify(props)`.
+
+On iOS `window.CleverTap` doesn't exist at all; the bridge is
+`window.webkit.messageHandlers.clevertap.postMessage({action:
+'recordEventWithProps', event, properties})`. The shared `ct()` helper in
+these files handles both platforms — reuse it in new campaigns. (Verify the
+iOS `dismissInAppNotification` action against the CleverTap iOS SDK version
+your app ships.)
+
+And remember: events only fire **inside the app's in-app WebView**. Opening
+these pages on GitHub Pages or a desktop browser records nothing by design —
+the bridge object isn't there.
+
 ```bash
 node -e "
 const html = require('fs').readFileSync('sla.html','utf8').replace(/\r?\n/g,' ');

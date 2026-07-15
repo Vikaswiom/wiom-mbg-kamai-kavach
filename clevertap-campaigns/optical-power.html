@@ -313,17 +313,24 @@
 <script>
 /* ---------- CleverTap event bridge (safe in plain browser too) ---------- */
 function ct(name, props){
+  props = props || {};
   try{
     if(window.CleverTap && typeof window.CleverTap.pushEvent === 'function'){
-      window.CleverTap.pushEvent(name, props || {});
+      /* Android: the bridge is a Java interface — properties MUST be a JSON string, not a JS object */
+      window.CleverTap.pushEvent(name, JSON.stringify(props));
+    } else if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap){
+      /* iOS: WKWebView bridge */
+      window.webkit.messageHandlers.clevertap.postMessage({action:'recordEventWithProps', event:name, properties:props});
     }
-    /* console.log('CT event:', name, props||{}); */
+    /* console.log('CT event:', name, props); */
   }catch(e){}
 }
 function closeInApp(){
   try{
     if(window.CleverTap && typeof window.CleverTap.dismissInAppNotification === 'function'){
       window.CleverTap.dismissInAppNotification();
+    } else if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap){
+      window.webkit.messageHandlers.clevertap.postMessage({action:'dismissInAppNotification'});
     }
   }catch(e){}
 }
