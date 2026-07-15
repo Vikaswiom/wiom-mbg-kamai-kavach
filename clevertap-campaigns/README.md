@@ -3,11 +3,14 @@
 Source for custom-HTML in-app campaigns (also deployed at
 https://vikaswiom.github.io/wiom-csp-guarantee-campaign/).
 
-## `sla.html` — Service SLA guarantee (₹20,000 / 2 months)
+Both campaigns share the same multi-screen template: hero → promise → payout
+plan → 2-question quiz → enroll → done. They fire `Sehat_*` events through the
+`window.CleverTap` bridge and close via `CleverTap.dismissInAppNotification()`.
 
-Multi-screen in-app: hero → promise → payout plan → 2-question quiz → enroll → done.
-Fires `Sehat_*` events through the `window.CleverTap` bridge and closes via
-`CleverTap.dismissInAppNotification()`.
+| File | Campaign | offer_id | metric | Deployed as |
+|------|----------|----------|--------|-------------|
+| `sla.html` | Service SLA guarantee (₹20,000 / 2 months) | `sehat_sla` | `Service SLA` | `/sla.html` |
+| `optical-power.html` | Sehat MG — Optical Power guarantee (₹20,000 / 2 months) | `sehat_optical` | `Optical Power` | `/` (index.html) |
 
 ## ⚠️ Rule: no `//` comments inside the `<script>` block
 
