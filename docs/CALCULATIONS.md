@@ -36,7 +36,17 @@ Source: `PROD_DB.CSP_TAS_SERVICE_CSP_TAS_SERVICE.INSTALL_EXECUTION_CANDIDATES`
 `MAX_BY(field, UPDATED_AT)`. Per connection:
 
 - `has_installed = MAX(OTP_VERIFIED=TRUE OR INSTALLATION_COMPLETED_AT IS NOT NULL OR COMPLETED_STEP>=7)`
-- `reached_slot  = MAX(CONFIRMED_SLOT_AT IS NOT NULL)`  ← "customer confirmed a slot" (sticky across attempts — kept for denom)
+- `reached_slot  = MAX(CONFIRMED_SLOT_AT IS NOT NULL)`  ← "customer confirmed a slot" (sticky across attempts)
+- `rep_ecid / offered = MAX_BY(EXECUTION_CANDIDATE_ID / CREATED_AT, UPDATED_AT)` — the
+  representative (latest) attempt and its **CSP-offer date**
+- `tech_assigned = MAX(TO_STATE='TECHNICIAN_ASSIGNED')` from
+  `INSTALL_STATE_TRANSITION_LOG` joined on `rep_ecid` (IEC alone can't tell — a closed
+  lead's `CURRENT_STATE` is already terminal, so this join is mandatory)
+- **`gate_ok` (S4 hybrid denominator gate, 24-Jul):**
+  `IFF(offered_IST <= 2026-07-16, reached_slot, tech_assigned)` — after ~22-Jul the
+  customer's slot is auto-confirmed, so `reached_slot` stopped proving CSP engagement;
+  connections offered ≥ 17-Jul need a technician assignment instead. The 16-Jul cutoff
+  (~7 days before the product change) graces the in-flight tail.
 - `own_slot_latest = MAX_BY(CONFIRMED_SLOT_AT, UPDATED_AT) IS NOT NULL`  ← the **current**
   attempt has a confirmed slot. NOT sticky: a connection retried after a failed
   slot-confirmed attempt correctly drops back to 0. Feeds `committed`.
@@ -49,13 +59,16 @@ Source: `PROD_DB.CSP_TAS_SERVICE_CSP_TAS_SERVICE.INSTALL_EXECUTION_CANDIDATES`
   it counts **against** the CSP) · `system_other` · `cancelled_onsite` · else `open`.
   `csp_retryx` is matched **before** the `system_other` catch-all and is **not** in the
   exclusion set — slot-confirmed retry-exhaustion leads count in `denom`/`mbg_leads`.
+  **`install_expired`** (`INSTALLATION_EXPIRED`, added 24-Jul): terminal end-state, not a
+  phantom `open` lead — expiry with `last_date` in July counts in the denom (CSP-side
+  miss), expiry before July is excluded by the terminal-in-July rule.
 
 Then per CSP (`last_date >= MS`):
 
 | Raw input | Count |
 |---|---|
-| `installs` | `bucket='installed' AND reached_slot=1` |
-| `denom` (`mbg_leads`) | `reached_slot=1 AND bucket NOT IN ('open','system_other')` |
+| `installs` | `bucket='installed' AND gate_ok=1` |
+| `denom` (`mbg_leads`) | `gate_ok=1 AND bucket NOT IN ('open','system_other')` |
 | `pending` | `bucket='open'` (whole live pipeline, incl. not-yet-confirmed) |
 | `committed` | `bucket='open' AND own_slot_latest=1` (open leads that **will** mature) |
 

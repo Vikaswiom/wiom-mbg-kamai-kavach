@@ -4,6 +4,8 @@ WITH base AS (
     MAX_BY(REASON_CODE, UPDATED_AT) AS rc,
     MAX_BY(FAILURE_REASON, UPDATED_AT) AS fr,
     MAX_BY(FAILURE_SUBREASON_CODE, UPDATED_AT) AS fsc,
+    MAX_BY(EXECUTION_CANDIDATE_ID, UPDATED_AT) AS rep_ecid,  -- representative (latest) attempt
+    MAX_BY(CREATED_AT, UPDATED_AT) AS offered,               -- CSP-offer date of that attempt
     MAX(CASE WHEN OTP_VERIFIED=TRUE OR INSTALLATION_COMPLETED_AT IS NOT NULL OR COMPLETED_STEP>=7 THEN 1 ELSE 0 END) AS has_installed,
     MAX(CASE WHEN CONFIRMED_SLOT_AT IS NOT NULL THEN 1 ELSE 0 END) AS reached_slot,
     -- the CURRENT attempt has a customer-confirmed slot (not sticky across retries:
@@ -14,6 +16,26 @@ WITH base AS (
   WHERE _FIVETRAN_ACTIVE=TRUE AND CSP_ID IS NOT NULL
     AND UPDATED_AT >= DATEADD(day,-120,CURRENT_DATE)
   GROUP BY CONNECTION_ID, CSP_ID
+),
+-- S4 hybrid denominator gate (24-Jul): after ~22-Jul the customer's slot is
+-- auto-confirmed, so reached_slot no longer proves the CSP engaged. Connections
+-- OFFERED <= 16-Jul keep the old slot gate; >= 17-Jul require a technician
+-- assignment. IEC alone can't tell (a closed lead's CURRENT_STATE is already
+-- terminal) — the transition-log join on the representative candidate is mandatory.
+tech AS (
+  SELECT r.rep_ecid,
+    MAX(CASE WHEN t.TO_STATE='TECHNICIAN_ASSIGNED' THEN 1 ELSE 0 END) AS tech_assigned
+  FROM (SELECT DISTINCT rep_ecid FROM base) r
+  JOIN PROD_DB.CSP_TAS_SERVICE_CSP_TAS_SERVICE.INSTALL_STATE_TRANSITION_LOG t
+    ON t.EXECUTION_CANDIDATE_ID = r.rep_ecid
+  GROUP BY r.rep_ecid
+),
+gated AS (
+  SELECT b.*,
+    IFF(TO_DATE(DATEADD(minute,330,b.offered)) <= DATE '2026-07-16',
+        b.reached_slot, COALESCE(t.tech_assigned,0)) AS gate_ok
+  FROM base b
+  LEFT JOIN tech t ON t.rep_ecid = b.rep_ecid
 ),
 bucketed AS (
   SELECT *,
@@ -32,14 +54,17 @@ bucketed AS (
       WHEN last_state='CANCELLED_BY_UPSTREAM' AND rc='RETRY_EXHAUSTION' THEN 'csp_retryx'
       WHEN last_state='CANCELLED_BY_UPSTREAM' THEN 'system_other'
       WHEN last_state='INSTALLATION_CANCELLED_ONSITE' THEN 'cancelled_onsite'
+      -- terminal, not a phantom 'open' lead — expiry with last_date in July
+      -- counts in the denom (CSP-side miss), expiry before July is excluded
+      WHEN last_state='INSTALLATION_EXPIRED' THEN 'install_expired'
       ELSE 'open'
     END AS bucket
-  FROM base
+  FROM gated
 ),
 metrics AS (
   SELECT CSP_ID,
-    COUNT_IF(bucket='installed' AND reached_slot=1 AND last_date>=DATE '2026-07-01') AS installs,
-    COUNT_IF(reached_slot=1 AND bucket NOT IN ('open','system_other') AND last_date>=DATE '2026-07-01') AS denom,
+    COUNT_IF(bucket='installed' AND gate_ok=1 AND last_date>=DATE '2026-07-01') AS installs,
+    COUNT_IF(gate_ok=1 AND bucket NOT IN ('open','system_other') AND last_date>=DATE '2026-07-01') AS denom,
     COUNT_IF(bucket='open') AS pending,
     COUNT_IF(bucket='open' AND own_slot_latest=1) AS committed
   FROM bucketed
