@@ -165,114 +165,6 @@ background:#8C8C8C;transition:background .15s;
 }
 .hud i.live{background:#3FBF80}
 
-/* ---------- v4 additions: समझ गया gate + quiz ---------- */
-:root{
---surface:#FAF9FC;
---stroke:#E7E2EF;
---success:#008043;
---error:#D92130;
-}
-
-.videobar{
-position:absolute;left:0;right:0;bottom:0;z-index:2;
-padding:16px 16px calc(max(18px,env(safe-area-inset-bottom)) + 64px);
-background:linear-gradient(180deg,transparent,rgba(0,0,0,.28) 45%,rgba(0,0,0,.5));
-pointer-events:none;
-}
-
-.vcta{
-width:100%;border:none;border-radius:14px;
-padding:15px 18px;
-font-family:inherit;font-size:16px;font-weight:700;
-display:flex;align-items:center;justify-content:center;gap:9px;
-background:linear-gradient(180deg,#E8129C,#C8007F);
-color:#FFFFFF;
-box-shadow:0 6px 18px rgba(217,0,141,.34),inset 0 1px 0 rgba(255,255,255,.22);
-cursor:pointer;
-pointer-events:auto;
-transition:background .25s ease,color .25s ease,box-shadow .25s ease,transform .12s ease;
-}
-.vcta:active:not(:disabled){transform:translateY(1px)}
-.vcta:disabled{
-background:rgba(255,255,255,.15);
-color:rgba(255,255,255,.55);
-box-shadow:none;
-cursor:default;
-}
-.vcta em{
-font-style:normal;font-size:13px;font-weight:600;
-opacity:.8;font-variant-numeric:tabular-nums;
-}
-
-.screen{
-position:fixed;inset:0;z-index:10000;
-background:var(--surface);
-display:none;
-}
-.screen.on{display:flex}
-
-.content{
-flex:1;display:flex;flex-direction:column;gap:12px;
-width:100%;max-width:420px;margin:0 auto;
-padding:max(28px,env(safe-area-inset-top)) 20px max(20px,env(safe-area-inset-bottom));
-overflow-y:auto;
-}
-
-.question{
-font-size:19px;line-height:1.42;font-weight:800;color:var(--ink);
-text-wrap:balance;margin-bottom:6px;
-}
-.question.dim{font-size:16px;font-weight:700;color:var(--muted)}
-
-.opt{
-display:flex;gap:12px;align-items:flex-start;
-padding:14px;border:1.5px solid var(--stroke);border-radius:14px;
-background:var(--white);cursor:pointer;
-font-size:14.5px;line-height:1.5;color:var(--ink);
-}
-.opt:active{background:var(--surface)}
-
-.radio{
-position:relative;flex:none;
-width:20px;height:20px;border-radius:50%;
-border:2px solid #C9C2D4;margin-top:1px;
-}
-
-.opt.bad{border-color:#F2B8BD;background:#FDF2F3;cursor:default}
-.opt.bad .radio{border-color:var(--error);background:var(--error)}
-.opt.bad .radio::after{
-content:"×";position:absolute;inset:0;
-color:#fff;font-size:15px;font-weight:700;line-height:16px;text-align:center;
-}
-
-.opt.ok{border-color:#A8D9C0;background:#F1FAF5;cursor:default}
-.opt.ok .radio{border-color:var(--success);background:var(--success)}
-.opt.ok .radio::after{
-content:"✓";position:absolute;inset:0;
-color:#fff;font-size:12px;font-weight:700;line-height:16px;text-align:center;
-}
-
-.fix{
-background:var(--white);border:1px solid var(--stroke);border-radius:14px;
-padding:14px;margin-top:4px;
-font-size:14px;line-height:1.62;color:var(--muted);
-}
-.fix b{color:var(--ink);font-weight:700}
-
-.rs{
-flex:1;display:flex;flex-direction:column;
-align-items:center;justify-content:center;gap:18px;
-}
-.cb{
-width:76px;height:76px;border-radius:50%;
-background:var(--success);color:#fff;
-font-size:36px;line-height:1;
-display:flex;align-items:center;justify-content:center;
-}
-.rs h3{font-size:24px;font-weight:800;color:var(--ink)}
-
-.spacer{flex:1;min-height:16px}
-
 @media (prefers-reduced-motion:reduce){
 .card,.cta::after{animation:none}
 }
@@ -303,98 +195,6 @@ display:flex;align-items:center;justify-content:center;
 <div class="hud" id="hud" aria-hidden="true"><i id="hudDot"></i><span id="hudText">0s · 0%</span></div>
 <button class="vclose" id="btnVClose" aria-label="वीडियो बंद करें">×</button>
 <video id="video" playsinline webkit-playsinline controls controlslist="nodownload" preload="metadata" src="https://cdn.jsdelivr.net/gh/Vikaswiom/wiom-inapp-video@main/seva_sthiti_intro_portrait_v4.mp4?playsinline=1"></video>
-
-<div class="videobar">
-<button class="vcta" id="btnUnderstood" disabled>
-<span>समझ गया</span><em id="lockTimer"></em>
-</button>
-</div>
-</div>
-</div>
-
-<div class="screen" id="q2">
-<div class="content">
-<div class="question">
-क्वालिटी की पूरी जानकारी कहाँ मिलेगी?
-</div>
-
-<div class="opt" onclick='answer2("w0")'>
-<span class="radio"></span>
-<span>किस्मत अच्छी हुई तो अपने-आप पता चल जाएगा</span>
-</div>
-
-<div class="opt" onclick='answer2("right")'>
-<span class="radio"></span>
-<span>किसी भी सेक्शन में (?) आइकन पर क्लिक करने पर</span>
-</div>
-
-<div class="opt" onclick='answer2("w2")'>
-<span class="radio"></span>
-<span>फोन को 360° घुमाने पर</span>
-</div>
-</div>
-</div>
-
-<div class="screen" id="right2">
-<div class="content">
-<div class="rs">
-<div class="cb">&#10003;</div>
-<h3>सही</h3>
-</div>
-
-<div class="cta" onclick="ctClose()">ठीक है</div>
-</div>
-</div>
-
-<div class="screen" id="wrong20">
-<div class="content">
-<div class="question dim">
-क्वालिटी की पूरी जानकारी कहाँ मिलेगी?
-</div>
-
-<div class="opt bad">
-<span class="radio"></span>
-<span>किस्मत अच्छी हुई तो अपने-आप पता चल जाएगा</span>
-</div>
-
-<div class="opt ok">
-<span class="radio"></span>
-<span>किसी भी सेक्शन में (?) आइकन पर क्लिक करने पर</span>
-</div>
-
-<div class="fix">
-सही जवाब: किसी भी सेक्शन में <b>(?) आइकन पर क्लिक</b> करके आप क्वालिटी के बारे में और जान सकते हैं।
-</div>
-
-<div class="spacer"></div>
-
-<div class="cta" onclick="ctClose()">ठीक है</div>
-</div>
-</div>
-
-<div class="screen" id="wrong22">
-<div class="content">
-<div class="question dim">
-क्वालिटी की पूरी जानकारी कहाँ मिलेगी?
-</div>
-
-<div class="opt bad">
-<span class="radio"></span>
-<span>फोन को 360° घुमाने पर</span>
-</div>
-
-<div class="opt ok">
-<span class="radio"></span>
-<span>किसी भी सेक्शन में (?) आइकन पर क्लिक करने पर</span>
-</div>
-
-<div class="fix">
-सही जवाब: किसी भी सेक्शन में <b>(?) आइकन पर क्लिक</b> करके आप क्वालिटी के बारे में और जान सकते हैं।
-</div>
-
-<div class="spacer"></div>
-
-<div class="cta" onclick="ctClose()">ठीक है</div>
 </div>
 </div>
 
@@ -431,7 +231,6 @@ the clock, the milestones and both channels run either way.
 Flip to true only when QA needs to watch the timer on a device. */
 var SHOW_HUD = false;
 var CLOSE_INAPP_ON_VIDEO_EXIT = true; // matches the portrait-video template
-var UNLOCK_AFTER = 45; // seconds actually watched before समझ गया unlocks
 
 /* ---------- channel 2: sheet pixel beacon ---------- */
 function w(screen) {
@@ -471,8 +270,6 @@ var video = document.getElementById('video');
 var hud = document.getElementById('hud');
 var hudDot = document.getElementById('hudDot');
 var hudText = document.getElementById('hudText');
-var btnUnder = document.getElementById('btnUnderstood');
-var lockTimer = document.getElementById('lockTimer');
 
 /* ------------------------------------------------------------
 Active watch time.
@@ -488,7 +285,6 @@ activeMs: 0, // real time spent watching
 maxPosition: 0, // furthest second reached
 started: false,
 completed: false,
-unlocked: false,
 milestones: { 25: false, 50: false, 75: false }
 };
 
@@ -520,7 +316,6 @@ if (isPlaying()) WATCH.activeMs += now - lastTick;
 lastTick = now;
 if (video.currentTime > WATCH.maxPosition) WATCH.maxPosition = video.currentTime;
 checkMilestones();
-checkUnlock();
 paint();
 }
 
@@ -544,24 +339,6 @@ w('watch' + m);
 h('seva-video-w' + m);
 }
 });
-}
-
-/* The समझ गया gate runs on active watch time, like the milestones,
-so dragging the scrubber cannot unlock it early. The video ending
-or failing to load unlocks it too, so nobody is ever stuck. */
-function unlockUnder() {
-if (WATCH.unlocked) return;
-WATCH.unlocked = true;
-btnUnder.disabled = false;
-lockTimer.textContent = '';
-w('unlock');
-}
-
-function checkUnlock() {
-if (WATCH.unlocked) return;
-var remaining = UNLOCK_AFTER - activeSeconds();
-if (remaining <= 0) { unlockUnder(); return; }
-lockTimer.textContent = fmt(Math.ceil(remaining));
 }
 
 /* How long they actually watched, bucketed. Screen names are
@@ -627,7 +404,6 @@ if (!video.ended && !closing) w('pause');
 
 video.addEventListener('ended', function () {
 stopClock();
-unlockUnder();
 if (!WATCH.completed) {
 WATCH.completed = true;
 w('watch100');
@@ -638,12 +414,6 @@ h('seva-video-done');
 video.addEventListener('seeked', function () {
 if (video.currentTime > WATCH.maxPosition) WATCH.maxPosition = video.currentTime;
 paint();
-});
-
-// A video that cannot load must not trap anyone behind the gate.
-video.addEventListener('error', function () {
-w('video-error');
-unlockUnder();
 });
 
 // Backgrounding the app must not keep the clock running.
@@ -658,9 +428,6 @@ h('seva-video-cta-clicked');
 player.classList.add('open');
 if (SHOW_HUD) hud.classList.add('on');
 paint();
-checkUnlock();
-// Failsafe: if the video cannot load or play, the gate still opens.
-setTimeout(unlockUnder, (UNLOCK_AFTER + 15) * 1000);
 unmute();
 var p = video.play();
 if (p && p.catch) p.catch(function () {});
@@ -709,60 +476,6 @@ return;
 scrim.style.display = 'none';
 }, 500);
 });
-
-/* ---------- video -> quiz ---------- */
-document.getElementById('btnUnderstood').addEventListener('click', function () {
-if (btnUnder.disabled) return;
-closing = true; // the async pause event must not log a phantom beacon
-video.pause();
-stopClock();
-w('understood');
-w(dwellBucket());
-h('seva-video-understood');
-player.classList.remove('open');
-hud.classList.remove('on');
-show('q2');
-w('quiz');
-h('seva-quiz-shown');
-});
-
-/* ---------- quiz ---------- */
-function show(id) {
-['q2', 'right2', 'wrong20', 'wrong22'].forEach(function (s) {
-document.getElementById(s).classList.toggle('on', s === id);
-});
-}
-
-window.answer2 = function (key) {
-if (key === 'right') {
-w('ans-right');
-h('seva-quiz-right');
-show('right2');
-} else {
-w('ans-wrong');
-h('seva-quiz-wrong');
-show(key === 'w0' ? 'wrong20' : 'wrong22');
-}
-};
-
-window.ctClose = function () {
-w('quiz-close');
-w(dwellBucket());
-h('seva-quiz-closed');
-setTimeout(function () {
-try {
-if (window.CleverTap && window.CleverTap.dismissInAppNotification) {
-window.CleverTap.dismissInAppNotification();
-return;
-}
-} catch (e) {}
-// Browser preview fallback: clear the screens.
-['q2', 'right2', 'wrong20', 'wrong22'].forEach(function (s) {
-document.getElementById(s).classList.remove('on');
-});
-scrim.style.display = 'none';
-}, 500);
-};
 
 /* ---------- in-app opened ---------- */
 w('inform'); // CT logs inApp_Shown by itself
