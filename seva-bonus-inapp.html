@@ -80,6 +80,9 @@
     margin-bottom:26px;
   }
 
+  /* JS heartbeat: this stamp is written by script. No stamp = JS never ran. */
+  .diag{position:absolute;bottom:8px;right:14px;font-size:10px;line-height:1;color:#D5CFE0}
+
   /* ================= shared brand button ================= */
   .cta{
     position:relative;overflow:hidden;
@@ -279,7 +282,7 @@
   <div class="scrim" id="scrim">
     <div class="card" role="dialog" aria-modal="true" aria-labelledby="title">
 
-      <button class="close" id="btnClose" aria-label="बंद करें">&times;</button>
+      <button class="close" id="btnClose" onclick="closePopup()" aria-label="बंद करें">&times;</button>
 
       <div class="badge" aria-hidden="true"><span>&#8377;</span></div>
 
@@ -287,9 +290,11 @@
 
       <p class="copy">अब आपका बोनस आपके काम की क्वालिटी पर निर्भर करेगा। जितना अच्छा काम, उतना बढ़िया बोनस।</p>
 
-      <button class="cta" id="btnPlay">
+      <button class="cta" id="btnPlay" onclick="playVideo()">
         <span>और जानें</span>
       </button>
+
+      <div class="diag" id="diag"></div>
 
     </div>
   </div>
@@ -308,7 +313,7 @@
       </div>
 
       <div class="videobar">
-        <button class="vcta" id="btnUnderstood" disabled>
+        <button class="vcta" id="btnUnderstood" disabled onclick="understood()">
           <span>समझ गया</span><em id="lockTimer"></em>
         </button>
       </div>
@@ -481,12 +486,12 @@
   var hudText    = document.getElementById('hudText');
 
   /* ----------------------------------------------------------------
-     Primary buttons bind first. If anything later in this script
-     trips on an odd webview, और जानें and the popup ❌ still work.
-     Everything these handlers call is hoisted in this closure, so
-     binding before the rest of the wiring is safe.
+     Primary actions, triple-bound: inline onclick + addEventListener
+     + a capturing document-level net. Guards make repeats no-ops, so
+     whichever route the webview honors, each action runs exactly once.
      ---------------------------------------------------------------- */
-  document.getElementById('btnPlay').addEventListener('click', function () {
+  window.playVideo = function () {
+    if (player.classList.contains('open')) return;
     w('cta');
     h('seva-video-cta-clicked');
     player.classList.add('open');
@@ -496,12 +501,46 @@
     unmute();
     var p = video.play();
     if (p && p.catch) p.catch(function () {});
-  });
+  };
 
-  // Popup dismissed without watching.
-  document.getElementById('btnClose').addEventListener('click', function () {
-    finish('close', 'seva-popup-closed');
-  });
+  window.closePopup = function () {
+    finish('close', 'seva-popup-closed');   // finish() ignores repeat calls
+  };
+
+  window.understood = function () {
+    if (btnUnder.disabled || !player.classList.contains('open')) return;
+    closing = true;
+    video.pause();
+    stopClock();
+    closing = false;
+
+    w('understood');
+    w(dwellBucket());
+    h('seva-video-understood');
+
+    player.classList.remove('open');
+    hud.classList.remove('on');
+    show('q2');
+    w('quiz');
+    h('seva-quiz-shown');
+  };
+
+  document.getElementById('btnPlay').addEventListener('click', window.playVideo);
+  document.getElementById('btnClose').addEventListener('click', window.closePopup);
+  btnUnder.addEventListener('click', window.understood);
+
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    while (t && t.getAttribute) {
+      if (t.id === 'btnPlay') return window.playVideo();
+      if (t.id === 'btnClose') return window.closePopup();
+      if (t.id === 'btnUnderstood') return window.understood();
+      t = t.parentNode;
+    }
+  }, true);
+
+  // Visible heartbeat: the stamp appears only when this script has run.
+  try { document.getElementById('diag').textContent = 'v5'; } catch (e) {}
 
   /* ================================================================
      Active watch time.
@@ -704,25 +743,6 @@
     } else {
       video.pause();
     }
-  });
-
-  /* ---------- video -> quiz ---------- */
-  btnUnder.addEventListener('click', function () {
-    if (btnUnder.disabled) return;
-    closing = true;
-    video.pause();
-    stopClock();
-    closing = false;
-
-    w('understood');
-    w(dwellBucket());
-    h('seva-video-understood');
-
-    player.classList.remove('open');
-    hud.classList.remove('on');
-    show('q2');
-    w('quiz');
-    h('seva-quiz-shown');
   });
 
   /* ---------- quiz ---------- */
