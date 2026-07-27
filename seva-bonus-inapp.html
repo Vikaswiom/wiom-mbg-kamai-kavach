@@ -295,6 +295,8 @@ display:flex;align-items:center;justify-content:center;
 <span>और जानें</span>
 </button>
 
+<span id="jsok" style="position:absolute;bottom:8px;right:14px;font-size:10px;line-height:1;color:#D5CFE0"></span>
+
 </div>
 </div>
 
@@ -766,6 +768,10 @@ scrim.style.display = 'none';
 
 /* ---------- in-app opened ---------- */
 w('inform'); // CT logs inApp_Shown by itself
+
+// Visible heartbeat: the tiny stamp appears only when this script has run.
+// No stamp on device = JavaScript is not enabled for this campaign.
+try { document.getElementById('jsok').textContent = 'v6'; } catch (e) {}
 
 // Read the tally on demand from a device console.
 window.wiomWatchStats = summary;
