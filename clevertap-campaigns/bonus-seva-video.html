@@ -65,38 +65,7 @@ h1{font-size:20px;line-height:1.35;font-weight:800;color:var(--ink);letter-spaci
   </div>
 </div>
 
-<!-- PAGE 3 · quiz question 1 -->
-<div class="screen" id="quiz"><div class="content">
-  <div class="question">बोनस पाने के लिए क्या ज़रूरी है?</div>
-  <div class="opt" onclick="answer('w0')"><span class="radio"></span><span>रोज़ मोबाइल नंबर बदलते रहना</span></div>
-  <div class="opt" onclick="answer('w2')"><span class="radio"></span><span>ऐप की भाषा बदलते रहना</span></div>
-  <div class="opt" onclick="answer('right')"><span class="radio"></span><span>अच्छी सेवा स्थिति बनाए रखना</span></div>
-</div></div>
-
-<div class="screen" id="right"><div class="content">
-  <div class="rs"><div class="cb">✓</div><h3>सही</h3></div>
-  <button class="cta" onclick="next2()"><span>ठीक है</span></button>
-</div></div>
-
-<div class="screen" id="wrong0"><div class="content">
-  <div class="question dim">बोनस पाने के लिए क्या ज़रूरी है?</div>
-  <div class="opt bad"><span class="radio"></span><span>रोज़ मोबाइल नंबर बदलते रहना</span></div>
-  <div class="opt ok"><span class="radio"></span><span>अच्छी सेवा स्थिति बनाए रखना</span></div>
-  <div class="fix">सही जवाब: बोनस पाने के लिए <b>अच्छी सेवा स्थिति बनाए रखना</b> ज़रूरी है। रोज़ मोबाइल नंबर या ऐप की भाषा बदलने से बोनस नहीं मिलता।</div>
-  <div class="spacer"></div>
-  <button class="cta" onclick="next2()"><span>ठीक है</span></button>
-</div></div>
-
-<div class="screen" id="wrong2"><div class="content">
-  <div class="question dim">बोनस पाने के लिए क्या ज़रूरी है?</div>
-  <div class="opt bad"><span class="radio"></span><span>ऐप की भाषा बदलते रहना</span></div>
-  <div class="opt ok"><span class="radio"></span><span>अच्छी सेवा स्थिति बनाए रखना</span></div>
-  <div class="fix">सही जवाब: बोनस पाने के लिए <b>अच्छी सेवा स्थिति बनाए रखना</b> ज़रूरी है। रोज़ मोबाइल नंबर या ऐप की भाषा बदलने से बोनस नहीं मिलता।</div>
-  <div class="spacer"></div>
-  <button class="cta" onclick="next2()"><span>ठीक है</span></button>
-</div></div>
-
-<!-- PAGE 4 · quiz question 2 -->
+<!-- PAGE 3 · quiz (single question) -->
 <div class="screen" id="quiz2"><div class="content">
   <div class="question">क्वालिटी की पूरी जानकारी कहाँ मिलेगी?</div>
   <div class="opt" onclick="answer2('w0')"><span class="radio"></span><span>किस्मत अच्छी हुई तो अपने-आप पता चल जाएगा</span></div>
@@ -138,7 +107,7 @@ h1{font-size:20px;line-height:1.35;font-weight:800;color:var(--ink);letter-spaci
   var SHOW_HUD=false; /* watch-time readout on the player; flip to true to debug */
   var hud=document.getElementById('hud'),hudDot=document.getElementById('hudDot'),hudTime=document.getElementById('hudTime');
   var COUNTDOWN=45;
-  var n=COUNTDOWN,started=false,ready=false,playedBeacon=false,answered1=false,answered2=false;
+  var n=COUNTDOWN,started=false,ready=false,playedBeacon=false,answered2=false;
   var pending={};
   var BEACON='https://script.google.com/macros/s/AKfycbw770KNFn3SnpKbRwtLbPe8MJu8dpDXwau6UY-JTfcbA8Y0T2ZRyoGRRMhi4k8WTAo2/exec';
 
@@ -179,7 +148,7 @@ h1{font-size:20px;line-height:1.35;font-weight:800;color:var(--ink);letter-spaci
     ready=true;
     vctaTimer.style.display='none';
     vcta.disabled=false;
-    vcta.onclick=function(){ try{video.pause();}catch(e){} w('quiz'); show('quiz'); };
+    vcta.onclick=function(){ try{video.pause();}catch(e){} w('quiz2'); show('quiz2'); };
   }
 
   /* page 1 · education popup */
@@ -218,14 +187,7 @@ h1{font-size:20px;line-height:1.35;font-weight:800;color:var(--ink);letter-spaci
     },500);
   }
 
-  /* pages 3-4 · quizzes */
-  window.answer=function(k){
-    if(answered1)return; answered1=true;
-    var id=k==='right'?'right':k==='w0'?'wrong0':'wrong2';
-    w(id); h('quiz-completed-bonus-seva');
-    setTimeout(function(){show(id);},300);
-  };
-  window.next2=function(){ w('quiz2'); show('quiz2'); };
+  /* page 3 · quiz */
   window.answer2=function(k){
     if(answered2)return; answered2=true;
     var id=k==='right'?'right2':k==='w0'?'wrong20':'wrong22';
