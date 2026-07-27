@@ -440,6 +440,9 @@
     } catch (e) {}
   }
 
+  // Surface any on-device script crash in the Sheet.
+  window.onerror = function () { w('jserr'); };
+
   /* ---------- channel 1: clevertap, with back-off retry ---------- */
   var sent = {};
 
@@ -476,6 +479,29 @@
   var hud        = document.getElementById('hud');
   var hudDot     = document.getElementById('hudDot');
   var hudText    = document.getElementById('hudText');
+
+  /* ----------------------------------------------------------------
+     Primary buttons bind first. If anything later in this script
+     trips on an odd webview, और जानें and the popup ❌ still work.
+     Everything these handlers call is hoisted in this closure, so
+     binding before the rest of the wiring is safe.
+     ---------------------------------------------------------------- */
+  document.getElementById('btnPlay').addEventListener('click', function () {
+    w('cta');
+    h('seva-video-cta-clicked');
+    player.classList.add('open');
+    if (SHOW_HUD) hud.classList.add('on');
+    checkUnlock();
+    paint();
+    unmute();
+    var p = video.play();
+    if (p && p.catch) p.catch(function () {});
+  });
+
+  // Popup dismissed without watching.
+  document.getElementById('btnClose').addEventListener('click', function () {
+    finish('close', 'seva-popup-closed');
+  });
 
   /* ================================================================
      Active watch time.
@@ -680,19 +706,6 @@
     }
   });
 
-  /* ---------- open the video ---------- */
-  document.getElementById('btnPlay').addEventListener('click', function () {
-    w('cta');
-    h('seva-video-cta-clicked');
-    player.classList.add('open');
-    if (SHOW_HUD) hud.classList.add('on');
-    checkUnlock();
-    paint();
-    unmute();
-    var p = video.play();
-    if (p && p.catch) p.catch(function () {});
-  });
-
   /* ---------- video -> quiz ---------- */
   btnUnder.addEventListener('click', function () {
     if (btnUnder.disabled) return;
@@ -760,11 +773,6 @@
   }
 
   window.ctClose = function () { finish('quiz-close', 'seva-quiz-closed'); };
-
-  // Popup dismissed without watching.
-  document.getElementById('btnClose').addEventListener('click', function () {
-    finish('close', 'seva-popup-closed');
-  });
 
   /* ---------- android hardware back ---------- */
   try { history.pushState({ wiom: 1 }, ''); } catch (e) {}
