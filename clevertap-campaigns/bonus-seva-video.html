@@ -14,7 +14,7 @@
 -->
 <style>:root{--brand:#D9008D;--brand-press:#B80077;--brand-tint:#FFE5F6;--ink:#161021;--muted:#665E75;--white:#FFFFFF;--scrim:rgba(37,10,27,.55);}
 *{box-sizing:border-box;margin:0;padding:0}html,body{height:100%}body{font-family:"Noto Sans Devanagari","Nirmala UI","Kohinoor Devanagari",system-ui,sans-serif;color:var(--ink);background:var(--scrim);-webkit-font-smoothing:antialiased;}
-/* ---------- popup ---------- */.scrim{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;}
+/* ---------- popup ---------- */.scrim{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);}
 .card{position:relative;width:100%;max-width:312px;background:var(--white);border-radius:24px;padding:28px 20px 22px;display:flex;flex-direction:column;box-shadow:0 18px 50px rgba(37,10,27,.30);animation:pop .28s cubic-bezier(.2,.8,.25,1) both;}@keyframes pop{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
 .close{position:absolute;top:12px;right:12px;width:32px;height:32px;border:none;border-radius:50%;background:#F4EEF2;color:var(--muted);font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}.close:active{background:#E9E1E7}
 .badge{width:48px;height:48px;border-radius:50%;background:var(--brand-tint);display:flex;align-items:center;justify-content:center;flex:none;margin-bottom:20px;}.badge span{font-size:24px;font-weight:800;color:var(--brand);line-height:1}
