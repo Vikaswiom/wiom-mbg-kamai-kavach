@@ -75,7 +75,7 @@ h1{font-size:20px;line-height:1.35;font-weight:800;color:var(--ink);letter-spaci
 
 <div class="screen" id="right2"><div class="content">
   <div class="rs"><div class="cb">✓</div><h3>सही</h3></div>
-  <button class="cta" onclick="ctClose()"><span>ठीक है</span></button>
+  <button class="cta" onclick="flowDone()"><span>ठीक है</span></button>
 </div></div>
 
 <div class="screen" id="wrong20"><div class="content">
@@ -84,7 +84,7 @@ h1{font-size:20px;line-height:1.35;font-weight:800;color:var(--ink);letter-spaci
   <div class="opt ok"><span class="radio"></span><span>किसी भी सेक्शन में (?) आइकन पर क्लिक करने पर</span></div>
   <div class="fix">सही जवाब: किसी भी सेक्शन में <b>(?) आइकन पर क्लिक</b> करके आप क्वालिटी के बारे में और जान सकते हैं।</div>
   <div class="spacer"></div>
-  <button class="cta" onclick="ctClose()"><span>ठीक है</span></button>
+  <button class="cta" onclick="flowDone()"><span>ठीक है</span></button>
 </div></div>
 
 <div class="screen" id="wrong22"><div class="content">
@@ -93,7 +93,7 @@ h1{font-size:20px;line-height:1.35;font-weight:800;color:var(--ink);letter-spaci
   <div class="opt ok"><span class="radio"></span><span>किसी भी सेक्शन में (?) आइकन पर क्लिक करने पर</span></div>
   <div class="fix">सही जवाब: किसी भी सेक्शन में <b>(?) आइकन पर क्लिक</b> करके आप क्वालिटी के बारे में और जान सकते हैं।</div>
   <div class="spacer"></div>
-  <button class="cta" onclick="ctClose()"><span>ठीक है</span></button>
+  <button class="cta" onclick="flowDone()"><span>ठीक है</span></button>
 </div></div>
 
 <script>
@@ -113,7 +113,8 @@ h1{font-size:20px;line-height:1.35;font-weight:800;color:var(--ink);letter-spaci
 
   function w(screen){ try{ (new Image).src=BEACON+'?flow=BONUS&screen='+screen+'&t='+ +new Date; }catch(e){} }
 
-  function h(name){ /* CleverTap event with retry; Android (CleverTap) + iOS (webkit) bridges */
+  function h(name,props){ /* CleverTap event with retry; Android (CleverTap) + iOS (webkit) bridges.
+       Android's bridge is a Java interface — properties MUST go across as a JSON string. */
     if(pending[name])return;
     pending[name]={sent:false,attempts:0};
     (function attempt(){
@@ -121,10 +122,12 @@ h1{font-size:20px;line-height:1.35;font-weight:800;color:var(--ink);letter-spaci
       if(s.sent)return;
       try{
         if(window.CleverTap&&typeof window.CleverTap.pushEvent==='function'){
-          window.CleverTap.pushEvent(name); s.sent=true; w('ct-'+name); return;
+          if(props){window.CleverTap.pushEvent(name,JSON.stringify(props));}
+          else{window.CleverTap.pushEvent(name);}
+          s.sent=true; w('ct-'+name); return;
         }
         if(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.clevertap){
-          window.webkit.messageHandlers.clevertap.postMessage({action:'recordEventWithProps',event:name,properties:{}});
+          window.webkit.messageHandlers.clevertap.postMessage({action:'recordEventWithProps',event:name,properties:props||{}});
           s.sent=true; w('ct-'+name); return;
         }
       }catch(e){}
@@ -132,6 +135,9 @@ h1{font-size:20px;line-height:1.35;font-weight:800;color:var(--ink);letter-spaci
       if(s.attempts<6)setTimeout(attempt,250*s.attempts);
     })();
   }
+
+  function watched(){ try{return Math.round(video.currentTime||0);}catch(e){return 0;} }
+  function closeSoon(){ setTimeout(ctClose,200); /* let the event reach the bridge first */ }
 
   function unmute(){ try{video.muted=false;video.volume=1;}catch(e){} }
 
@@ -148,25 +154,34 @@ h1{font-size:20px;line-height:1.35;font-weight:800;color:var(--ink);letter-spaci
     ready=true;
     vctaTimer.style.display='none';
     vcta.disabled=false;
-    vcta.onclick=function(){ try{video.pause();}catch(e){} w('quiz2'); show('quiz2'); };
+    vcta.onclick=function(){
+      h('Bonus_Seva_Understood_Clicked',{watched_seconds:watched()});
+      try{video.pause();}catch(e){} w('quiz2'); show('quiz2');
+    };
   }
 
   /* page 1 · education popup */
   document.getElementById('btnPlay').onclick=function(){
-    w('open-video');
+    w('open-video'); h('Bonus_Seva_LearnMore_Clicked');
     document.getElementById('scrim').style.display='none';
     document.getElementById('player').className='player open';
     try{ var p=video.play(); if(p&&p.catch)p.catch(function(){}); }catch(e){}
   };
-  document.getElementById('btnClose').onclick=function(){ w('close-card'); ctClose(); };
-  document.getElementById('btnVClose').onclick=function(){ w('close-video'); try{video.pause();}catch(e){} ctClose(); };
+  document.getElementById('btnClose').onclick=function(){
+    w('close-card'); h('Bonus_Seva_Intro_Dismissed'); closeSoon();
+  };
+  document.getElementById('btnVClose').onclick=function(){
+    var s=watched();
+    w('close-video-'+s+'s'); h('Bonus_Seva_Video_Dismissed',{watched_seconds:s});
+    try{video.pause();}catch(e){} closeSoon();
+  };
 
   /* page 2 · video + gate */
   video.addEventListener('loadedmetadata',unmute);
   video.addEventListener('play',function(){
     unmute();
     if(!playedBeacon){playedBeacon=true;w('play');}
-    setTimeout(function(){h('bonus-video-played');},300);
+    setTimeout(function(){h('Bonus_Seva_Video_Played');},300);
     if(!started){
       started=true;
       vctaTimer.textContent='('+n+')';
@@ -191,16 +206,18 @@ h1{font-size:20px;line-height:1.35;font-weight:800;color:var(--ink);letter-spaci
   window.answer2=function(k){
     if(answered2)return; answered2=true;
     var id=k==='right'?'right2':k==='w0'?'wrong20':'wrong22';
-    w(id); h('quiz-completed-bonus-seva-second-question');
+    var choice=k==='right'?'help_icon':k==='w0'?'luck':'rotate_phone';
+    w(id); h('Bonus_Seva_Quiz_Answered',{choice:choice,correct:k==='right'});
     setTimeout(function(){show(id);},300);
   };
+  window.flowDone=function(){ w('done'); h('Bonus_Seva_Flow_Completed'); closeSoon(); };
   window.ctClose=function(){
     try{
       if(window.CleverTap&&typeof window.CleverTap.dismissInAppNotification==='function'){window.CleverTap.dismissInAppNotification();}
       else if(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.clevertap){window.webkit.messageHandlers.clevertap.postMessage({action:'dismissInAppNotification'});}
     }catch(e){}
   };
-  w('inform');
+  w('inform'); h('Bonus_Seva_Intro_Viewed');
 })();
 </script>
 </body>
