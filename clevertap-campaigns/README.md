@@ -1,7 +1,10 @@
 # CleverTap in-app campaign HTML
 
-Source for custom-HTML in-app campaigns (also deployed at
+Source for custom-HTML in-app campaigns (guarantee campaigns also deployed at
 https://vikaswiom.github.io/wiom-csp-guarantee-campaign/).
+
+**Full working context — repos, event schemas, pipeline, attribution lessons —
+is in [`CONTEXT.md`](CONTEXT.md). Read it before touching anything here.**
 
 Both campaigns share the same multi-screen template: hero → promise → payout
 plan → 2-question quiz → enroll → done. They fire `Sehat_*` events through the
@@ -11,6 +14,10 @@ plan → 2-question quiz → enroll → done. They fire `Sehat_*` events through
 |------|----------|----------|--------|-------------|
 | `sla.html` | Service SLA guarantee (₹20,000 / 2 months) | `sehat_sla` | `Service SLA` | `/sla.html` |
 | `optical-power.html` | Sehat MG — Optical Power guarantee (₹20,000 / 2 months) | `sehat_optical` | `Optical Power` | `/` (index.html) |
+
+`bonus-seva-video.html` is a separate campaign (education popup → full-page
+portrait video with 45s समझ गया gate → one quiz) with its own `Bonus_Seva_*`
+event schema and dashboard — see `CONTEXT.md` for the full breakdown.
 
 ## ⚠️ Rule: no `//` comments inside the `<script>` block
 
