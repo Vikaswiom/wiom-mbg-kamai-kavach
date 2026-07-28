@@ -9,7 +9,7 @@ This file is kept byte-identical in both homes of the dashboard:
 
 build() is pure (no git) so the Railway server can call it; main() adds the
 commit + push and is what the GitHub Actions job runs."""
-import json, os, subprocess, urllib.request
+import json, os, subprocess, time, urllib.request
 from datetime import datetime, timezone, timedelta
 
 # REPO = the directory holding this file — the repo root in the standalone repo, or
@@ -148,40 +148,44 @@ def build():
 
 
 def main():
-    """CLI / GitHub Actions path: build, then commit + push data.js."""
-    data = build()
+    """CLI / GitHub Actions path: build, then commit + push data.js.
 
-    git = lambda *a: subprocess.run(["git", "-C", REPO, *a], check=True,
-                                    capture_output=True, text=True)
-    git("add", "data.js")            # REPO = analytics-dashboard/, so this stages that folder's data.js
-    status = subprocess.run(["git", "-C", REPO, "status", "--porcelain", "data.js"],
-                            capture_output=True, text=True).stdout.strip()
-    if not status:
-        log("no change")
-        return
-    git("-c", "user.name=Vikaswiom", "-c", "user.email=design.3@wiom.in",
-        "commit", "-m", "chore: hourly analytics dashboard refresh " + data["last_updated"])
-    # This dashboard lives as a subfolder in the shared banner repo, whose own
-    # hourly job pushes root data.json to the same main. We only touch
-    # analytics-dashboard/data.js and the banner only touches root data.json, so
-    # a rebase never conflicts — fetch + rebase + retry so a concurrent push
-    # can't reject us with a non-fast-forward.
-    for attempt in range(1, 5):
-        git("fetch", "origin", "main")
-        rb = subprocess.run(["git", "-C", REPO, "rebase", "origin/main"],
-                            capture_output=True, text=True)
-        if rb.returncode != 0:
-            subprocess.run(["git", "-C", REPO, "rebase", "--abort"],
-                           capture_output=True, text=True)
-            log(f"rebase failed (attempt {attempt}) — retrying")
-            continue
-        push = subprocess.run(["git", "-C", REPO, "push", "origin", "HEAD:main"],
+    This dashboard lives as a subfolder in the shared banner repo, whose own
+    hourly job — and this job's own prior runs — push to the same main. Rebasing
+    our commit onto a moved main CONFLICTS whenever data.js also changed remotely
+    (two refreshes racing), which is what kept failing all four attempts in the
+    same second. Instead we re-lay our freshly-built data.js on top of the latest
+    remote each attempt: fetch -> hard-reset to origin/main -> rewrite data.js ->
+    commit -> push. A concurrent push can only cost us a retry, never a conflict.
+    """
+    data = build()
+    data_js = os.path.join(REPO, "data.js")
+    with open(data_js, "rb") as f:
+        fresh = f.read()                       # authoritative freshly-built bytes
+
+    def git(*a, check=True):
+        return subprocess.run(["git", "-C", REPO, *a], check=check,
                               capture_output=True, text=True)
-        if push.returncode == 0:
-            log("pushed: " + data["last_updated"])
+
+    for attempt in range(1, 6):
+        git("fetch", "origin", "main")
+        git("reset", "--hard", "origin/main")            # clean slate = latest remote
+        with open(data_js, "wb") as f:
+            f.write(fresh)                                # lay our build on top
+        git("add", "data.js")                            # REPO = analytics-dashboard/, stages that folder's data.js
+        if not git("status", "--porcelain", "data.js").stdout.strip():
+            log("no change vs latest main — nothing to push")
             return
-        log(f"push rejected (main moved) — resync and retry {attempt}/4")
-    raise RuntimeError("push failed after 4 attempts")
+        git("-c", "user.name=Vikaswiom", "-c", "user.email=design.3@wiom.in",
+            "commit", "-m", "chore: hourly analytics dashboard refresh " + data["last_updated"])
+        push = git("push", "origin", "HEAD:main", check=False)
+        if push.returncode == 0:
+            log("pushed: %s (attempt %d)" % (data["last_updated"], attempt))
+            return
+        tail = (push.stderr.strip().splitlines() or [""])[-1]
+        log("push rejected (main moved) — resync and retry %d/5: %s" % (attempt, tail))
+        time.sleep(2 * attempt)                          # backoff before re-fetch
+    raise RuntimeError("push failed after 5 attempts")
 
 
 if __name__ == "__main__":
