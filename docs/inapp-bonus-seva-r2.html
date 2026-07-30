@@ -32,8 +32,15 @@ BEFORE THE CAMPAIGN GOES OUT:
 1. Turn ON "Include JavaScript" in the custom-HTML in-app, and re-save it
 after ANY edit to this file. Without it the CleverTap bridge object is
 never injected and not a single event fires.
-2. Audience = CSPs with NO Bonus_Seva_Quiz_Answered (round-1 non-completers).
-3. Test the card-4 CTA on a REAL DEVICE. CT Preview attaches the bridge
+2. Set the in-app LAYOUT to full screen: Custom HTML -> "Cover" (not
+Interstitial / Half-interstitial / Header / Footer), width and height
+100%. This file is built edge-to-edge and cannot resize its own
+container - if the campaign is set to interstitial, CleverTap draws the
+WebView as a centred modal box and the story is letterboxed inside it.
+While you are there, turn OFF the default close button: this creative
+draws its own X, which is the one wired to Bonus_Seva2_Dismissed.
+3. Audience = CSPs with NO Bonus_Seva_Quiz_Answered (round-1 non-completers).
+4. Test the card-4 CTA on a REAL DEVICE. CT Preview attaches the bridge
 early and hides the race the retry pattern exists to solve, and the deep
 link cannot be exercised in a browser at all.
 -->
@@ -47,12 +54,15 @@ link cannot be exercised in a browser at all.
 --lat:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
+/* Full-bleed. Every ancestor of .screen has to carry the height or a
+percentage height collapses to zero, and dvh keeps the story off the strip
+that the mobile URL/status bars steal on first paint. */
+html,body{width:100%;height:100%;min-height:100vh;min-height:100dvh;overflow:hidden;}
 /* The in-app owns the whole WebView. Light-only on purpose: these cards mirror
 the real app screens, which are light. */
 body{background:#FAF9FC;color:#161021;font-family:var(--dev);line-height:1.55;
--webkit-font-smoothing:antialiased;overflow:hidden;}
-.screen{position:fixed;inset:0;overflow:hidden;background:#FAF9FC;}
+-webkit-font-smoothing:antialiased;}
+.screen{position:fixed;inset:0;width:100%;height:100%;height:100dvh;overflow:hidden;background:#FAF9FC;}
 
 /* ---------- story chrome ---------- */
 .chrome{position:absolute;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;gap:10px;
