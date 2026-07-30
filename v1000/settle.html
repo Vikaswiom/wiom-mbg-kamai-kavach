@@ -1,0 +1,221 @@
+<!doctype html><html lang="hi"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
+<title>महीने का हिसाब — Kamai Kavach</title>
+<style>
+:root{--maroon:#3f2a44;--purple:#6D17CE;--purpbg:#F4EBFC;--pill:#EBDDFB;--green:#008043;--green-bg:#E6F6EE;
+--amber:#B85C00;--amberbar:#E08A1E;--amber-bg:#FBF1DD;--amberline:#F0DBAF;--red:#D9202F;
+--text:#181022;--t2:#6b6478;--t3:#a8a2b4;--card:#fff;--screen:#F7F5FA;--line:#ECE7F2;--stroke2:#DED8EA;}
+*{box-sizing:border-box;margin:0;font-family:"Noto Sans Devanagari","Nirmala UI","Segoe UI",system-ui,sans-serif;}
+html,body{background:var(--screen);overflow-x:hidden;}
+.wrap{min-height:100vh;background:var(--screen);color:var(--text);max-width:430px;margin:0 auto;line-height:1.5;overflow-x:hidden;}
+.hdr{background:var(--maroon);color:#fff;padding:13px 15px;display:flex;align-items:center;gap:11px;}
+.hdr .t{font-size:15.5px;font-weight:700;flex:1;}
+.subhdr{background:var(--maroon);color:#e8dcec;padding:0 15px 11px;font-size:12px;font-weight:600;}
+.body{padding:13px;display:flex;flex-direction:column;gap:11px;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px;}
+.k{font-size:12px;color:var(--t2);font-weight:600;}
+.earn-amt{font-size:30px;font-weight:800;letter-spacing:-1px;margin:5px 0 3px;font-variant-numeric:tabular-nums;}
+.earn-sub{font-size:11.5px;color:var(--green);font-weight:700;line-height:1.45;}
+.earn-sub.mut{color:var(--t2);}
+.wyh-top{display:flex;align-items:baseline;gap:7px;margin:5px 0 2px;}
+.wyh-pct{font-size:31px;font-weight:800;letter-spacing:-1.5px;font-variant-numeric:tabular-nums;}
+.wyh-need60{font-size:12.5px;color:var(--t3);font-weight:700;}
+.bar{position:relative;height:11px;background:#EDEAF2;border-radius:6px;margin:12px 0 4px;}
+.bar .fill{position:absolute;left:0;top:0;bottom:0;border-radius:6px;}
+.bar .mk{position:absolute;left:60%;top:-4px;bottom:-4px;width:2px;background:#2a2130;}
+.wyh-need{font-size:14px;font-weight:800;margin-top:9px;}
+.wyh-line{font-size:11.5px;color:var(--t2);line-height:1.5;margin-top:3px;}
+.f-green .wyh-pct{color:var(--green)}.f-green .fill{background:var(--green)}.f-green .wyh-need{color:var(--green)}
+.f-amber .wyh-pct{color:var(--amber)}.f-amber .fill{background:var(--amberbar)}.f-amber .wyh-need{color:var(--amber)}
+
+/* settlement card — themed by outcome */
+.settle{border-radius:16px;padding:15px;border:1px solid;}
+.settle .ph{font-size:12.5px;font-weight:800;}
+.settle .title{font-size:16.5px;font-weight:800;letter-spacing:-.3px;margin:4px 0 6px;line-height:1.3;}
+.settle .body{font-size:12.5px;line-height:1.6;font-weight:500;}
+.settle .rows{margin-top:12px;background:#fff;border-radius:11px;padding:4px 12px;}
+.settle .row{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:9px 0;font-size:12.5px;border-top:1px solid var(--line);}
+.settle .row:first-child{border-top:0;}
+.settle .row .lab{color:var(--t2);font-weight:600;}
+.settle .row .amt{font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.settle .row.plus .amt{color:var(--purple);}
+.settle .row.total{border-top:1.5px solid var(--stroke2);}
+.settle .row.total .lab{color:var(--text);font-weight:800;}
+.settle .row.total .amt{font-size:18px;font-weight:800;letter-spacing:-.5px;}
+
+/* tone: ok (above floor) = green · applied (top-up) = purple · na (below 60) = amber */
+.settle.ok{background:var(--green-bg);border-color:#BFE6D2;}
+.settle.ok .ph,.settle.ok .title{color:var(--green);} .settle.ok .row.total .amt{color:var(--green);}
+.settle.applied{background:var(--purpbg);border-color:#e6d6fa;}
+.settle.applied .ph,.settle.applied .title{color:var(--purple);} .settle.applied .row.total .amt{color:var(--purple);}
+.settle.na{background:var(--amber-bg);border-color:var(--amberline);}
+.settle.na .ph,.settle.na .title{color:var(--amber);} .settle.na .row.total .amt{color:var(--amber);}
+.settle .body b{color:var(--text);}
+
+.foot{font-size:11px;color:var(--t3);text-align:center;padding:2px 6px 16px;line-height:1.5;}
+
+/* demo switcher (only with ?demo=1 or no cspId) */
+.demo{max-width:430px;margin:0 auto;padding:10px 13px 0;display:flex;flex-wrap:wrap;gap:6px;}
+.demo button{font-size:11px;font-weight:700;padding:6px 10px;border-radius:999px;cursor:pointer;
+  background:#fff;color:var(--t2);border:1px solid var(--stroke2);}
+.demo button[aria-pressed="true"]{background:var(--maroon);border-color:var(--maroon);color:#fff;}
+.demo .note{width:100%;font-size:11px;color:var(--t3);padding-top:2px;}
+.skel{color:var(--t3);font-size:12.5px;font-weight:600;text-align:center;padding:34px 14px;line-height:1.7;}
+</style></head>
+<body>
+<div class="demo" id="demo" hidden></div>
+<div class="wrap"><div class="hdr"><span class="t">गारंटी कमाई</span></div>
+  <div class="subhdr">इस महीने का हिसाब · 0 दिन बाकी</div>
+  <div class="body" id="body"><div class="skel">हिसाब लाया जा रहा है…</div></div>
+</div>
+
+<script>
+/* ── Kamai Kavach month-end settlement — one of 4 cases per CSP ──────────────
+   Reads raw inputs {installs, denom, pending} by ?cspId= (same data.json as the
+   banner), computes the settlement case, renders the matching copy. The S4 denom
+   change lives in the poller; this screen just consumes installs/denom.          */
+var PROXY_URL = "";
+var DATA_URL  = "https://vikaswiom.github.io/wiom-mbg-kamai-kavach/data.json";
+var PAY=1000, GATE=0.60, FLOOR=10000, DEEP=5000;   /* top-up above DEEP = "बड़ी कमी" */
+
+function cspIdFromUrl(){
+  var q=new URLSearchParams(location.search);
+  return (q.get('cspId')||q.get('cspid')||q.get('csp_id')||q.get('id')||'').toLowerCase();
+}
+function inr(n){ return Number(n).toLocaleString('en-IN'); }
+
+/* the 4 outcomes */
+function settle(d){
+  var installs=+d.installs||0, denom=+d.denom||0;
+  var installpay=PAY*installs;
+  var pct=denom>0?Math.round(100*installs/denom):0;
+  var secured=denom>0 && installs/denom>GATE;
+  var topup=0, total=installpay, kase='below60';
+  if(denom===0){ kase='noleads'; topup=FLOOR; total=FLOOR; }   /* no lead came → full floor */
+  else if(secured){
+    if(installpay>=FLOOR){ kase='above'; total=installpay; }
+    else { topup=FLOOR-installpay; total=FLOOR; kase=(topup>DEEP)?'deep':'topup'; }
+  }
+  return {installs:installs,denom:denom,pct:pct,installpay:installpay,topup:topup,total:total,secured:secured,kase:kase};
+}
+
+function rowsHTML(rows){
+  return '<div class="rows">'+rows.map(function(r){
+    return '<div class="row'+(r[2]||'')+'"><span class="lab">'+r[0]+'</span><span class="amt">'+r[1]+'</span></div>';
+  }).join('')+'</div>';
+}
+
+function render(d){
+  var m=settle(d);
+  var ip='₹'+inr(m.installpay), tp='+₹'+inr(m.topup), tpp='₹'+inr(m.topup), tot='₹'+inr(m.total);
+  var connLine='व्योम '+m.denom+' लाया · आपने '+m.installs+' लगाए = '+m.pct+'%';
+
+  /* earned card (top) — when the base tops up, lead with the full ₹10,000 as hero */
+  var topped=m.topup>0;
+  var earnHero=topped?tot:ip;
+  var earnLabel=topped?'इस महीने की पक्की कमाई — वॉलेट में':'आपके लगाए कनेक्शन से कमाया';
+  var earnSub;
+  if(m.kase==='noleads') earnSub='₹0 कमाए (0 कनेक्शन) + पूरे ₹10,000 व्योम ने दिए';
+  else if(topped) earnSub=ip+' कमाए ('+m.installs+' × ₹1000) + '+tpp+' व्योम ने दिए';
+  else earnSub=m.installs+' कनेक्शन × ₹1000 · वॉलेट में';
+
+  /* standing card — no % bar when no lead came (0% would read as a fail, it isn't) */
+  var standHTML;
+  if(m.kase==='noleads'){
+    standHTML='<div class="card f-green"><div class="k">आप कहाँ हैं</div>'+
+      '<div class="wyh-need" style="margin-top:6px">आपका वादा टूटा नहीं — मौका ही नहीं आया</div>'+
+      '<div class="wyh-line">0 कनेक्शन मिले · 0 लगे — गिनती हो ही नहीं सकी</div></div>';
+  } else {
+    var standCls, standNeed, standWhy;
+    if(m.secured){ standCls='f-green'; standNeed='✓ आपका वादा पूरा — 60% पार';
+      standWhy=(m.kase==='above'?'✓ दोनों वादे पूरे · ':'')+connLine; }
+    else{ standCls='f-amber'; standNeed='महीना 60% से नीचे बंद';
+      standWhy=m.denom+' मिले · '+m.installs+' लगे = '+m.pct+'% · नया महीना, नई गिनती'; }
+    standHTML='<div class="card '+standCls+'"><div class="k">आप कहाँ हैं</div>'+
+      '<div class="wyh-top"><span class="wyh-pct">'+m.pct+'%</span><span class="wyh-need60">/ 60% चाहिए</span></div>'+
+      '<div class="bar"><div class="fill" style="width:'+Math.min(100,m.pct)+'%"></div><div class="mk"></div></div>'+
+      '<div class="wyh-need">'+standNeed+'</div><div class="wyh-line">'+standWhy+'</div></div>';
+  }
+
+  /* settlement card — the centerpiece */
+  var s;
+  if(m.kase==='noleads'){
+    s={tone:'applied', ph:'🛡 महीने का हिसाब', title:'बेस लागू हुआ — पूरे ₹10,000 व्योम ने दिए',
+      body:'इस महीने एक भी कनेक्शन नहीं आया — कमी पूरी तरह व्योम की। यही गारंटी प्रोग्राम का वादा है: कनेक्शन ना आएँ, तो भी ₹10,000।',
+      rows:[['आपके कनेक्शन से ('+m.installs+' × ₹1000)','₹0'],['व्योम ने दिए',tp,' plus'],['कुल — वॉलेट में',tot,' total']]};
+  } else if(m.kase==='above'){
+    s={tone:'ok', ph:'🛡 महीने का हिसाब', title:'बेस लागू नहीं — कमाई उससे ऊपर',
+      body:'व्योम '+m.denom+' कनेक्शन लाया, आपने '+m.installs+' लगाए। कमाई '+ip+' — बेस ₹10,000 से ऊपर, पूरी आपकी। कोई ऊपरी सीमा नहीं।',
+      rows:[['आपके कनेक्शन से ('+m.installs+' × ₹1000)',ip],['कुल — वॉलेट में',tot,' total']]};
+  } else if(m.kase==='topup'){
+    s={tone:'applied', ph:'🛡 महीने का हिसाब', title:'बेस लागू हुआ — व्योम ने बाकी दिया',
+      body:'आपका 60% पूरा था, फिर भी कमाई ₹10,000 से कम रही — मतलब कनेक्शन कम आए (व्योम की कमी)। इसलिए बाकी '+tpp+' व्योम ने दिए।',
+      rows:[['आपके कनेक्शन से ('+m.installs+' × ₹1000)',ip],['व्योम ने दिए',tp,' plus'],['कुल — वॉलेट में',tot,' total']]};
+  } else if(m.kase==='deep'){
+    s={tone:'applied', ph:'🛡 महीने का हिसाब', title:'बेस लागू हुआ — व्योम ने बाकी दिया',
+      body:'व्योम ज़रूरी कनेक्शन नहीं ला पाया (सिर्फ़ '+m.denom+' आए) — इसलिए बाकी '+tpp+' व्योम ने दिए, कुल ₹10,000।',
+      rows:[['आपके कनेक्शन से ('+m.installs+' × ₹1000)',ip],['व्योम ने दिए',tp,' plus'],['कुल — वॉलेट में',tot,' total']]};
+  } else {
+    s={tone:'na', ph:'🛡 महीने का हिसाब', title:'बेस इस महीने लागू नहीं',
+      body:'बेस के लिए आपका 60% ज़रूरी है — इस महीने दर '+m.pct+'% रही। '+ip+' पूरी आपकी। 60% का वादा अगले महीने फिर।',
+      rows:[['आपके कनेक्शन से',ip],['कुल — वॉलेट में',tot,' total']]};
+  }
+
+  document.getElementById('body').innerHTML =
+    '<div class="card"><div class="k">'+earnLabel+'</div>'+
+      '<div class="earn-amt">'+earnHero+'</div>'+
+      '<div class="earn-sub'+((!m.secured&&m.kase!=='noleads')?' mut':'')+'">'+earnSub+'</div></div>'+
+    standHTML+
+    '<div class="settle '+s.tone+'"><div class="ph">'+s.ph+'</div>'+
+      '<div class="title">'+s.title+'</div><div class="body">'+s.body+'</div>'+rowsHTML(s.rows)+'</div>'+
+    '<div class="foot">प्रोग्राम सिर्फ़ 3 महीने का — भरोसा दोबारा बनाने के लिए।</div>';
+}
+
+/* ── data ── */
+async function getCsp(){
+  var id=cspIdFromUrl();
+  if(!id) return null;
+  if(PROXY_URL){ try{ var sep=PROXY_URL.indexOf('?')>-1?'&':'?';
+      var r=await fetch(PROXY_URL+sep+'cspId='+encodeURIComponent(id),{cache:'no-store'});
+      var j=await r.json(); if(j&&j.installs!==undefined){return j;} }catch(e){} }
+  for(var u=0;u<2;u++){ try{
+      var s=await fetch(u===0?'data.json':DATA_URL,{cache:'no-store'});
+      var D=(await s.json()).data||{}; return D[id]||null; }catch(e){} }
+  return null;
+}
+
+/* ── demo (preview all 4 cases) — shows when ?demo=1 or no cspId ── */
+var DEMO={
+  above  :{label:'11 · ₹10,000 से ऊपर',  installs:35, denom:42},
+  topup  :{label:'12 · बेस ने दिया (+₹3,400)', installs:22, denom:36},
+  deep   :{label:'13 · बड़ी कमी — बेस ने दिया (+₹7,300)', installs:9,  denom:12},
+  noleads:{label:'14 · 0 कनेक्शन — पूरे ₹10,000', installs:0, denom:0},
+  below  :{label:'15 · 60% नहीं हुआ',      installs:21, denom:38}
+};
+function mountDemo(){
+  var el=document.getElementById('demo'); el.hidden=false;
+  Object.keys(DEMO).forEach(function(k){
+    var b=document.createElement('button'); b.type='button'; b.textContent=DEMO[k].label;
+    b.onclick=function(){ Array.prototype.forEach.call(el.querySelectorAll('button'),function(x){x.setAttribute('aria-pressed','false');});
+      b.setAttribute('aria-pressed','true'); render(DEMO[k]); };
+    el.appendChild(b);
+  });
+  var n=document.createElement('div'); n.className='note'; n.textContent='हर महीना इन चार में से एक पर बंद होता है';
+  el.appendChild(n);
+  el.querySelector('button').click();
+}
+
+(async function(){
+  var q=new URLSearchParams(location.search);
+  var id=cspIdFromUrl();
+  if(q.get('case') && DEMO[q.get('case')]){ render(DEMO[q.get('case')]); return; }
+  if(!id || q.get('demo')==='1'){ mountDemo(); return; }
+  var d=await getCsp();
+  if(!d){ document.getElementById('body').innerHTML='<div class="skel">इस महीने का हिसाब अभी तैयार नहीं है.<br>App में दोबारा खोलें, या helpline पर call करें.</div>'; return; }
+  render(d);
+})();
+</script>
+</body></html>
