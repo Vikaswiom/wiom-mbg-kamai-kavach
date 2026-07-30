@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>आपका बोनस — आपकी सेवा स्थिति से बनेगा</title>
+<!--
+  Bonus x Sewa Sthiti - Education Round 2 - six-card Home story.
+  Replaces the round-1 video creative (bonus-seva-video.html), which lost 121 of
+  318 CSPs at the 45s locked gate. No video, no countdown, skippable throughout.
+
+  IMPORTANT (CleverTap custom HTML):
+  Never use "//" single-line comments in the script block below. CleverTap's
+  editor can collapse this file onto one line, and a "//" comment then swallows
+  every remaining statement, breaking all six cards. Block comments only.
+
+  BEFORE THE CAMPAIGN GOES OUT:
+    1. Turn ON "Include JavaScript" in the custom-HTML in-app, and re-save it
+       after ANY edit to this file. Without it the CleverTap bridge object is
+       never injected and not a single event fires.
+    2. Audience = CSPs with NO Bonus_Seva_Quiz_Answered (round-1 non-completers).
+    3. Test the card-5 CTA on a REAL DEVICE. CT Preview attaches the bridge
+       early and hides the race the retry pattern exists to solve, and the deep
+       link cannot be exercised in a browser at all.
+-->
+<style>
+:root{
+  --brand:#D9008D; --brand-light:#FFE5F6;
+  --ink:#161021; --muted:#665E75; --faint:#A7A1B2;
+  --line:#E8E4F0; --surface:#FFFFFF; --soft:#FAF9FC;
+  --good:#008043; --good-bg:#E1FAED;
+  --dev:'Noto Sans Devanagari','Mukta','Kohinoor Devanagari','Nirmala UI',sans-serif;
+  --lat:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+/* The in-app owns the whole WebView. Light-only on purpose: these cards mirror
+   the real app screens, which are light. */
+body{background:#FAF9FC;color:#161021;font-family:var(--dev);line-height:1.55;
+  -webkit-font-smoothing:antialiased;overflow:hidden;}
+.screen{position:fixed;inset:0;overflow:hidden;background:#FAF9FC;}
+
+/* ---------- story chrome ---------- */
+.chrome{position:absolute;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;gap:10px;
+  padding:calc(14px + env(safe-area-inset-top)) 14px 8px;}
+.wm{display:flex;align-items:center;gap:4px;font-family:var(--lat);font-weight:700;font-size:16px;color:#D9008D;}
+.wm svg{display:block}
+.dots{flex:1;display:flex;gap:5px;justify-content:center}
+.dot{width:14px;height:5px;border-radius:4px;background:#E3DEEC;transition:all .3s}
+.dot.on{background:#D9008D;width:26px}
+.dot.done{background:#F0A8D6}
+.xbtn{width:48px;height:48px;border:none;background:none;padding:0;cursor:pointer;
+  display:grid;place-items:center;font-family:var(--lat);margin:-7px -10px -7px 0;}
+.xbtn span{width:34px;height:34px;border-radius:50%;background:#F0EDF5;color:#665E75;
+  font-size:16px;font-weight:700;display:grid;place-items:center;}
+.xbtn:active span{transform:scale(.94)}
+
+/* ---------- cards ---------- */
+.card{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;text-align:center;
+  padding:calc(64px + env(safe-area-inset-top)) 22px calc(26px + env(safe-area-inset-bottom));
+  opacity:0;pointer-events:none;transform:translateX(28px);transition:opacity .32s,transform .32s;}
+.card.on{opacity:1;pointer-events:auto;transform:none}
+.card.slideup{transform:translateY(46px)}
+.card.slideup.on{transform:none}
+.badge{background:#FFE5F6;color:#D9008D;font-size:12px;line-height:16px;font-weight:600;border-radius:4px;padding:2px 8px;letter-spacing:.2px;}
+.hl{font-size:24px;line-height:32px;font-weight:700;margin-top:10px;text-wrap:balance}
+.sup{font-size:14px;line-height:20px;color:#665E75;margin-top:8px;max-width:30ch}
+.hint{display:inline-flex;align-items:center;gap:6px;font-size:14px;line-height:20px;font-weight:600;color:#D9008D;
+  background:#FFE5F6;border-radius:888px;padding:6px 14px;animation:hintpulse 1.6s infinite;}
+@keyframes hintpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.grow{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;width:100%}
+.cta{width:100%;max-width:328px;height:48px;border:none;border-radius:12px;background:#D9008D;color:#FAF9FC;
+  font-family:var(--dev);font-size:16px;font-weight:700;cursor:pointer;
+  opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .3s,transform .3s;}
+.cta.show{opacity:1;transform:none;pointer-events:auto}
+.cta:active{transform:scale(.97)}
+.txtcta{border:none;background:none;color:#D9008D;font-family:var(--dev);font-size:14px;font-weight:600;
+  cursor:pointer;padding:14px 12px;min-height:48px;}
+
+/* ---------- C0 gift ---------- */
+.giftzone{position:relative;width:190px;padding-top:72px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.gift{position:relative;width:132px;margin:0 auto;transition:transform .25s}
+.giftzone:active .gift{transform:scale(.96)}
+.gbody{width:132px;height:92px;background:linear-gradient(180deg,#E81DA0,#C3007E);border-radius:12px;position:relative}
+.gbody:before{content:"";position:absolute;left:50%;top:0;bottom:0;width:18px;transform:translateX(-50%);background:#FFD3EE;opacity:.85}
+.glid{position:absolute;left:-8px;top:-30px;width:148px;height:30px;background:linear-gradient(180deg,#F53DB3,#D9008D);
+  border-radius:8px;transition:transform .5s cubic-bezier(.3,1.6,.5,1),opacity .5s;z-index:2;}
+.glid:before{content:"";position:absolute;left:50%;top:0;bottom:0;width:18px;transform:translateX(-50%);background:#FFD3EE;opacity:.85}
+.gbow{position:absolute;left:50%;top:-16px;transform:translateX(-50%);width:44px;height:20px;z-index:3;transition:opacity .3s}
+.gbow:before,.gbow:after{content:"";position:absolute;top:0;width:20px;height:18px;border:5px solid #FFD3EE;border-radius:50% 50% 0 0}
+.gbow:before{left:0;transform:rotate(-24deg)}
+.gbow:after{right:0;transform:rotate(24deg)}
+.giftzone.open .glid{transform:translateY(-70px) rotate(-14deg);opacity:0}
+.giftzone.open .gbow{opacity:0}
+.gwrap{animation:giftbob 2s ease-in-out infinite}
+.giftzone.open .gwrap{animation:none}
+@keyframes giftbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.datechip{position:absolute;left:50%;bottom:52px;transform:translateX(-50%) translateY(24px) scale(.6);
+  background:#fff;border-radius:16px;box-shadow:0 8px 26px rgba(217,0,141,.28);padding:12px 22px 10px;
+  opacity:0;transition:all .5s cubic-bezier(.3,1.4,.5,1) .15s;z-index:4;white-space:nowrap;}
+.giftzone.open .datechip{opacity:1;transform:translateX(-50%) translateY(-34px) scale(1)}
+.datechip .d1{font-size:32px;line-height:40px;font-weight:700;color:#D9008D}
+.datechip .d2{font-size:12px;font-weight:600;color:#665E75;margin-top:1px}
+.coin{position:absolute;left:50%;bottom:70px;width:26px;height:26px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#FFE39A,#F2B01E);border:2px solid #D89B12;
+  display:grid;place-items:center;font-size:13px;font-weight:700;color:#8A6200;opacity:0;z-index:1;font-family:var(--lat);}
+.giftzone.open .coin{animation:coinup 1s ease-out forwards}
+@keyframes coinup{0%{opacity:0;transform:translate(-50%,0) scale(.4)}25%{opacity:1}
+  100%{opacity:0;transform:translate(calc(-50% + var(--cx)),-120px) scale(1)}}
+
+/* ---------- C1 calendar ---------- */
+.cal{width:100%;max-width:300px;background:#fff;border-radius:16px;box-shadow:0 2px 6px #00000026;padding:16px}
+.cal .mo{font-size:12px;font-weight:600;color:#665E75;letter-spacing:.4px;margin-bottom:10px}
+.days{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+.day{aspect-ratio:1;border-radius:10px;background:#F5F2F9;border:1px solid #E8E4F0;
+  display:grid;place-items:center;font-size:12px;font-weight:600;color:#A7A1B2;transition:all .25s;position:relative;}
+.day.fill{background:#E1FAED;border-color:#9ADFBB;color:#008043}
+.day.fill:after{content:"✓";position:absolute;right:3px;top:1px;font-size:8px;color:#008043}
+.day16{margin-top:10px;height:48px;border-radius:12px;background:#FFE5F6;border:1.5px dashed #F0A8D6;
+  display:flex;align-items:center;justify-content:center;gap:8px;font-size:16px;font-weight:700;color:#D9008D;transition:all .3s;}
+.day16.glow{border:1.5px solid #D9008D;box-shadow:0 4px 12px #D92B904D;animation:hintpulse 1.4s infinite}
+
+/* ---------- C2 quality -> bonus ---------- */
+.demo-tag{font-size:12px;line-height:16px;font-weight:600;color:#A7A1B2;letter-spacing:.4px}
+.seg{display:flex;gap:10px;width:100%;max-width:300px}
+.seg span{flex:1;height:40px;border-radius:8px;border:1px dashed #D7D3E0;background:none;
+  display:grid;place-items:center;font-family:var(--dev);font-size:16px;font-weight:600;color:#A7A1B2;
+  transition:all .35s;-webkit-tap-highlight-color:transparent;}
+.seg span.sel{background:#FFE5F6;border:1.5px solid #D9008D;border-radius:8px;color:#D9008D}
+.seg.live span{border-style:solid;color:#665E75;cursor:pointer}
+/* Must come after .seg.live span - equal specificity, so source order decides
+   whether an unlocked-and-selected pill keeps its pink treatment. */
+.seg.live span.sel{background:#FFE5F6;border:1.5px solid #D9008D;color:#D9008D}
+.seg.live span:active{transform:scale(.97)}
+.bonusviz{height:150px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px;position:relative;width:100%}
+.stack{display:flex;flex-direction:column-reverse;align-items:center;gap:3px;min-height:68px;justify-content:flex-start}
+.bcoin{width:56px;height:14px;border-radius:888px;background:linear-gradient(180deg,#FFE39A,#F2B01E);
+  border:1.5px solid #D89B12;opacity:0;transform:translateY(-9px) scale(.7);transition:all .3s;}
+.bcoin.on{opacity:1;transform:none}
+.blabel{font-size:16px;font-weight:700;color:#008043;min-height:24px;transition:opacity .3s}
+.bviz-gift{font-size:34px;transition:transform .35s cubic-bezier(.3,1.5,.5,1)}
+.bviz-gift.big{transform:scale(1.28)}
+.spark{position:absolute;font-size:15px;opacity:0}
+.spark.go{animation:sparkfly .8s ease-out forwards}
+@keyframes sparkfly{0%{opacity:0;transform:translate(0,0) scale(.5)}30%{opacity:1}
+  100%{opacity:0;transform:translate(var(--sx),var(--sy)) scale(1.1)}}
+
+/* ---------- C3 home strip replica ---------- */
+.homecard{width:100%;max-width:312px;background:#fff;border-radius:16px;box-shadow:0 2px 6px #00000026;padding:12px}
+.striprow{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.appchip{background:#FAF9FC;border:1px solid #E8E4F0;border-radius:12px;padding:10px 12px;min-height:64px;
+  text-align:left;position:relative;}
+.appchip .t{font-size:12px;font-weight:600;color:#665E75}
+.appchip .v{font-size:16px;font-weight:700;margin-top:3px}
+.appchip .v.mut{color:#D7D3E0;letter-spacing:2px}
+.appchip.dim{opacity:.42}
+.appchip.hot{border:2px solid #D9008D;cursor:pointer;box-shadow:0 0 0 0 #D92B9066;
+  animation:ringpulse 1.5s infinite;-webkit-tap-highlight-color:transparent;}
+.appchip.hot:active{transform:scale(.97)}
+@keyframes ringpulse{0%{box-shadow:0 0 0 0 #D92B9066}70%{box-shadow:0 0 0 12px #D92B9000}100%{box-shadow:0 0 0 0 #D92B9000}}
+.appchip .go{position:absolute;right:9px;bottom:8px;font-size:12px;font-weight:700;color:#D9008D}
+.hand{position:absolute;right:-8px;bottom:-22px;font-size:26px;animation:handtap 1.2s infinite;pointer-events:none}
+@keyframes handtap{0%,100%{transform:translate(0,0)}50%{transform:translate(-5px,-8px)}}
+
+/* ---------- C4 drilldown replica ---------- */
+.drill{width:100%;max-width:312px;background:#fff;border-radius:16px;box-shadow:0 2px 6px #00000026;padding:14px;text-align:left}
+.drill .dh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.drill .dh b{font-size:16px;font-weight:700}
+.drill .dh span{font-size:12px;color:#A7A1B2;font-weight:600}
+.mrow{display:flex;align-items:center;gap:4px;background:#FAF9FC;border:1px solid #E8E4F0;border-radius:12px;
+  padding:8px 12px;margin-top:8px;position:relative;min-height:56px;}
+.mrow .mt{font-size:14px;font-weight:600;flex:1;text-align:left;display:flex;align-items:center;gap:2px}
+.mrow .mval{font-size:14px;font-weight:700;color:#D7D3E0;letter-spacing:2px}
+.mrow .chev{color:#A7A1B2;font-size:12px}
+.qbtn{width:48px;height:48px;min-width:48px;border:none;background:none;padding:0;cursor:pointer;
+  display:grid;place-items:center;font-family:var(--lat);-webkit-tap-highlight-color:transparent;margin:-4px 0;}
+.qbtn .qc{width:26px;height:26px;border-radius:50%;border:1.5px solid #D9008D;background:#FFE5F6;
+  color:#D9008D;font-size:14px;font-weight:700;display:grid;place-items:center;}
+.qbtn.pulse .qc{animation:ringpulse 1.5s infinite}
+.qbtn:active .qc{transform:scale(.92)}
+.qico{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;min-width:24px;
+  border-radius:50%;border:1.5px solid #D9008D;background:#FFE5F6;color:#D9008D;font-size:13px;line-height:1;
+  font-weight:700;font-family:var(--lat);vertical-align:-4px;margin:0 3px;}
+.bubble{position:absolute;left:8px;right:8px;bottom:calc(100% + 8px);background:#161021;color:#fff;
+  border-radius:12px;padding:10px 13px;font-size:14px;font-weight:600;line-height:1.5;
+  opacity:0;transform:translateY(6px);transition:all .3s;pointer-events:none;z-index:5;}
+.bubble:after{content:"";position:absolute;left:26px;top:100%;border:7px solid transparent;border-top-color:#161021}
+.bubble.show{opacity:1;transform:none}
+.bubble .tick{color:#7BE6AC;font-weight:700}
+
+/* ---------- C5 done ---------- */
+.bigtick{width:96px;height:96px;border-radius:50%;background:#008043;display:grid;place-items:center;
+  animation:tickpop .5s cubic-bezier(.3,1.6,.5,1);}
+.bigtick svg{width:44px;height:44px}
+@keyframes tickpop{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*:before,*:after{animation-duration:.001s !important;transition-duration:.001s !important;}
+}
+</style>
+</head>
+<body>
+
+<div class="screen">
+
+  <div class="chrome">
+    <div class="wm"><svg width="22" height="14" viewBox="0 0 22 14" fill="none"><path d="M2 7c0-2.8 1.8-5 4.2-5C8.8 2 11 4.6 11 7s2.2 5 4.8 5C18.2 12 20 9.8 20 7s-1.8-5-4.2-5C13.2 2 11 4.6 11 7S8.8 12 6.2 12C3.8 12 2 9.8 2 7Z" stroke="#D9008D" stroke-width="2.6" stroke-linecap="round"/></svg>Wiom</div>
+    <div class="dots" id="dots"></div>
+    <button class="xbtn" id="xbtn" aria-label="बंद करें"><span>✕</span></button>
+  </div>
+
+  <!-- C0 - hero / gift -->
+  <div class="card on" id="c0">
+    <span class="badge">खुशखबरी</span>
+    <div class="hl">आपका बोनस<br>आपकी सेवा स्थिति से बनेगा</div>
+    <div class="grow">
+      <div class="giftzone" id="gift" role="button" aria-label="डिब्बा खोलें">
+        <div class="coin" style="--cx:-70px">₹</div>
+        <div class="coin" style="--cx:-30px;animation-delay:.08s">₹</div>
+        <div class="coin" style="--cx:20px;animation-delay:.16s">₹</div>
+        <div class="coin" style="--cx:64px;animation-delay:.05s">₹</div>
+        <div class="datechip"><div class="d1">16 अगस्त</div><div class="d2">बोनस का दिन</div></div>
+        <div class="gwrap"><div class="gift"><div class="glid"></div><div class="gbow"></div><div class="gbody"></div></div></div>
+      </div>
+      <span class="hint" id="h0">🎁 डिब्बे पर क्लिक करें</span>
+    </div>
+    <button class="cta" id="cta0">कैसे बनेगा देखें</button>
+  </div>
+
+  <!-- C1 - the 1-15 window -->
+  <div class="card" id="c1">
+    <div class="hl">1 से 15 अगस्त</div>
+    <div class="sup">इन 15 दिनों में आप जैसा क्वालिटी रखेंगे बोनस उतना बनेगा</div>
+    <div class="grow">
+      <div class="cal" id="cal">
+        <div class="mo">अगस्त</div>
+        <div class="days" id="days"></div>
+        <div class="day16" id="day16">16 अगस्त &nbsp;🎁</div>
+      </div>
+    </div>
+    <button class="cta" id="cta1">बोनस का दिन देखें</button>
+  </div>
+
+  <!-- C2 - the rule -->
+  <div class="card" id="c2">
+    <div class="hl">16 अगस्त — बोनस का दिन</div>
+    <div class="sup">जितनी अच्छी सेवा स्थिति, उतना बढ़िया बोनस</div>
+    <div class="grow">
+      <div class="bonusviz">
+        <span class="spark" style="--sx:-46px;--sy:-60px">✨</span>
+        <span class="spark" style="--sx:40px;--sy:-70px">✨</span>
+        <span class="spark" style="--sx:-14px;--sy:-84px">✨</span>
+        <div class="bviz-gift" id="bgift">🎁</div>
+        <div class="stack" id="stack">
+          <div class="bcoin"></div><div class="bcoin"></div><div class="bcoin"></div><div class="bcoin"></div>
+        </div>
+        <div class="blabel" id="blabel">&nbsp;</div>
+      </div>
+      <span class="demo-tag">उदाहरण</span>
+      <div class="seg" id="seg">
+        <span data-l="1">अच्छी</span>
+        <span data-l="2">बहुत अच्छी</span>
+      </div>
+    </div>
+    <button class="cta" id="cta2">होम पेज पर देखें</button>
+  </div>
+
+  <!-- C3 - find the chip -->
+  <div class="card" id="c3">
+    <div class="hl">यहाँ दिखती है सेवा स्थिति</div>
+    <div class="sup">आपके होम पेज पर</div>
+    <div class="grow">
+      <div class="homecard">
+        <div class="striprow">
+          <div class="appchip dim"><div class="t">कनेक्शन</div><div class="v mut">···</div></div>
+          <div class="appchip hot" id="chip" role="button" aria-label="सेवा स्थिति खोलें">
+            <div class="t">सेवा स्थिति</div><div class="v" style="color:#D9008D">देखें</div>
+            <div class="go">›</div><div class="hand">👆</div>
+          </div>
+          <div class="appchip dim"><div class="t">कमाई</div><div class="v mut">···</div></div>
+          <div class="appchip dim"><div class="t">नया काम</div><div class="v mut">···</div></div>
+        </div>
+      </div>
+      <span class="hint" id="h3">सेवा स्थिति पर क्लिक करें</span>
+    </div>
+  </div>
+
+  <!-- C4 - the (?) icon -->
+  <div class="card slideup" id="c4">
+    <div class="hl">पूरी जानकारी <span class="qico">?</span> बटन में</div>
+    <div class="sup">हर लाइन के पास यह बटन है</div>
+    <div class="grow">
+      <div class="drill">
+        <div class="dh"><b>पूरी जानकारी</b><span>सेवा स्थिति</span></div>
+        <div class="mrow">
+          <div class="bubble"><span class="tick">✓</span> इसकी पूरी जानकारी यहाँ मिलेगी</div>
+          <div class="mt">समय पर काम <button class="qbtn pulse" data-q="samay_par_kaam" aria-label="जानकारी देखें"><span class="qc">?</span></button></div>
+          <div class="mval">···</div><div class="chev">▼</div>
+        </div>
+        <div class="mrow">
+          <div class="bubble"><span class="tick">✓</span> इसकी पूरी जानकारी यहाँ मिलेगी</div>
+          <div class="mt">ग्राहक की संतुष्टि <button class="qbtn" data-q="grahak_ki_santushti" aria-label="जानकारी देखें"><span class="qc">?</span></button></div>
+          <div class="mval">···</div><div class="chev">▼</div>
+        </div>
+      </div>
+      <span class="hint" id="h4"><span class="qico">?</span> बटन पर क्लिक करें</span>
+    </div>
+    <button class="cta" id="cta4">समझ गया</button>
+  </div>
+
+  <!-- C5 - handoff into the real Sewa Sthiti -->
+  <div class="card" id="c5">
+    <div class="grow">
+      <div class="bigtick" id="tick" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 12.5 9.5 18 20 6.5" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="hl">बहुत बढ़िया!</div>
+      <div class="sup">अब अपनी सेवा स्थिति खुद देखिए</div>
+    </div>
+    <button class="cta show" id="cta5">अपनी सेवा स्थिति देखें</button>
+    <button class="txtcta" id="ok5">ठीक है</button>
+  </div>
+
+</div>
+
+<script>
+/* NOTE: block comments only in this script - never "//" line comments.
+   CleverTap's HTML editor can collapse the file onto a single line, and a "//"
+   comment then swallows the rest of the code, breaking every card. */
+(function(){
+  'use strict';
+
+  /* ------------------------------ config ------------------------------ */
+  var TRIGGER = 'home_story_r2';       /* splits this creative's funnel on the dashboard */
+  var PREFIX  = 'Bonus_Seva2_';        /* round-2 namespace, never collides with round 1 */
+  var N = 6;
+
+  /* Sewa Sthiti / Quality Drilldown. Verified 2026-07-30: assetlinks.json is
+     deployed for csp.wiom.in and delegates handle_all_urls to com.wiom.csp, so
+     App Links resolution reaches the app. Do NOT use www.csp.wiom.in - that
+     host does not resolve at all. */
+  var DEEPLINK = 'https://csp.wiom.in/assurance/quality';
+
+  /* If the app team confirms a custom scheme is registered, put it here. A
+     custom scheme is strictly more reliable from inside a WebView: the WebView
+     cannot load it, so it must hand off to the OS. An https URL can be
+     swallowed and rendered as a web page instead. Leave '' if unconfirmed. */
+  var DEEPLINK_SCHEME = '';
+
+  var BEACON = 'https://script.google.com/macros/s/AKfycbw770KNFn3SnpKbRwtLbPe8MJu8dpDXwau6UY-JTfcbA8Y0T2ZRyoGRRMhi4k8WTAo2/exec';
+
+  /* --------------------- channel 2: pixel beacon ---------------------- */
+  /* Instant, no CORS, survives a dying WebView better than the bridge does.
+     This is how we measure what the bridge actually managed to deliver. */
+  function w(screen){
+    try{ (new Image()).src = BEACON+'?flow=BONUS2&screen='+screen+'&t='+(+new Date()); }catch(e){}
+  }
+
+  /* ------------- channel 1: CleverTap, with back-off retry ------------ */
+  /* Dedupe is keyed on name AND properties, not name alone: Card_Viewed fires
+     once per card with a different card_index, and a name-only guard would let
+     card 1 through and silently drop cards 2-5. */
+  var sent = {};
+
+  function h(name, props){
+    var ev = PREFIX + name;
+    var p = {trigger: TRIGGER};
+    if (props) { for (var k in props) if (Object.prototype.hasOwnProperty.call(props,k)) p[k] = props[k]; }
+    var key = ev + '|' + JSON.stringify(p);
+    if (sent[key]) return;
+    sent[key] = {done:false, n:0};
+    (function attempt(){
+      var st = sent[key];
+      if (st.done) return;
+      try{
+        if (window.CleverTap && typeof window.CleverTap.pushEvent === 'function') {
+          window.CleverTap.pushEvent(ev, JSON.stringify(p));
+          st.done = true; w('ct-'+name); return;
+        }
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap) {
+          window.webkit.messageHandlers.clevertap.postMessage(
+            {action:'recordEventWithProps', event:ev, properties:p});
+          st.done = true; w('ct-'+name); return;
+        }
+      }catch(e){}
+      st.n++;
+      if (st.n < 6) setTimeout(attempt, 250 * st.n);   /* 250,500,750... approx 3.75s */
+    })();
+  }
+
+  /* ----------------------------- plumbing ----------------------------- */
+  function $(id){ return document.getElementById(id); }
+
+  function ctClose(){
+    try{
+      if (window.CleverTap && typeof window.CleverTap.dismissInAppNotification === 'function') {
+        window.CleverTap.dismissInAppNotification();
+      } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap) {
+        window.webkit.messageHandlers.clevertap.postMessage({action:'dismissInAppNotification'});
+      }
+    }catch(e){}
+  }
+  function closeSoon(){ setTimeout(ctClose, 300); }   /* let the event reach the bridge first */
+
+  /* ---------------------- the card-5 deep link ------------------------ */
+  /* Navigating away destroys the WebView along with any pending retries, so the
+     two events go first and the jump waits. Each route logs its own beacon, so
+     the Sheet tells us which one actually carried the CSP across. */
+  function goDeep(){
+    if (DEEPLINK_SCHEME) {
+      try{ w('dl-scheme'); window.location.href = DEEPLINK_SCHEME; return; }catch(e){}
+    }
+    try{
+      if (window.CleverTap && typeof window.CleverTap.openDeepLink === 'function') {
+        w('dl-bridge'); window.CleverTap.openDeepLink(DEEPLINK); return;
+      }
+      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap) {
+        w('dl-ios');
+        window.webkit.messageHandlers.clevertap.postMessage({action:'openDeepLink', url:DEEPLINK});
+        return;
+      }
+    }catch(e){}
+    /* Last resort. This is a DEGRADED path: an https URL set on location.href is
+       very likely rendered as a web page inside this WebView rather than handed
+       to the app, because App Links verification governs Intent resolution and
+       not in-WebView navigation. It is better than a dead button, and the
+       dl-fallback beacon tells us how often we land here. */
+    try{ w('dl-fallback'); window.location.href = DEEPLINK; }catch(e){}
+  }
+
+  /* ------------------------------- story ------------------------------ */
+  var cur = 0, seen = {0:true};
+  var dots = $('dots');
+  for (var i=0;i<N;i++){ var d=document.createElement('div'); d.className='dot'+(i===0?' on':''); dots.appendChild(d); }
+
+  function go(n){
+    if (n<0 || n>=N) return;
+    var cards = document.querySelectorAll('.card');
+    for (var i=0;i<cards.length;i++){ if(i===n) cards[i].classList.add('on'); else cards[i].classList.remove('on'); }
+    var dl = dots.children;
+    for (var j=0;j<dl.length;j++){ dl[j].className = 'dot'+(j===n?' on':(j<n?' done':'')); }
+    cur = n;
+    if (!seen[n]) { seen[n]=true; w('card'+n); h('Card_Viewed',{card_index:n}); }
+    if (n===1) setTimeout(function(){ playCal(); $('cta1').classList.add('show'); },400);
+    if (n===2) setTimeout(function(){ playRule(); $('cta2').classList.add('show'); },400);
+    if (n===5) { var t=$('tick'); t.style.display='grid'; t.style.animation='none'; void t.offsetWidth; t.style.animation=''; }
+  }
+
+  /* C0 gift */
+  $('gift').addEventListener('click', function(){
+    if (this.classList.contains('open')) return;
+    this.classList.add('open'); $('h0').style.display='none';
+    w('gift'); h('Gift_Opened');
+    setTimeout(function(){ $('cta0').classList.add('show'); },650);
+  });
+  $('cta0').onclick = function(){ go(1); };
+
+  /* C1 calendar - auto-plays on entry, CTA needs no interaction */
+  var days = $('days');
+  for (var k=1;k<=15;k++){ var dd=document.createElement('div'); dd.className='day'; dd.textContent=k; days.appendChild(dd); }
+  function playCal(){
+    var cal=$('cal'); if (cal._done) return; cal._done=true;
+    var ch=days.children;
+    for (var i=0;i<ch.length;i++){ (function(el,i){ setTimeout(function(){ el.classList.add('fill'); },90*i); })(ch[i],i); }
+    setTimeout(function(){ $('day16').classList.add('glow'); },90*15+250);
+  }
+  $('cta1').onclick = function(){ go(2); };
+
+  /* C2 quality - auto-demo, then the pills unlock for optional replay */
+  var coins = document.querySelectorAll('#stack .bcoin');
+  var segEls = document.querySelectorAll('#seg span');
+  function setLevel(l){
+    for (var i=0;i<segEls.length;i++){
+      if (+segEls[i].getAttribute('data-l')===l) segEls[i].classList.add('sel');
+      else segEls[i].classList.remove('sel');
+    }
+    for (var c=0;c<coins.length;c++){
+      if (c < (l===1?2:4)) coins[c].classList.add('on'); else coins[c].classList.remove('on');
+    }
+    if (l===2) $('bgift').classList.add('big'); else $('bgift').classList.remove('big');
+    $('blabel').textContent = (l===1) ? 'बढ़िया बोनस' : 'और भी बढ़िया बोनस!';
+    if (l===2){
+      var sp=document.querySelectorAll('.spark');
+      for (var s=0;s<sp.length;s++){ sp[s].classList.remove('go'); void sp[s].offsetWidth; sp[s].classList.add('go'); }
+    }
+  }
+  function playRule(){
+    if (playRule._done) return; playRule._done=true;
+    setTimeout(function(){ setLevel(1); },500);
+    setTimeout(function(){ setLevel(2); },2100);
+    setTimeout(function(){ $('seg').classList.add('live'); },2600);
+  }
+  $('seg').addEventListener('click', function(e){
+    if (!$('seg').classList.contains('live')) return;
+    var b=e.target;
+    while (b && b!==this && !(b.getAttribute && b.getAttribute('data-l'))) b=b.parentNode;
+    if (!b || b===this) return;
+    var l = +b.getAttribute('data-l');
+    setLevel(l);
+    w('toggle'+l); h('Quality_Toggled',{level: l===1?'acchi':'bahut_acchi'});
+  });
+  $('cta2').onclick = function(){ go(3); };
+
+  /* C3 chip - the chip itself is the only way forward */
+  $('chip').addEventListener('click', function(){ w('chip'); h('Chip_Tapped'); go(4); });
+
+  /* C4 (?) - both buttons answer, matching the copy's promise */
+  var qbtns = document.querySelectorAll('.qbtn');
+  for (var q=0;q<qbtns.length;q++){
+    qbtns[q].addEventListener('click', function(){
+      for (var x=0;x<qbtns.length;x++){ qbtns[x].classList.remove('pulse'); }
+      var bub=document.querySelectorAll('.mrow .bubble');
+      for (var y=0;y<bub.length;y++){ bub[y].classList.remove('show'); }
+      var row=this;
+      while (row && !(row.classList && row.classList.contains('mrow'))) row=row.parentNode;
+      if (row) row.querySelector('.bubble').classList.add('show');
+      $('h4').style.display='none';
+      var m=this.getAttribute('data-q');
+      w('help'); h('Help_Tapped',{metric:m});
+      setTimeout(function(){ $('cta4').classList.add('show'); },500);
+    });
+  }
+  $('cta4').onclick = function(){ go(5); };
+
+  /* C5 - the handoff. Both events are pushed in the same tick so they hit the
+     bridge together, then we jump. */
+  $('cta5').onclick = function(){
+    w('goto');
+    h('GoTo_SevaSthiti');
+    h('Flow_Completed',{exit:'deeplink'});
+    setTimeout(goDeep, 320);
+    setTimeout(ctClose, 900);   /* clear the overlay behind them */
+  };
+  $('ok5').onclick = function(){
+    w('done-ok'); h('Flow_Completed',{exit:'acknowledge'}); closeSoon();
+  };
+
+  /* chrome - skip is always respected, never locked */
+  $('xbtn').onclick = function(){
+    w('dismiss-c'+cur); h('Dismissed',{card_index:cur}); closeSoon();
+  };
+
+  /* in-app opened. CleverTap logs its own impression; this is our own base. */
+  w('open'); h('Story_Viewed',{entry_card:0});
+})();
+</script>
+
+</body>
+</html>
