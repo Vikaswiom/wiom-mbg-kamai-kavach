@@ -35,11 +35,24 @@ context (files, rules, deploy, gotchas) as of **31 Jul 2026**.
 `data.json` has **no per-CSP join date yet**, so `settle-prorata.html?cspId=X` alone assumes **19 Jul** for everyone. **Vikas will supply the exact joining date per CSP.** Once provided, two ways to make it correct per CSP (pick one):
 1. **Per-CSP links** — build `settle-prorata.html?cspId=X&joined=YYYY-MM-DD` from the supplied list (works today, no pipeline change). Can also emit a CSV of cspId → join date → active_days → pro-rated base → outcome.
 2. **Add `joined` to the data** — put each CSP's join date into `data.json`/`data-july.json` (via `metrics.sql` if the enrollment date is queryable, else a static lookup merged in `refresh.py`); then `?cspId=X` alone is correct. `settle-prorata.html` already reads a `joined` field if present.
+
+### PENDING — v750/v1000 two-tier per-install rate
+The ₹750 / ₹1000 versions currently use a **flat** `PAY` (750 or 1000 × all installs). **That is wrong** — CSPs earned **₹300/install until a switch date X**, and the higher rate (₹750 / ₹1000) **only from X onward**. So the real earned pay is:
+```
+installpay = 300 × installs_before_X  +  RATE × installs_on_or_after_X       (RATE = 750 or 1000)
+```
+The ₹10,000 floor and 60% gate (on install COUNT, not pay) stay the same; only `installpay` becomes two-tier, which changes the top-up (`FLOOR − installpay`) and the earned-hero.
+
+**X is per CSP — Vikas will supply cspId → X date.** But X alone is insufficient: `data.json` carries only **total** installs, not a date split. Needed per CSP: **installs_before_X** and **installs_on_or_after_X** — derivable from **Metabase** (install/TAS completion dates) once X is known, then either:
+1. compute the amount per CSP into a CSV, and/or
+2. bake `installs_before` / `installs_after` (or a precomputed `installpay`) into the data and update the v750/v1000 `computeMBG`/`settle` to blend the two tiers (add a `switchDate` + split fields; screens then render the correct blended earned + top-up).
+
+Until implemented, **v750/v1000 overstate early-install earnings** (they price pre-X installs at the high rate).
 | `data.json` | Live per-CSP raw inputs `{installs, denom, pending, committed, tickets}`, refreshed by `refresh.py`. |
 | `data-july.json` | **Frozen July snapshot** for the 1-Aug payout (see Freeze below). |
 | `refresh.py` | Pulls `sql/metrics.sql` from Metabase → writes `data.json` (+ `data-july.json` while it's July). `--push` commits. |
 | `sql/metrics.sql` | The Snowflake query (Metabase db 113). |
-| `v750/`, `v1000/` | Full banner+settle copies with PAY=750 / 1000 instead of 300. Read the root's absolute data files. |
+| `v750/`, `v1000/` | Full banner+settle copies with PAY=750 / 1000 instead of 300. Read the root's absolute data files. **See PENDING — v750/v1000 two-tier rate below: the rate is NOT flat.** |
 | `analytics-dashboard/` | Separate internal dashboard (`data.js`, own `refresh.py`, own workflow). Not the CSP-facing screen. |
 
 ## Rules / config (in the JS of each page)
