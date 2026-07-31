@@ -99,6 +99,21 @@ def build():
     with open(path, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
     print(f"wrote {len(data)} identities -> data.json ({out['meta']['generated_ist']})")
+
+    # ── July-final payout freeze ──────────────────────────────────────────────
+    # Keep data-july.json current while the clock (IST) is still in July; once it
+    # rolls to August this stops firing, so the LAST July write stays frozen —
+    # that frozen file is the settlement snapshot the settle screen reads for the
+    # 1-Aug payout. Timing-proof: there is no exact midnight moment to hit, and
+    # the boundary here (IST month) matches metrics.sql's own month boundary, so
+    # data-july.json only ever holds July data.
+    now = datetime.now(IST)
+    if (now.year, now.month) == (2026, 7):
+        with open(os.path.join(HERE, "data-july.json"), "w", encoding="utf-8") as f:
+            json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
+        print("also wrote data-july.json (July freeze active)")
+    else:
+        print("August+ — data-july.json left frozen at its final July value")
     return len(data)
 
 
@@ -113,10 +128,15 @@ def git_push(n):
     if branch != "main":
         raise SystemExit(f"--push must run from a 'main' checkout (this clone is on '{branch}')")
 
-    # keep the fresh snapshot in memory: the sync below resets the working tree
-    path = os.path.join(HERE, "data.json")
-    with open(path, encoding="utf-8") as f:
-        fresh = f.read()
+    # keep the fresh snapshot(s) in memory: the sync below resets the working
+    # tree. data-july.json rides along whenever build() (re)wrote it this run.
+    rels = ["data.json"]
+    if os.path.exists(os.path.join(HERE, "data-july.json")):
+        rels.append("data-july.json")
+    fresh = {}
+    for rel in rels:
+        with open(os.path.join(HERE, rel), encoding="utf-8") as f:
+            fresh[rel] = f.read()
 
     msg = f"data: refresh snapshot ({n} CSPs)"
     for attempt in range(1, 4):
@@ -125,14 +145,17 @@ def git_push(n):
         # as non-fast-forward, which is exactly how the old pipeline died
         git("fetch", "origin", "main", check=True)
         git("reset", "--hard", "FETCH_HEAD", check=True)
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(fresh)
-        # only push when data.json actually changed — avoids empty commits and
-        # needless GitHub Pages rebuilds (Pages allows ~10 builds/hour)
-        if git("diff", "--quiet", "--", "data.json").returncode == 0:
+        for rel, content in fresh.items():
+            with open(os.path.join(HERE, rel), "w", encoding="utf-8") as f:
+                f.write(content)
+            git("add", rel, check=True)
+        # only push when something actually changed — avoids empty commits and
+        # needless GitHub Pages rebuilds (Pages allows ~10 builds/hour). In
+        # August, data-july.json is rewritten identical (frozen) so it shows no
+        # diff and only a genuine data.json change triggers a push.
+        if git("diff", "--cached", "--quiet").returncode == 0:
             print("no data change — skip push")
             return
-        git("add", "data.json", check=True)
         git("-c", "commit.gpgsign=false", "commit", "-q", "-m", msg, check=True)
         if git("push", "-q", "origin", "HEAD:main").returncode == 0:
             print("pushed -> GitHub Pages will redeploy in ~1 min")

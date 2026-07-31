@@ -78,7 +78,7 @@ html,body{background:var(--screen);overflow-x:hidden;}
    banner), computes the settlement case, renders the matching copy. The S4 denom
    change lives in the poller; this screen just consumes installs/denom.          */
 var PROXY_URL = "";
-var DATA_URL  = "https://vikaswiom.github.io/wiom-mbg-kamai-kavach/data.json";
+var DATA_URL  = "https://vikaswiom.github.io/wiom-mbg-kamai-kavach/data-july.json";  /* FROZEN July payout snapshot */
 var PAY=300, GATE=0.60, FLOOR=10000, DEEP=5000;   /* top-up above DEEP = "बड़ी कमी" */
 
 function cspIdFromUrl(){
@@ -182,7 +182,7 @@ async function getCsp(){
       var r=await fetch(PROXY_URL+sep+'cspId='+encodeURIComponent(id),{cache:'no-store'});
       var j=await r.json(); if(j&&j.installs!==undefined){return j;} }catch(e){} }
   for(var u=0;u<2;u++){ try{
-      var s=await fetch(u===0?'data.json':DATA_URL,{cache:'no-store'});
+      var s=await fetch(u===0?'data-july.json':DATA_URL,{cache:'no-store'});  /* FROZEN July payout snapshot */
       var D=(await s.json()).data||{}; return D[id]||null; }catch(e){} }
   return null;
 }
