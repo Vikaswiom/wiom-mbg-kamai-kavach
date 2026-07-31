@@ -135,7 +135,7 @@ function render(d){
     else{ standCls='f-amber'; standNeed='महीना 60% से नीचे बंद';
       standWhy=m.denom+' मिले · '+m.installs+' लगे = '+m.pct+'% · नया महीना, नई गिनती'; }
     standHTML='<div class="card '+standCls+'"><div class="k">आप कहाँ हैं</div>'+
-      '<div class="wyh-top"><span class="wyh-pct">'+m.pct+'%</span><span class="wyh-need60">/ 60% चाहिए</span></div>'+
+      '<div class="wyh-top"><span class="wyh-pct">'+m.pct+'%</span><span class="wyh-need60">/ 60% से अधिक चाहिए</span></div>'+
       '<div class="bar"><div class="fill" style="width:'+Math.min(100,m.pct)+'%"></div><div class="mk"></div></div>'+
       '<div class="wyh-need">'+standNeed+'</div><div class="wyh-line">'+standWhy+'</div></div>';
   }
