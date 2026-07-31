@@ -15,7 +15,7 @@ context (files, rules, deploy, gotchas) as of **31 Jul 2026**.
 |---|---|
 | Banner (during-month) | https://vikaswiom.github.io/wiom-mbg-kamai-kavach/ |
 | **Settlement (month-end) — the ONE dynamic screen** | https://vikaswiom.github.io/wiom-mbg-kamai-kavach/settle.html?cspId=`<id>` |
-| Pro-rata settlement (manual, param-driven) | https://vikaswiom.github.io/wiom-mbg-kamai-kavach/settle-prorata.html?cspId=`<id>`&joined=`YYYY-MM-DD` |
+| Pro-rata settlement (same logic, joiner-forward header) | https://vikaswiom.github.io/wiom-mbg-kamai-kavach/settle-prorata.html?cspId=`<id>` |
 | ₹750/install version | …/v750/  and  …/v750/settle.html?cspId=`<id>` |
 | ₹1000/install version | …/v1000/  and  …/v1000/settle.html?cspId=`<id>` |
 | Live data | …/data.json |
@@ -39,7 +39,7 @@ Each month's file is maintained live during that month then **auto-freezes** whe
 |---|---|
 | `index.html` | During-month banner (states: keepgoing/almost/secured/noleads). Reads live `data.json`. |
 | `settle.html` | **Month-end settlement** — 5 outcome cases. Reads **`data-july.json`** (frozen). |
-| `settle-prorata.html` | **Mid-month joiner** first settle — same cases but a **day-weighted base**: `ceil(₹10,000 × active_days/days_in_month, to ₹100)`. 19 Jul → 13/31 → ₹4,200; 25 Jul → 7/31 → ₹2,300. Adds the "पूरे ₹10,000 क्यों नहीं?" दिनों-का-हिसाब card + Aug–Sep full-guarantee promise. Join day from `?joined=YYYY-MM-DD` / `?day=N` / a `joined` field in data / default **19**. |
+| `settle-prorata.html` | **Same overlay-driven logic as settle.html** (loads `csp-meta.json`, does pro-rata + two-tier), just with the joiner-forward header (`<month> का पहला हिसाब · <day> से जुड़े`) and pro-rata demo. `?cspId=X` auto-pulls the enrolment date & exact amount; full-month CSPs show ₹10,000 with no pro-rata card. `?joined=YYYY-MM-DD` / `?day=N` still work as manual overrides. Day-weighted base: `ceil(₹10,000 × active_days/days_in_month, to ₹100)` (19 Jul → ₹4,200; 25 Jul → ₹2,300). |
 
 ### DONE — per-CSP overlay (`csp-meta.json`) drives pro-rata + two-tier
 Both former pending items are now **live in `settle.html`** via a static overlay `csp-meta.json`
