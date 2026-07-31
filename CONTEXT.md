@@ -15,6 +15,7 @@ context (files, rules, deploy, gotchas) as of **31 Jul 2026**.
 |---|---|
 | Banner (during-month) | https://vikaswiom.github.io/wiom-mbg-kamai-kavach/ |
 | **Settlement (month-end)** | https://vikaswiom.github.io/wiom-mbg-kamai-kavach/settle.html?cspId=`<id>` |
+| **Pro-rata settlement (mid-month joiners)** | https://vikaswiom.github.io/wiom-mbg-kamai-kavach/settle-prorata.html?cspId=`<id>`&joined=`YYYY-MM-DD` |
 | ₹750/install version | …/v750/  and  …/v750/settle.html?cspId=`<id>` |
 | ₹1000/install version | …/v1000/  and  …/v1000/settle.html?cspId=`<id>` |
 | Live data | …/data.json |
@@ -28,6 +29,7 @@ context (files, rules, deploy, gotchas) as of **31 Jul 2026**.
 |---|---|
 | `index.html` | During-month banner (states: keepgoing/almost/secured/noleads). Reads live `data.json`. |
 | `settle.html` | **Month-end settlement** — 5 outcome cases. Reads **`data-july.json`** (frozen). |
+| `settle-prorata.html` | **Mid-month joiner** first settle — same cases but a **day-weighted base**: `ceil(₹10,000 × active_days/days_in_month, to ₹100)`. 19 Jul → 13/31 → ₹4,200. Adds the "पूरे ₹10,000 क्यों नहीं?" दिनों-का-हिसाब card + Aug–Sep full-guarantee promise. Join day from `?joined=YYYY-MM-DD` / `?day=N` / a `joined` field in data / default **19**. **DATA GAP: `data.json` has no join date yet — until it does, pass `?joined=` per CSP or it assumes 19 Jul.** |
 | `data.json` | Live per-CSP raw inputs `{installs, denom, pending, committed, tickets}`, refreshed by `refresh.py`. |
 | `data-july.json` | **Frozen July snapshot** for the 1-Aug payout (see Freeze below). |
 | `refresh.py` | Pulls `sql/metrics.sql` from Metabase → writes `data.json` (+ `data-july.json` while it's July). `--push` commits. |
