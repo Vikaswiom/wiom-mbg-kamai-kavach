@@ -100,20 +100,22 @@ def build():
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
     print(f"wrote {len(data)} identities -> data.json ({out['meta']['generated_ist']})")
 
-    # ── July-final payout freeze ──────────────────────────────────────────────
-    # Keep data-july.json current while the clock (IST) is still in July; once it
-    # rolls to August this stops firing, so the LAST July write stays frozen —
-    # that frozen file is the settlement snapshot the settle screen reads for the
-    # 1-Aug payout. Timing-proof: there is no exact midnight moment to hit, and
-    # the boundary here (IST month) matches metrics.sql's own month boundary, so
-    # data-july.json only ever holds July data.
+    # ── Per-month payout snapshots (data-<month>.json) ────────────────────────
+    # Keep the CURRENT month's snapshot current; when the clock (IST) rolls to the
+    # next month this stops writing the old file, so each month's LAST write stays
+    # frozen — the settle screens read data-<month>.json via ?month=. Timing-proof:
+    # no exact midnight moment to hit, and the IST month boundary here matches
+    # metrics.sql's own, so each data-<month>.json only ever holds that month.
+    # The program runs Jul–Sep 2026; other months are ignored.
     now = datetime.now(IST)
-    if (now.year, now.month) == (2026, 7):
-        with open(os.path.join(HERE, "data-july.json"), "w", encoding="utf-8") as f:
+    MONTHKEY = {7: "july", 8: "aug", 9: "sep"}
+    key = MONTHKEY.get(now.month) if now.year == 2026 else None
+    if key:
+        with open(os.path.join(HERE, "data-%s.json" % key), "w", encoding="utf-8") as f:
             json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
-        print("also wrote data-july.json (July freeze active)")
+        print("also wrote data-%s.json (current-month snapshot; prior months stay frozen)" % key)
     else:
-        print("August+ — data-july.json left frozen at its final July value")
+        print("outside Jul–Sep 2026 — month snapshots left frozen")
     return len(data)
 
 
@@ -129,10 +131,12 @@ def git_push(n):
         raise SystemExit(f"--push must run from a 'main' checkout (this clone is on '{branch}')")
 
     # keep the fresh snapshot(s) in memory: the sync below resets the working
-    # tree. data-july.json rides along whenever build() (re)wrote it this run.
+    # tree. All data-<month>.json ride along; frozen months rewrite identically
+    # (no diff → not re-committed), only the current month's file changes.
     rels = ["data.json"]
-    if os.path.exists(os.path.join(HERE, "data-july.json")):
-        rels.append("data-july.json")
+    for fn in sorted(os.listdir(HERE)):
+        if fn.startswith("data-") and fn.endswith(".json"):
+            rels.append(fn)
     fresh = {}
     for rel in rels:
         with open(os.path.join(HERE, rel), encoding="utf-8") as f:

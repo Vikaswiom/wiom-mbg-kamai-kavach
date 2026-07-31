@@ -87,9 +87,11 @@ html,body{background:var(--screen);overflow-x:hidden;}
    ?day=<1..31> > default 19 (the 19-July cohort). Everything else (installs,
    denom) reads the same frozen data-july.json as settle.html by ?cspId=.        */
 var PROXY_URL = "";
-var DATA_URL  = "https://vikaswiom.github.io/wiom-mbg-kamai-kavach/data-july.json";  /* FROZEN July payout snapshot */
+var MONTHS={july:{name:'जुलाई',days:31,file:'data-july.json'},aug:{name:'अगस्त',days:31,file:'data-aug.json'},sep:{name:'सितंबर',days:30,file:'data-sep.json'}};
+var MO=MONTHS[(new URLSearchParams(location.search).get('month')||'july').toLowerCase()]||MONTHS.july;
+var DATA_URL  = "https://vikaswiom.github.io/wiom-mbg-kamai-kavach/"+MO.file;  /* month snapshot; ?month=july|aug|sep */
 var PAY=300, GATE=0.60, FLOOR_FULL=10000;
-var MONTH_DAYS=31, MONTH_NAME='जुलाई';   /* July 2026 */
+var MONTH_DAYS=MO.days, MONTH_NAME=MO.name;   /* driven by ?month= */
 
 function cspIdFromUrl(){
   var q=new URLSearchParams(location.search);
@@ -137,9 +139,9 @@ function render(d){
   var m=settle(d, F);
   var ip='₹'+inr(m.installpay), tp='+₹'+inr(m.topup), tpp='₹'+inr(m.topup), tot='₹'+inr(m.total), Fs='₹'+inr(F);
   var connLine='व्योम '+m.denom+' लाया · आपने '+m.installs+' लगाए = '+m.pct+'%';
-  var guar='जुलाई की गारंटी '+Fs;   /* the pro-rated base, named */
+  var guar=MO.name+' की गारंटी '+Fs;   /* the pro-rated base, named */
 
-  document.getElementById('subhdr').textContent='जुलाई का पहला हिसाब · '+ji.day+' '+ji.monthName+' से जुड़े';
+  document.getElementById('subhdr').textContent=MO.name+' का पहला हिसाब · '+ji.day+' '+ji.monthName+' से जुड़े';
 
   /* earned card (top) — when the base tops up, lead with the guaranteed total as hero */
   var topped=m.topup>0;
@@ -171,23 +173,23 @@ function render(d){
   /* settlement card — pro-rata copy */
   var s;
   if(m.kase==='noleads'){
-    s={tone:'applied', ph:'🛡 जुलाई का हिसाब', title:'बेस लागू हुआ — पूरे '+Fs+' व्योम ने दिए',
+    s={tone:'applied', ph:'🛡 '+MO.name+' का हिसाब', title:'बेस लागू हुआ — पूरे '+Fs+' व्योम ने दिए',
       body:'यही वादा था — कनेक्शन ना आएँ, तो भी '+ji.daysActive+' दिन की पूरी गारंटी। कमी पूरी तरह व्योम की।',
       rows:[['आपके कनेक्शन से ('+m.installs+' × ₹300)','₹0'],['व्योम ने दिए',tp,' plus'],['कुल — वॉलेट में',tot,' total']]};
   } else if(m.kase==='above'){
-    s={tone:'ok', ph:'🛡 जुलाई का हिसाब', title:'बेस लागू नहीं — कमाई उससे ऊपर',
+    s={tone:'ok', ph:'🛡 '+MO.name+' का हिसाब', title:'बेस लागू नहीं — कमाई उससे ऊपर',
       body:'व्योम '+m.denom+' कनेक्शन लाया, आपने '+m.installs+' लगाए। कमाई '+ip+' — '+ji.daysActive+' दिन की गारंटी '+Fs+' से ऊपर, पूरी आपकी। कोई ऊपरी सीमा नहीं।',
       rows:[['आपके कनेक्शन से ('+m.installs+' × ₹300)',ip],['कुल — वॉलेट में',tot,' total']]};
   } else if(m.kase==='topup'){
-    s={tone:'applied', ph:'🛡 जुलाई का हिसाब', title:'बेस लागू हुआ — व्योम ने बाकी दिया',
+    s={tone:'applied', ph:'🛡 '+MO.name+' का हिसाब', title:'बेस लागू हुआ — व्योम ने बाकी दिया',
       body:'आपका 60% पूरा था, फिर भी कमाई '+ji.daysActive+' दिन की गारंटी '+Fs+' से कम रही (कनेक्शन कम आए)। इसलिए बाकी '+tpp+' व्योम ने दिए।',
       rows:[['आपके कनेक्शन से ('+m.installs+' × ₹300)',ip],['व्योम ने दिए',tp,' plus'],['कुल — वॉलेट में',tot,' total']]};
   } else if(m.kase==='deep'){
-    s={tone:'applied', ph:'🛡 जुलाई का हिसाब', title:'बेस लागू हुआ — व्योम ने बाकी दिया',
+    s={tone:'applied', ph:'🛡 '+MO.name+' का हिसाब', title:'बेस लागू हुआ — व्योम ने बाकी दिया',
       body:'व्योम ज़रूरी कनेक्शन नहीं ला पाया (सिर्फ़ '+m.denom+' आए) — इसलिए बाकी '+tpp+' व्योम ने दिए, कुल '+Fs+'।',
       rows:[['आपके कनेक्शन से ('+m.installs+' × ₹300)',ip],['व्योम ने दिए',tp,' plus'],['कुल — वॉलेट में',tot,' total']]};
   } else {
-    s={tone:'na', ph:'🛡 जुलाई का हिसाब', title:'बेस इस महीने लागू नहीं',
+    s={tone:'na', ph:'🛡 '+MO.name+' का हिसाब', title:'बेस इस महीने लागू नहीं',
       body:'बेस के लिए आपका 60% से अधिक ज़रूरी है — इन '+ji.daysActive+' दिनों में दर '+m.pct+'% रही। '+ip+' पूरी आपकी। 60% का वादा अगस्त में फिर।',
       rows:[['आपके कनेक्शन से',ip],['कुल — वॉलेट में',tot,' total']]};
   }
@@ -198,8 +200,8 @@ function render(d){
     prorataHTML='<div class="settle days"><div class="ph">🗓️ पूरे ₹10,000 क्यों नहीं?</div>'+
       rowsHTML([['पूरे महीने की गारंटी','₹10,000'],
                 ['आपके दिन — '+ji.day+' '+ji.monthName+' से जुड़े',ji.daysActive+' / '+ji.daysInMonth],
-                ['जुलाई की गारंटी',Fs,' total']])+
-      '<div class="days-next">अगस्त और सितंबर — गिनती 1 तारीख़ से, 60% रखने पर पूरे ₹10,000।</div></div>';
+                [MO.name+' की गारंटी',Fs,' total']])+
+      '<div class="days-next">अगले महीने से — गिनती 1 तारीख़ से, 60% रखने पर पूरे ₹10,000।</div></div>';
   }
 
   document.getElementById('body').innerHTML =
@@ -221,7 +223,7 @@ async function getCsp(){
       var r=await fetch(PROXY_URL+sep+'cspId='+encodeURIComponent(id),{cache:'no-store'});
       var j=await r.json(); if(j&&j.installs!==undefined){return j;} }catch(e){} }
   for(var u=0;u<2;u++){ try{
-      var s=await fetch(u===0?'data-july.json':DATA_URL,{cache:'no-store'});
+      var s=await fetch(u===0?MO.file:DATA_URL,{cache:'no-store'});
       var D=(await s.json()).data||{}; return D[id]||null; }catch(e){} }
   return null;
 }

@@ -68,7 +68,7 @@ html,body{background:var(--screen);overflow-x:hidden;}
 <body>
 <div class="demo" id="demo" hidden></div>
 <div class="wrap"><div class="hdr"><span class="t">गारंटी कमाई</span></div>
-  <div class="subhdr">जुलाई का हिसाब</div>
+  <div class="subhdr" id="subhdr">जुलाई का हिसाब</div>
   <div class="body" id="body"><div class="skel">हिसाब लाया जा रहा है…</div></div>
 </div>
 
@@ -78,7 +78,9 @@ html,body{background:var(--screen);overflow-x:hidden;}
    banner), computes the settlement case, renders the matching copy. The S4 denom
    change lives in the poller; this screen just consumes installs/denom.          */
 var PROXY_URL = "";
-var DATA_URL  = "https://vikaswiom.github.io/wiom-mbg-kamai-kavach/data-july.json";
+var MONTHS={july:{name:'जुलाई',days:31,file:'data-july.json'},aug:{name:'अगस्त',days:31,file:'data-aug.json'},sep:{name:'सितंबर',days:30,file:'data-sep.json'}};
+var MO=MONTHS[(new URLSearchParams(location.search).get('month')||'july').toLowerCase()]||MONTHS.july;
+var DATA_URL  = "https://vikaswiom.github.io/wiom-mbg-kamai-kavach/"+MO.file;  /* month snapshot; ?month=july|aug|sep */
 var PAY=750, GATE=0.60, FLOOR=10000, DEEP=5000;   /* top-up above DEEP = "बड़ी कमी" */
 
 function cspIdFromUrl(){
@@ -182,7 +184,7 @@ async function getCsp(){
       var r=await fetch(PROXY_URL+sep+'cspId='+encodeURIComponent(id),{cache:'no-store'});
       var j=await r.json(); if(j&&j.installs!==undefined){return j;} }catch(e){} }
   for(var u=0;u<2;u++){ try{
-      var s=await fetch(u===0?'data-july.json':DATA_URL,{cache:'no-store'});
+      var s=await fetch(u===0?MO.file:DATA_URL,{cache:'no-store'});
       var D=(await s.json()).data||{}; return D[id]||null; }catch(e){} }
   return null;
 }
@@ -210,6 +212,7 @@ function mountDemo(){
 
 (async function(){
   var q=new URLSearchParams(location.search);
+  document.getElementById('subhdr').textContent=MO.name+' का हिसाब';
   var id=cspIdFromUrl();
   if(q.get('case') && DEMO[q.get('case')]){ render(DEMO[q.get('case')]); return; }
   if(!id || q.get('demo')==='1'){ mountDemo(); return; }

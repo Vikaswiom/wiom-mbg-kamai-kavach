@@ -24,6 +24,16 @@ context (files, rules, deploy, gotchas) as of **31 Jul 2026**.
 `cspId` is the only variable, e.g. `settle.html?cspId=a0b8r0`. Preview cases without data:
 `settle.html?case=above|topup|deep|noleads|below` or `?demo=1`.
 
+### Month switching (Jul → Aug → Sep) — `?month=`
+Every settle screen (settle, settle-prorata, v750/settle, v1000/settle) is **month-aware**:
+`&month=july` (default) · `&month=aug` · `&month=sep`. It picks the month's frozen data file
+(`data-july.json` / `data-aug.json` / `data-sep.json`), the month name in all copy, and the
+days-in-month for pro-rata. So **August payout = the same URLs + `&month=aug`**, e.g.
+`settle.html?cspId=X&month=aug`, `settle-prorata.html?cspId=X&joined=YYYY-MM-DD&month=aug`.
+Each month's file is maintained live during that month then **auto-freezes** when the month ends
+(see refresh.py per-month snapshot). `data-aug.json` first appears on **1 Aug**; before then the
+`month=aug` URLs show "हिसाब अभी तैयार नहीं" for real cspIds (demo/`?case=` still work).
+
 ## Files
 | File | Role |
 |---|---|
@@ -77,8 +87,8 @@ DEEP  = 5000     # top-up above this = "बड़ी कमी" (deep shortfall)
 ## July payout FREEZE (why data-july.json exists)
 On 1 Aug the poller/query rolls to August, so live `data.json` would show August (~zero) numbers.
 To keep the settle links showing **July's final settlement**:
-- `refresh.py build()` also writes `data-july.json` **while the clock (IST) is still July**; on 1 Aug it stops → the **last July write stays frozen**.
-- `git_push()` commits `data.json` + `data-july.json` together (in August the identical rewrite shows no diff, so July stays frozen).
+- `refresh.py build()` writes a **per-month snapshot** `data-<month>.json` for the CURRENT IST month (July→`data-july.json`, Aug→`data-aug.json`, Sep→`data-sep.json`). When the month rolls over it stops writing the old file → that month's **last write stays frozen**.
+- `git_push()` commits `data.json` + every `data-*.json` (frozen months rewrite identically → no diff → not re-committed; only the current month changes).
 - **`settle.html` + v750/v1000 read `data-july.json`, not `data.json`.**
 - Timing-proof: the IST month boundary in `refresh.py` matches `metrics.sql`'s own, so `data-july.json` only ever holds July data. No midnight action needed.
 
