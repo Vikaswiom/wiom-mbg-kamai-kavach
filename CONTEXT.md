@@ -29,7 +29,12 @@ context (files, rules, deploy, gotchas) as of **31 Jul 2026**.
 |---|---|
 | `index.html` | During-month banner (states: keepgoing/almost/secured/noleads). Reads live `data.json`. |
 | `settle.html` | **Month-end settlement** — 5 outcome cases. Reads **`data-july.json`** (frozen). |
-| `settle-prorata.html` | **Mid-month joiner** first settle — same cases but a **day-weighted base**: `ceil(₹10,000 × active_days/days_in_month, to ₹100)`. 19 Jul → 13/31 → ₹4,200. Adds the "पूरे ₹10,000 क्यों नहीं?" दिनों-का-हिसाब card + Aug–Sep full-guarantee promise. Join day from `?joined=YYYY-MM-DD` / `?day=N` / a `joined` field in data / default **19**. **DATA GAP: `data.json` has no join date yet — until it does, pass `?joined=` per CSP or it assumes 19 Jul.** |
+| `settle-prorata.html` | **Mid-month joiner** first settle — same cases but a **day-weighted base**: `ceil(₹10,000 × active_days/days_in_month, to ₹100)`. 19 Jul → 13/31 → ₹4,200; 25 Jul → 7/31 → ₹2,300. Adds the "पूरे ₹10,000 क्यों नहीं?" दिनों-का-हिसाब card + Aug–Sep full-guarantee promise. Join day from `?joined=YYYY-MM-DD` / `?day=N` / a `joined` field in data / default **19**. |
+
+### PENDING — pro-rata join dates
+`data.json` has **no per-CSP join date yet**, so `settle-prorata.html?cspId=X` alone assumes **19 Jul** for everyone. **Vikas will supply the exact joining date per CSP.** Once provided, two ways to make it correct per CSP (pick one):
+1. **Per-CSP links** — build `settle-prorata.html?cspId=X&joined=YYYY-MM-DD` from the supplied list (works today, no pipeline change). Can also emit a CSV of cspId → join date → active_days → pro-rated base → outcome.
+2. **Add `joined` to the data** — put each CSP's join date into `data.json`/`data-july.json` (via `metrics.sql` if the enrollment date is queryable, else a static lookup merged in `refresh.py`); then `?cspId=X` alone is correct. `settle-prorata.html` already reads a `joined` field if present.
 | `data.json` | Live per-CSP raw inputs `{installs, denom, pending, committed, tickets}`, refreshed by `refresh.py`. |
 | `data-july.json` | **Frozen July snapshot** for the 1-Aug payout (see Freeze below). |
 | `refresh.py` | Pulls `sql/metrics.sql` from Metabase → writes `data.json` (+ `data-july.json` while it's July). `--push` commits. |
