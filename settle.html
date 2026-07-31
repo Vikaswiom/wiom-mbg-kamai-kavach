@@ -54,6 +54,10 @@ html,body{background:var(--screen);overflow-x:hidden;}
 .settle.na{background:var(--amber-bg);border-color:var(--amberline);}
 .settle.na .ph,.settle.na .title{color:var(--amber);} .settle.na .row.total .amt{color:var(--amber);}
 .settle .body b{color:var(--text);}
+/* दिनों-का-हिसाब (pro-rata explainer) card */
+.settle.days{background:#F1EEF6;border-color:var(--stroke2);}
+.settle.days .ph,.settle.days .title{color:var(--maroon);} .settle.days .row.total .amt{color:var(--maroon);}
+.days-next{font-size:11.5px;color:var(--purple);font-weight:700;line-height:1.5;margin-top:11px;}
 
 .foot{font-size:11px;color:var(--t3);text-align:center;padding:2px 6px 16px;line-height:1.5;}
 
@@ -78,10 +82,11 @@ html,body{background:var(--screen);overflow-x:hidden;}
    banner), computes the settlement case, renders the matching copy. The S4 denom
    change lives in the poller; this screen just consumes installs/denom.          */
 var PROXY_URL = "";
-var MONTHS={july:{name:'जुलाई',days:31,file:'data-july.json'},aug:{name:'अगस्त',days:31,file:'data-aug.json'},sep:{name:'सितंबर',days:30,file:'data-sep.json'}};
+var MONTHS={july:{name:'जुलाई',days:31,file:'data-july.json',ym:'2026-07'},aug:{name:'अगस्त',days:31,file:'data-aug.json',ym:'2026-08'},sep:{name:'सितंबर',days:30,file:'data-sep.json',ym:'2026-09'}};
 var MO=MONTHS[(new URLSearchParams(location.search).get('month')||'july').toLowerCase()]||MONTHS.july;
 var DATA_URL  = "https://vikaswiom.github.io/wiom-mbg-kamai-kavach/"+MO.file;  /* month snapshot; ?month=july|aug|sep */
-var PAY=300, GATE=0.60, FLOOR=10000, DEEP=5000;   /* top-up above DEEP = "बड़ी कमी" */
+var PAY=300, GATE=0.60, FLOOR=10000;   /* per-CSP overlay (csp-meta.json) adds pro-rata floor + two-tier rate */
+var OVERLAY={};   /* cspId -> {joined?, rate_before?, rate_after?, switch?, inst_before?, inst_after?} */
 
 function cspIdFromUrl(){
   var q=new URLSearchParams(location.search);
@@ -89,19 +94,41 @@ function cspIdFromUrl(){
 }
 function inr(n){ return Number(n).toLocaleString('en-IN'); }
 
-/* the 4 outcomes */
+/* per-CSP dynamic: two-tier install pay + pro-rata floor (from csp-meta overlay) */
 function settle(d){
   var installs=+d.installs||0, denom=+d.denom||0;
-  var installpay=PAY*installs;
+  /* install pay — two-tier when the CSP had a rate change (₹300 → rate_after on `switch`) */
+  var installpay, rateNote=null;
+  if(d.rate_after!==undefined && d.switch){
+    var swYm=d.switch.slice(0,7);
+    if(MO.ym<swYm){ installpay=PAY*installs; }                    /* month before the switch: all at ₹300 */
+    else if(MO.ym===swYm){                                         /* switch month: blended split */
+      var b=+d.inst_before||0, a=+d.inst_after||0;
+      installpay=PAY*b + (+d.rate_after)*a;
+      rateNote={b:b, a:a, rate:+d.rate_after};
+    } else { installpay=(+d.rate_after)*installs; }               /* month after the switch: all at new rate */
+  } else { installpay=PAY*installs; }
+  /* floor — pro-rata when the CSP enrolled DURING this month (else full ₹10,000) */
+  var F=FLOOR, ji=null;
+  if(d.joined && d.joined.slice(0,7)===MO.ym){
+    var day=parseInt(d.joined.slice(8,10),10);
+    if(day>=1 && day<=MO.days){
+      var da=MO.days-day+1;
+      F=Math.ceil(FLOOR*da/MO.days/100)*100;                     /* round UP to ₹100, CSP's favour */
+      ji={day:day, daysActive:da, daysInMonth:MO.days};
+    }
+  }
   var pct=denom>0?Math.round(100*installs/denom):0;
   var secured=denom>0 && installs/denom>GATE;
+  var dp=F/2;                                                     /* deep-shortfall threshold scales with the floor */
   var topup=0, total=installpay, kase='below60';
-  if(denom===0){ kase='noleads'; topup=FLOOR; total=FLOOR; }   /* no lead came → full floor */
+  if(denom===0){ kase='noleads'; topup=F; total=F; }
   else if(secured){
-    if(installpay>=FLOOR){ kase='above'; total=installpay; }
-    else { topup=FLOOR-installpay; total=FLOOR; kase=(topup>DEEP)?'deep':'topup'; }
+    if(installpay>=F){ kase='above'; total=installpay; }
+    else { topup=F-installpay; total=F; kase=(topup>dp)?'deep':'topup'; }
   }
-  return {installs:installs,denom:denom,pct:pct,installpay:installpay,topup:topup,total:total,secured:secured,kase:kase};
+  return {installs:installs,denom:denom,pct:pct,installpay:installpay,topup:topup,total:total,
+          secured:secured,kase:kase,floor:F,ji:ji,rateNote:rateNote};
 }
 
 function rowsHTML(rows){
@@ -112,17 +139,21 @@ function rowsHTML(rows){
 
 function render(d){
   var m=settle(d);
-  var ip='₹'+inr(m.installpay), tp='+₹'+inr(m.topup), tpp='₹'+inr(m.topup), tot='₹'+inr(m.total);
+  var ip='₹'+inr(m.installpay), tp='+₹'+inr(m.topup), tpp='₹'+inr(m.topup), tot='₹'+inr(m.total), Fs='₹'+inr(m.floor);
   var connLine='व्योम '+m.denom+' लाया · आपने '+m.installs+' लगाए = '+m.pct+'%';
+  /* connection-pay breakdown (blended when a rate change applies this month) */
+  var rn=m.rateNote;
+  var paySub=rn?(rn.b+'×₹300 + '+rn.a+'×₹'+rn.rate):(m.installs+' × ₹300');
+  var payLab='आपके कनेक्शन से ('+paySub+')';
 
-  /* earned card (top) — when the base tops up, lead with the full ₹10,000 as hero */
+  /* earned card (top) — when the base tops up, lead with the guaranteed total as hero */
   var topped=m.topup>0;
   var earnHero=topped?tot:ip;
   var earnLabel=topped?'इस महीने की पक्की कमाई — वॉलेट में':'आपके लगाए कनेक्शन से कमाया';
   var earnSub;
-  if(m.kase==='noleads') earnSub='₹0 कमाए (0 कनेक्शन) + पूरे ₹10,000 व्योम ने दिए';
-  else if(topped) earnSub=ip+' कमाए ('+m.installs+' × ₹300) + '+tpp+' व्योम ने दिए';
-  else earnSub=m.installs+' कनेक्शन × ₹300 · वॉलेट में';
+  if(m.kase==='noleads') earnSub='₹0 कमाए (0 कनेक्शन) + पूरे '+Fs+' व्योम ने दिए';
+  else if(topped) earnSub=ip+' कमाए ('+paySub+') + '+tpp+' व्योम ने दिए';
+  else earnSub=paySub+' · वॉलेट में';
 
   /* standing card — no % bar when no lead came (0% would read as a fail, it isn't) */
   var standHTML;
@@ -135,35 +166,45 @@ function render(d){
     if(m.secured){ standCls='f-green'; standNeed='✓ आपका वादा पूरा — 60% पार';
       standWhy=(m.kase==='above'?'✓ दोनों वादे पूरे · ':'')+connLine; }
     else{ standCls='f-amber'; standNeed='महीना 60% से नीचे बंद';
-      standWhy=m.denom+' मिले · '+m.installs+' लगे = '+m.pct+'% · नया महीना, नई गिनती'; }
+      standWhy=m.denom+' मिले · '+m.installs+' लगे = '+m.pct+'% · अगले महीने, नई गिनती'; }
     standHTML='<div class="card '+standCls+'"><div class="k">आप कहाँ हैं</div>'+
       '<div class="wyh-top"><span class="wyh-pct">'+m.pct+'%</span><span class="wyh-need60">/ 60% से अधिक चाहिए</span></div>'+
       '<div class="bar"><div class="fill" style="width:'+Math.min(100,m.pct)+'%"></div><div class="mk"></div></div>'+
       '<div class="wyh-need">'+standNeed+'</div><div class="wyh-line">'+standWhy+'</div></div>';
   }
 
-  /* settlement card — the centerpiece */
+  /* settlement card — the centerpiece (floor Fs is per-CSP: pro-rated if a mid-month joiner) */
   var s;
   if(m.kase==='noleads'){
-    s={tone:'applied', ph:'🛡 महीने का हिसाब', title:'बेस लागू हुआ — पूरे ₹10,000 व्योम ने दिए',
-      body:'इस महीने एक भी कनेक्शन नहीं आया — कमी पूरी तरह व्योम की। यही गारंटी प्रोग्राम का वादा है: कनेक्शन ना आएँ, तो भी ₹10,000।',
-      rows:[['आपके कनेक्शन से ('+m.installs+' × ₹300)','₹0'],['व्योम ने दिए',tp,' plus'],['कुल — वॉलेट में',tot,' total']]};
+    s={tone:'applied', ph:'🛡 '+MO.name+' का हिसाब', title:'बेस लागू हुआ — पूरे '+Fs+' व्योम ने दिए',
+      body:'इस महीने एक भी कनेक्शन नहीं आया — कमी पूरी तरह व्योम की। यही गारंटी प्रोग्राम का वादा है: कनेक्शन ना आएँ, तो भी '+Fs+'।',
+      rows:[['आपके कनेक्शन से (0 × ₹300)','₹0'],['व्योम ने दिए',tp,' plus'],['कुल — वॉलेट में',tot,' total']]};
   } else if(m.kase==='above'){
-    s={tone:'ok', ph:'🛡 महीने का हिसाब', title:'बेस लागू नहीं — कमाई उससे ऊपर',
-      body:'व्योम '+m.denom+' कनेक्शन लाया, आपने '+m.installs+' लगाए। कमाई '+ip+' — बेस ₹10,000 से ऊपर, पूरी आपकी। कोई ऊपरी सीमा नहीं।',
-      rows:[['आपके कनेक्शन से ('+m.installs+' × ₹300)',ip],['कुल — वॉलेट में',tot,' total']]};
+    s={tone:'ok', ph:'🛡 '+MO.name+' का हिसाब', title:'बेस लागू नहीं — कमाई उससे ऊपर',
+      body:'व्योम '+m.denom+' कनेक्शन लाया, आपने '+m.installs+' लगाए। कमाई '+ip+' — बेस '+Fs+' से ऊपर, पूरी आपकी। कोई ऊपरी सीमा नहीं।',
+      rows:[[payLab,ip],['कुल — वॉलेट में',tot,' total']]};
   } else if(m.kase==='topup'){
-    s={tone:'applied', ph:'🛡 महीने का हिसाब', title:'बेस लागू हुआ — व्योम ने बाकी दिया',
-      body:'आपका 60% पूरा था, फिर भी कमाई ₹10,000 से कम रही — मतलब कनेक्शन कम आए (व्योम की कमी)। इसलिए बाकी '+tpp+' व्योम ने दिए।',
-      rows:[['आपके कनेक्शन से ('+m.installs+' × ₹300)',ip],['व्योम ने दिए',tp,' plus'],['कुल — वॉलेट में',tot,' total']]};
+    s={tone:'applied', ph:'🛡 '+MO.name+' का हिसाब', title:'बेस लागू हुआ — व्योम ने बाकी दिया',
+      body:'आपका 60% पूरा था, फिर भी कमाई '+Fs+' से कम रही — मतलब कनेक्शन कम आए (व्योम की कमी)। इसलिए बाकी '+tpp+' व्योम ने दिए।',
+      rows:[[payLab,ip],['व्योम ने दिए',tp,' plus'],['कुल — वॉलेट में',tot,' total']]};
   } else if(m.kase==='deep'){
-    s={tone:'applied', ph:'🛡 महीने का हिसाब', title:'बेस लागू हुआ — व्योम ने बाकी दिया',
-      body:'व्योम ज़रूरी कनेक्शन नहीं ला पाया (सिर्फ़ '+m.denom+' आए) — इसलिए बाकी '+tpp+' व्योम ने दिए, कुल ₹10,000।',
-      rows:[['आपके कनेक्शन से ('+m.installs+' × ₹300)',ip],['व्योम ने दिए',tp,' plus'],['कुल — वॉलेट में',tot,' total']]};
+    s={tone:'applied', ph:'🛡 '+MO.name+' का हिसाब', title:'बेस लागू हुआ — व्योम ने बाकी दिया',
+      body:'व्योम ज़रूरी कनेक्शन नहीं ला पाया (सिर्फ़ '+m.denom+' आए) — इसलिए बाकी '+tpp+' व्योम ने दिए, कुल '+Fs+'।',
+      rows:[[payLab,ip],['व्योम ने दिए',tp,' plus'],['कुल — वॉलेट में',tot,' total']]};
   } else {
-    s={tone:'na', ph:'🛡 महीने का हिसाब', title:'बेस इस महीने लागू नहीं',
+    s={tone:'na', ph:'🛡 '+MO.name+' का हिसाब', title:'बेस इस महीने लागू नहीं',
       body:'बेस के लिए आपका 60% से अधिक ज़रूरी है — इस महीने दर '+m.pct+'% रही। '+ip+' पूरी आपकी। 60% का वादा अगले महीने फिर।',
-      rows:[['आपके कनेक्शन से',ip],['कुल — वॉलेट में',tot,' total']]};
+      rows:[[payLab,ip],['कुल — वॉलेट में',tot,' total']]};
+  }
+
+  /* दिनों-का-हिसाब card — only for mid-month joiners (pro-rated floor) */
+  var prorataHTML='';
+  if(m.ji){
+    prorataHTML='<div class="settle days"><div class="ph">🗓️ पूरे ₹10,000 क्यों नहीं?</div>'+
+      rowsHTML([['पूरे महीने की गारंटी','₹10,000'],
+                ['आपके दिन — '+m.ji.day+' '+MO.name+' से जुड़े',m.ji.daysActive+' / '+m.ji.daysInMonth],
+                [MO.name+' की गारंटी',Fs,' total']])+
+      '<div class="days-next">अगले महीने से — गिनती 1 तारीख़ से, 60% रखने पर पूरे ₹10,000।</div></div>';
   }
 
   document.getElementById('body').innerHTML =
@@ -173,19 +214,24 @@ function render(d){
     standHTML+
     '<div class="settle '+s.tone+'"><div class="ph">'+s.ph+'</div>'+
       '<div class="title">'+s.title+'</div><div class="body">'+s.body+'</div>'+rowsHTML(s.rows)+'</div>'+
+    prorataHTML+
     '<div class="foot">प्रोग्राम सिर्फ़ 3 महीने का — भरोसा दोबारा बनाने के लिए।</div>';
 }
 
 /* ── data ── */
+async function loadOverlay(){   /* per-CSP overlay: joined (pro-rata) + two-tier rate */
+  try{ var r=await fetch('csp-meta.json',{cache:'no-store'}); OVERLAY=(await r.json()).meta||{}; }catch(e){}
+}
+function withOverlay(id, base){ return (base && OVERLAY[id]) ? Object.assign({}, base, OVERLAY[id]) : base; }
 async function getCsp(){
   var id=cspIdFromUrl();
   if(!id) return null;
   if(PROXY_URL){ try{ var sep=PROXY_URL.indexOf('?')>-1?'&':'?';
       var r=await fetch(PROXY_URL+sep+'cspId='+encodeURIComponent(id),{cache:'no-store'});
-      var j=await r.json(); if(j&&j.installs!==undefined){return j;} }catch(e){} }
+      var j=await r.json(); if(j&&j.installs!==undefined){return withOverlay(id,j);} }catch(e){} }
   for(var u=0;u<2;u++){ try{
-      var s=await fetch(u===0?MO.file:DATA_URL,{cache:'no-store'});  /* FROZEN July payout snapshot */
-      var D=(await s.json()).data||{}; return D[id]||null; }catch(e){} }
+      var s=await fetch(u===0?MO.file:DATA_URL,{cache:'no-store'});  /* month snapshot */
+      var D=(await s.json()).data||{}; return withOverlay(id, D[id]||null); }catch(e){} }
   return null;
 }
 
@@ -216,6 +262,7 @@ function mountDemo(){
   var id=cspIdFromUrl();
   if(q.get('case') && DEMO[q.get('case')]){ render(DEMO[q.get('case')]); return; }
   if(!id || q.get('demo')==='1'){ mountDemo(); return; }
+  await loadOverlay();
   var d=await getCsp();
   if(!d){ document.getElementById('body').innerHTML='<div class="skel">इस महीने का हिसाब अभी तैयार नहीं है.<br>App में दोबारा खोलें, या helpline पर call करें.</div>'; return; }
   render(d);

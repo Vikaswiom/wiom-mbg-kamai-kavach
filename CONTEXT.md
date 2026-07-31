@@ -14,8 +14,8 @@ context (files, rules, deploy, gotchas) as of **31 Jul 2026**.
 | What | URL |
 |---|---|
 | Banner (during-month) | https://vikaswiom.github.io/wiom-mbg-kamai-kavach/ |
-| **Settlement (month-end)** | https://vikaswiom.github.io/wiom-mbg-kamai-kavach/settle.html?cspId=`<id>` |
-| **Pro-rata settlement (mid-month joiners)** | https://vikaswiom.github.io/wiom-mbg-kamai-kavach/settle-prorata.html?cspId=`<id>`&joined=`YYYY-MM-DD` |
+| **Settlement (month-end) — the ONE dynamic screen** | https://vikaswiom.github.io/wiom-mbg-kamai-kavach/settle.html?cspId=`<id>` |
+| Pro-rata settlement (manual, param-driven) | https://vikaswiom.github.io/wiom-mbg-kamai-kavach/settle-prorata.html?cspId=`<id>`&joined=`YYYY-MM-DD` |
 | ₹750/install version | …/v750/  and  …/v750/settle.html?cspId=`<id>` |
 | ₹1000/install version | …/v1000/  and  …/v1000/settle.html?cspId=`<id>` |
 | Live data | …/data.json |
@@ -41,28 +41,34 @@ Each month's file is maintained live during that month then **auto-freezes** whe
 | `settle.html` | **Month-end settlement** — 5 outcome cases. Reads **`data-july.json`** (frozen). |
 | `settle-prorata.html` | **Mid-month joiner** first settle — same cases but a **day-weighted base**: `ceil(₹10,000 × active_days/days_in_month, to ₹100)`. 19 Jul → 13/31 → ₹4,200; 25 Jul → 7/31 → ₹2,300. Adds the "पूरे ₹10,000 क्यों नहीं?" दिनों-का-हिसाब card + Aug–Sep full-guarantee promise. Join day from `?joined=YYYY-MM-DD` / `?day=N` / a `joined` field in data / default **19**. |
 
-### PENDING — pro-rata join dates
-`data.json` has **no per-CSP join date yet**, so `settle-prorata.html?cspId=X` alone assumes **19 Jul** for everyone. **Vikas will supply the exact joining date per CSP.** Once provided, two ways to make it correct per CSP (pick one):
-1. **Per-CSP links** — build `settle-prorata.html?cspId=X&joined=YYYY-MM-DD` from the supplied list (works today, no pipeline change). Can also emit a CSV of cspId → join date → active_days → pro-rated base → outcome.
-2. **Add `joined` to the data** — put each CSP's join date into `data.json`/`data-july.json` (via `metrics.sql` if the enrollment date is queryable, else a static lookup merged in `refresh.py`); then `?cspId=X` alone is correct. `settle-prorata.html` already reads a `joined` field if present.
+### DONE — per-CSP overlay (`csp-meta.json`) drives pro-rata + two-tier
+Both former pending items are now **live in `settle.html`** via a static overlay `csp-meta.json`
+(built from `MG pilot - Sheet10.csv`), merged client-side by cspId. **Use `settle.html?cspId=X`
+for everyone** — it auto-applies each CSP's numbers:
+- **Pro-rata floor** — if the CSP has a `joined` date in the displayed month, floor =
+  `ceil(₹10,000 × active_days/days_in_month, to ₹100)`, and the दिनों-का-हिसाब card shows.
+  (118 CSPs enrolled mid-July.)
+- **Two-tier install pay** — if the CSP has `rate_after`+`switch`, earned =
+  `300 × inst_before + rate_after × inst_after` (19 CSPs: 12 → ₹750 on 27 Jul, 7 → ₹1000 on
+  28/30 Jul). The earned breakdown shows e.g. `10×₹300 + 6×₹750`. Other months: before the
+  switch month → all ₹300; after → all at `rate_after`.
 
-### PENDING — v750/v1000 two-tier per-install rate
-The ₹750 / ₹1000 versions currently use a **flat** `PAY` (750 or 1000 × all installs). **That is wrong** — CSPs earned **₹300/install until a switch date X**, and the higher rate (₹750 / ₹1000) **only from X onward**. So the real earned pay is:
-```
-installpay = 300 × installs_before_X  +  RATE × installs_on_or_after_X       (RATE = 750 or 1000)
-```
-The ₹10,000 floor and 60% gate (on install COUNT, not pay) stay the same; only `installpay` becomes two-tier, which changes the top-up (`FLOOR − installpay`) and the earned-hero.
+`csp-meta.json` shape: `{"meta":{ "<cspId>": {joined?, rate_before?, rate_after?, switch?, inst_before?, inst_after?} }}`.
+It's **static** (refresh.py doesn't touch it; survives the data refresh). Built by re-running the
+CSV→meta script (parses enrolment/change dates; queries Metabase for the 19 splits using the SAME
+install definition as metrics.sql so counts reconcile).
 
-**X is per CSP — Vikas will supply cspId → X date.** But X alone is insufficient: `data.json` carries only **total** installs, not a date split. Needed per CSP: **installs_before_X** and **installs_on_or_after_X** — derivable from **Metabase** (install/TAS completion dates) once X is known, then either:
-1. compute the amount per CSP into a CSV, and/or
-2. bake `installs_before` / `installs_after` (or a precomputed `installpay`) into the data and update the v750/v1000 `computeMBG`/`settle` to blend the two tiers (add a `switchDate` + split fields; screens then render the correct blended earned + top-up).
-
-Until implemented, **v750/v1000 overstate early-install earnings** (they price pre-X installs at the high rate).
+**⚠️ Refinalize the 19 two-tier splits at freeze:** `inst_before`/`inst_after` were computed on
+live data (installs still accruing today). Re-run the builder on the **frozen** `data-july.json`
+(after 31 Jul 23:59) so the split reconciles exactly with the final install count. Enrolment dates
+are static and need no refresh. (`v750/`, `v1000/` are now superseded flat-rate what-ifs — the real
+per-CSP rate lives in `settle.html`.)
 | `data.json` | Live per-CSP raw inputs `{installs, denom, pending, committed, tickets}`, refreshed by `refresh.py`. |
 | `data-july.json` | **Frozen July snapshot** for the 1-Aug payout (see Freeze below). |
 | `refresh.py` | Pulls `sql/metrics.sql` from Metabase → writes `data.json` (+ `data-july.json` while it's July). `--push` commits. |
 | `sql/metrics.sql` | The Snowflake query (Metabase db 113). |
-| `v750/`, `v1000/` | Full banner+settle copies with PAY=750 / 1000 instead of 300. Read the root's absolute data files. **See PENDING — v750/v1000 two-tier rate below: the rate is NOT flat.** |
+| `csp-meta.json` | **Per-CSP overlay** (static): `joined` (pro-rata) + two-tier rate split. Merged into settle.html by cspId. See DONE section above. |
+| `v750/`, `v1000/` | Superseded flat-rate what-ifs (real per-CSP rate now lives in settle.html via csp-meta.json). |
 | `analytics-dashboard/` | Separate internal dashboard (`data.js`, own `refresh.py`, own workflow). Not the CSP-facing screen. |
 
 ## Rules / config (in the JS of each page)
