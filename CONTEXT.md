@@ -39,14 +39,14 @@ Each month's file is maintained live during that month then **auto-freezes** whe
 |---|---|
 | `index.html` | During-month banner (states: keepgoing/almost/secured/noleads). Reads live `data.json`. |
 | `settle.html` | **Month-end settlement** — 5 outcome cases. Reads **`data-july.json`** (frozen). |
-| `settle-prorata.html` | **Same overlay-driven logic as settle.html** (loads `csp-meta.json`, does pro-rata + two-tier), just with the joiner-forward header (`<month> का पहला हिसाब · <day> से जुड़े`) and pro-rata demo. `?cspId=X` auto-pulls the enrolment date & exact amount; full-month CSPs show ₹10,000 with no pro-rata card. `?joined=YYYY-MM-DD` / `?day=N` still work as manual overrides. Day-weighted base: `ceil(₹10,000 × active_days/days_in_month, to ₹100)` (19 Jul → ₹4,200; 25 Jul → ₹2,300). |
+| `settle-prorata.html` | **Same overlay-driven logic as settle.html** (loads `csp-meta.json`, does pro-rata + two-tier), just with the joiner-forward header (`<month> का पहला हिसाब · <day> से जुड़े`) and pro-rata demo. `?cspId=X` auto-pulls the enrolment date & exact amount; full-month CSPs show ₹10,000 with no pro-rata card. `?joined=YYYY-MM-DD` / `?day=N` still work as manual overrides. Day-weighted base: `round(₹10,000 × active_days/days_in_month)` to the rupee (19 Jul → ₹4,194; 25 Jul → ₹2,258). |
 
 ### DONE — per-CSP overlay (`csp-meta.json`) drives pro-rata + two-tier
 Both former pending items are now **live in `settle.html`** via a static overlay `csp-meta.json`
 (built from `MG pilot - Sheet10.csv`), merged client-side by cspId. **Use `settle.html?cspId=X`
 for everyone** — it auto-applies each CSP's numbers:
 - **Pro-rata floor** — if the CSP has a `joined` date in the displayed month, floor =
-  `ceil(₹10,000 × active_days/days_in_month, to ₹100)`, and the दिनों-का-हिसाब card shows.
+  `round(₹10,000 × active_days/days_in_month)` (to the rupee, per `docs/MG-payout-logic.md` §6), and the दिनों-का-हिसाब card shows.
   (118 CSPs enrolled mid-July.)
 - **Two-tier install pay** — if the CSP has `rate_after`+`switch`, earned =
   `300 × inst_before + rate_after × inst_after` (19 CSPs: 12 → ₹750 on 27 Jul, 7 → ₹1000 on
@@ -79,6 +79,7 @@ FLOOR = 10000    # ₹ guarantee floor
 DEEP  = 5000     # top-up above this = "बड़ी कमी" (deep shortfall) case
 ```
 - **Gate is inclusive `>= 60%`** (ruling 1-Aug-2026, supersedes the 31-Jul strict ruling). A CSP at **exactly 60%** (e.g. 3/5, 6/10) **DOES** get the guarantee. Screen says "60% या अधिक चाहिए".
+- **≤ 2 leads → floor-protected** (`docs/MG-payout-logic.md` §7, replaced the old 0-leads-only rule): `denom <= 2` is floor-eligible regardless of rate — top-up = `max(0, floor − install money)`. `denom === 0` keeps the `noleads` copy; `denom` 1–2 shows the new `fewleads` case.
 - FLOOR and GATE are **unchanged** in the v750/v1000 versions; only PAY differs.
 
 ## The 5 settlement cases (settle.html)
@@ -88,7 +89,8 @@ DEEP  = 5000     # top-up above this = "बड़ी कमी" (deep shortfall)
 | 12 | `topup` | बेस लागू हुआ — व्योम ने बाकी दिया (secured, small top-up) |
 | 13 | `deep` | बेस लागू हुआ — व्योम ने बाकी दिया (secured, top-up > ₹5000) |
 | 14 | `noleads` | बेस लागू हुआ — पूरे ₹10,000 व्योम ने दिए (denom = 0) |
-| 15 | `below60` | बेस इस महीने लागू नहीं (≤ 60%, earned money only) |
+| 14b | `fewleads` | बेस लागू हुआ — व्योम ने बाकी दिया (denom 1–2, floor-protected) |
+| 15 | `below60` | बेस इस महीने लागू नहीं (< 60% with ≥ 3 leads, earned money only) |
 
 ## July payout FREEZE (why data-july.json exists)
 On 1 Aug the poller/query rolls to August, so live `data.json` would show August (~zero) numbers.

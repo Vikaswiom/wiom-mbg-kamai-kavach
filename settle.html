@@ -114,21 +114,22 @@ function settle(d){
     var day=parseInt(d.joined.slice(8,10),10);
     if(day>=1 && day<=MO.days){
       var da=MO.days-day+1;
-      F=Math.ceil(FLOOR*da/MO.days/100)*100;                     /* round UP to ₹100, CSP's favour */
+      F=Math.round(FLOOR*da/MO.days);                            /* pro-rata to the rupee (MG payout logic §6) */
       ji={day:day, daysActive:da, daysInMonth:MO.days};
     }
   }
   var pct=denom>0?Math.round(100*installs/denom):0;
   var secured=denom>0 && installs/denom>=GATE;
+  var fewleads=denom<=2;                                          /* ≤2 leads → floor protected (MG payout logic §7) */
   var dp=F/2;                                                     /* deep-shortfall threshold scales with the floor */
   var topup=0, total=installpay, kase='below60';
-  if(denom===0){ kase='noleads'; topup=F; total=F; }
-  else if(secured){
+  if(fewleads || secured){
     if(installpay>=F){ kase='above'; total=installpay; }
-    else { topup=F-installpay; total=F; kase=(topup>dp)?'deep':'topup'; }
+    else { topup=F-installpay; total=F;
+      kase = denom===0 ? 'noleads' : fewleads ? 'fewleads' : (topup>dp)?'deep':'topup'; }
   }
   return {installs:installs,denom:denom,pct:pct,installpay:installpay,topup:topup,total:total,
-          secured:secured,kase:kase,floor:F,ji:ji,rateNote:rateNote};
+          secured:secured,fewleads:fewleads,kase:kase,floor:F,ji:ji,rateNote:rateNote};
 }
 
 function rowsHTML(rows){
@@ -161,6 +162,10 @@ function render(d){
     standHTML='<div class="card f-green"><div class="k">आप कहाँ हैं</div>'+
       '<div class="wyh-need" style="margin-top:6px">आपका वादा टूटा नहीं — मौका ही नहीं आया</div>'+
       '<div class="wyh-line">0 कनेक्शन मिले · 0 लगे — गिनती हो ही नहीं सकी</div></div>';
+  } else if(m.fewleads){
+    standHTML='<div class="card f-green"><div class="k">आप कहाँ हैं</div>'+
+      '<div class="wyh-need" style="margin-top:6px">आपका वादा टूटा नहीं — मौके ही बहुत कम आए</div>'+
+      '<div class="wyh-line">'+m.denom+' कनेक्शन मिले · '+m.installs+' लगे — 2 या कम पर गारंटी बनी रहती है</div></div>';
   } else {
     var standCls, standNeed, standWhy;
     if(m.secured){ standCls='f-green'; standNeed='✓ आपका वादा पूरा — 60% पार';
@@ -179,6 +184,10 @@ function render(d){
     s={tone:'applied', ph:'🛡 '+MO.name+' का हिसाब', title:'बेस लागू हुआ — पूरे '+Fs+' व्योम ने दिए',
       body:'इस महीने एक भी कनेक्शन नहीं आया — कमी पूरी तरह व्योम की। यही गारंटी प्रोग्राम का वादा है: कनेक्शन ना आएँ, तो भी '+Fs+'।',
       rows:[['आपके कनेक्शन से (0 × ₹300)','₹0'],['व्योम ने दिए',tp,' plus'],['कुल — वॉलेट में',tot,' total']]};
+  } else if(m.kase==='fewleads'){
+    s={tone:'applied', ph:'🛡 '+MO.name+' का हिसाब', title:'बेस लागू हुआ — व्योम ने बाकी दिया',
+      body:'इस महीने सिर्फ़ '+m.denom+' कनेक्शन आए — इतने कम (2 या कम) पर कमी व्योम की मानी जाती है, आपकी गारंटी बनी रही। '+ip+' आपकी कमाई + बाकी '+tpp+' व्योम ने दिए, कुल '+Fs+'।',
+      rows:[[payLab,ip],['व्योम ने दिए',tp,' plus'],['कुल — वॉलेट में',tot,' total']]};
   } else if(m.kase==='above'){
     s={tone:'ok', ph:'🛡 '+MO.name+' का हिसाब', title:'बेस लागू नहीं — कमाई उससे ऊपर',
       body:'व्योम '+m.denom+' कनेक्शन लाया, आपने '+m.installs+' लगाए। कमाई '+ip+' — बेस '+Fs+' से ऊपर, पूरी आपकी। कोई ऊपरी सीमा नहीं।',
@@ -241,6 +250,7 @@ var DEMO={
   topup  :{label:'12 · बेस ने दिया (+₹3,400)', installs:22, denom:36},
   deep   :{label:'13 · बड़ी कमी — बेस ने दिया (+₹7,300)', installs:9,  denom:12},
   noleads:{label:'14 · 0 कनेक्शन — पूरे ₹10,000', installs:0, denom:0},
+  fewleads:{label:'14b · सिर्फ़ 2 कनेक्शन — बेस लागू', installs:1, denom:2},
   below  :{label:'15 · 60% नहीं हुआ',      installs:21, denom:38}
 };
 function mountDemo(){
