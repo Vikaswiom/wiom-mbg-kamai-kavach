@@ -34,8 +34,8 @@ else — earnings card, ticket action card, ₹10,000 guarantee card, footer —
 | Screen | Condition | Colour |
 |---|---|---|
 | `noleads`   | `total == 0` | idle |
-| `secured`   | `denom > 0 && installs/denom > 0.60` | green |
-| `almost`    | `(installs + pending) > 0.60 · total` | amber |
+| `secured`   | `denom > 0 && installs/denom >= 0.60` | green |
+| `almost`    | `(installs + pending) >= 0.60 · total` | amber |
 | `keepgoing` | otherwise | red |
 
 ### Key derived values (exact poller formulas)
@@ -44,7 +44,7 @@ else — earnings card, ticket action card, ₹10,000 guarantee card, footer —
 |---|---|
 | `pct` | `round(100 · installs / denom)` (0 if denom=0), half-to-even |
 | `next_pct` | `round(100 · (installs+1) / (denom+1))` |
-| `needed` | `max(1, floor(0.60·total) + 1 − installs)` if total>0 else 0 |
+| `needed` | `max(1, ceil(0.60·total) − installs)` if total>0 else 0 |
 | `installpay` | `300 · installs` (₹, comma-grouped) |
 | `topup` | `max(0, 10000 − 300·installs)` |
 | `days_left` | days remaining in the current **IST** calendar month |

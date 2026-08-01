@@ -95,15 +95,15 @@ Ticket fields: `no = "#" + RIGHT(EXECUTION_CANDIDATE_ID, 4)` · `area = ZONE_ID`
 
 ```
 noleads    if  total == 0
-secured    if  denom > 0  and  installs / denom > 0.60
-almost     if  (installs + pending) > 0.60 * total     // 60% still reachable via open pipeline
+secured    if  denom > 0  and  installs / denom >= 0.60
+almost     if  (installs + pending) >= 0.60 * total    // 60% still reachable via open pipeline
 keepgoing  otherwise
 ```
 
 | Screen | Meaning | Card colour |
 |---|---|---|
 | `noleads`   | no leads yet this month | idle (grey) |
-| `secured`   | already past 60% | green |
+| `secured`   | at or past 60% | green |
 | `almost`    | not there yet, but reachable | amber |
 | `keepgoing` | behind, at risk of closing < 60% | red |
 
@@ -115,7 +115,7 @@ keepgoing  otherwise
 |---|---|---|
 | `pct` | `round(100 * installs / denom)`, `0` if `denom==0` | `round` = **half-to-even** (Python). `1/8 → 12`, not 13. |
 | `next_pct` | `round(100 * (installs+1) / (denom+1))` | rate if one more confirmed lead installs (an install adds to **both** installs and denom) |
-| `needed` | **almost screen:** `max(1, floor(0.60*(denom+committed)) + 1 - installs)` · **all other screens:** `max(1, floor(0.60*total) + 1 - installs)` if `total>0` else `0` | ⚠️ the almost screen projects **only slot-confirmed open leads** (`committed`) into the denominator — those *will* mature; pre-slot leads may never confirm. Keep-going/secured/noleads keep the total-based formula. |
+| `needed` | **almost screen:** `max(1, ceil(0.60*(denom+committed)) - installs)` · **all other screens:** `max(1, ceil(0.60*total) - installs)` if `total>0` else `0` | ⚠️ the almost screen projects **only slot-confirmed open leads** (`committed`) into the denominator — those *will* mature; pre-slot leads may never confirm. Keep-going/secured/noleads keep the total-based formula. (`ceil` since the gate is now **≥ 60%** — hitting exactly 60% qualifies.) |
 | `installpay` | `300 * installs`, comma-grouped (`"2,100"`) | Western grouping (Python `"{:,}"`) |
 | `topup` | `max(0, 10000 - 300*installs)` | remaining ₹ to the guarantee floor |
 | `days_left` | days remaining in the current **IST** calendar month | computed client-side in IST — see §5 |
@@ -125,17 +125,17 @@ keepgoing  otherwise
 ### `needed`, worked
 
 **Keep-going (total-based):** `installs=2, denom=11, pending=9` → `total=20`:
-`needed = max(1, floor(0.60*20)+1 - 2) = max(1, 12+1-2) = 11`.
+`needed = max(1, ceil(0.60*20) - 2) = max(1, 12-2) = 10`.
 
 **Almost (committed-based) — Sai Cable (a0a6y4):** 6 installs / 10 matured (60%),
 8 pending of which **2 committed** (open leads #9798, #e5f6 with confirmed slots):
-- old: `floor(0.60×(10+8))+1−6` = **5** ❌ — counted all 8 pending, including pre-slot
+- old: `ceil(0.60×(10+8))−6` = **5** ❌ — counted all 8 pending, including pre-slot
   leads the customer may never confirm
-- new: `floor(0.60×(10+2))+1−6` = **2** ✅ — only the leads that will actually mature
+- new: `ceil(0.60×(10+2))−6` = **2** ✅ — only the leads that will actually mature
 
-Check: after 2 more installs `(6+2)/(10+2) = 8/12 = 66.7% > 60%` ✓, while 1 more gives
-`7/11 = 63.6%`… also >60% — but `floor(0.60×12)+1 = 8` installs is the poller's
-guaranteed-pass bar once both committed leads mature into the denominator.
+Check: after 2 more installs `(6+2)/(10+2) = 8/12 = 66.7% ≥ 60%` ✓ — `ceil(0.60×12) = 8`
+installs is the poller's guaranteed-pass bar once both committed leads mature into the
+denominator. (Note 6/10 = exactly 60% already qualifies under the ≥ 60% gate.)
 
 ---
 

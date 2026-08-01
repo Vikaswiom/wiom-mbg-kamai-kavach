@@ -74,11 +74,11 @@ per-CSP rate lives in `settle.html`.)
 ## Rules / config (in the JS of each page)
 ```
 PAY   = 300      # ₹ per install
-GATE  = 0.60     # STRICT: secured = installs/denom > 0.60  (NOT >=)
+GATE  = 0.60     # INCLUSIVE: secured = installs/denom >= 0.60
 FLOOR = 10000    # ₹ guarantee floor
 DEEP  = 5000     # top-up above this = "बड़ी कमी" (deep shortfall) case
 ```
-- **Gate is strict `> 60%`** (ruling 31-Jul-2026). A CSP at **exactly 60%** (e.g. 3/5, 6/10) does **NOT** get the guarantee — they keep only their earned install money. Screen says "60% से अधिक चाहिए".
+- **Gate is inclusive `>= 60%`** (ruling 1-Aug-2026, supersedes the 31-Jul strict ruling). A CSP at **exactly 60%** (e.g. 3/5, 6/10) **DOES** get the guarantee. Screen says "60% या अधिक चाहिए".
 - FLOOR and GATE are **unchanged** in the v750/v1000 versions; only PAY differs.
 
 ## The 5 settlement cases (settle.html)
