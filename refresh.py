@@ -12,8 +12,10 @@ per identity. (committed = open leads whose CURRENT attempt has a confirmed slot
 used by the almost screen's needed.)
 
 Usage:
-    python refresh.py           # pull + write data.json
-    python refresh.py --push    # pull + write + git commit & push (redeploys Pages)
+    python refresh.py                 # pull + write data.json (+ current-month snapshot)
+    python refresh.py --push          # pull + write + git commit & push (redeploys Pages)
+    python refresh.py --month july    # one-off: rebuild ONLY data-july.json with July's
+                                      # window (retro re-run; data.json untouched)
 
 Runs on a schedule in GitHub Actions (.github/workflows/refresh-data.yml).
 
@@ -25,7 +27,7 @@ NOTE on --push: it hard-syncs this clone to origin/main before committing
 which means any local-only commits or edits in the clone are DISCARDED.
 Run it only from a dedicated refresh clone or CI, never a working dev copy.
 """
-import os, sys, json, subprocess, urllib.request
+import os, re, sys, json, subprocess, urllib.request
 from datetime import datetime, timezone, timedelta
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -33,6 +35,15 @@ ENV  = r"C:\credentials\.env"
 DB   = 113
 URL  = "https://metabase.wiom.in/api/dataset"
 IST  = timezone(timedelta(hours=5, minutes=30))
+
+# program months: snapshot key -> (window start, window end) — the tagged
+# DATE literals in metrics.sql ({MS}/{ME}) are rewritten to these each run,
+# so the query always counts exactly one IST calendar month
+MONTH_WINDOW = {
+    "july": ("2026-07-01", "2026-08-01"),
+    "aug":  ("2026-08-01", "2026-09-01"),
+    "sep":  ("2026-09-01", "2026-10-01"),
+}
 
 
 def api_key():
@@ -61,9 +72,25 @@ def run_sql(sql):
     return cols, d["data"]["rows"]
 
 
-def build():
+def current_month_key():
+    now = datetime.now(IST)
+    return {7: "july", 8: "aug", 9: "sep"}.get(now.month) if now.year == 2026 else None
+
+
+def build(month_override=None):
     with open(os.path.join(HERE, "sql", "metrics.sql"), encoding="utf-8") as f:
         sql = f.read()
+
+    # rewrite the tagged month-window literals to the target month (default:
+    # current IST month). {MS} = window start, {ME} = window end (exclusive) —
+    # the end bound is what makes retro re-runs (e.g. --month july in August)
+    # return exactly that month, not everything since.
+    key = month_override or current_month_key()
+    if key:
+        ms, me = MONTH_WINDOW[key]
+        sql = re.sub(r"DATE '\d{4}-\d{2}-\d{2}' /\*\{MS\}\*/", f"DATE '{ms}' /*{{MS}}*/", sql)
+        sql = re.sub(r"DATE '\d{4}-\d{2}-\d{2}' /\*\{ME\}\*/", f"DATE '{me}' /*{{ME}}*/", sql)
+        print(f"month window: {key} [{ms} .. {me})")
     cols, rows = run_sql(sql)
     idx = {c: i for i, c in enumerate(cols)}
 
@@ -95,6 +122,14 @@ def build():
         },
         "data": data,
     }
+    if month_override:
+        # retro rebuild: touch ONLY that month's snapshot — data.json (the live
+        # banner feed) must keep showing the CURRENT month
+        with open(os.path.join(HERE, "data-%s.json" % month_override), "w", encoding="utf-8") as f:
+            json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
+        print(f"wrote {len(data)} identities -> data-{month_override}.json (retro rebuild; data.json untouched)")
+        return len(data)
+
     path = os.path.join(HERE, "data.json")
     with open(path, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
@@ -105,11 +140,9 @@ def build():
     # next month this stops writing the old file, so each month's LAST write stays
     # frozen — the settle screens read data-<month>.json via ?month=. Timing-proof:
     # no exact midnight moment to hit, and the IST month boundary here matches
-    # metrics.sql's own, so each data-<month>.json only ever holds that month.
-    # The program runs Jul–Sep 2026; other months are ignored.
-    now = datetime.now(IST)
-    MONTHKEY = {7: "july", 8: "aug", 9: "sep"}
-    key = MONTHKEY.get(now.month) if now.year == 2026 else None
+    # the {MS}/{ME} window substituted into metrics.sql above, so each
+    # data-<month>.json only ever holds that month. Program runs Jul–Sep 2026.
+    key = current_month_key()
     if key:
         with open(os.path.join(HERE, "data-%s.json" % key), "w", encoding="utf-8") as f:
             json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
@@ -119,7 +152,7 @@ def build():
     return len(data)
 
 
-def git_push(n):
+def git_push(n, only=None):
     def git(*args, check=False):
         return subprocess.run(["git", "-C", HERE, *args], check=check)
 
@@ -133,10 +166,15 @@ def git_push(n):
     # keep the fresh snapshot(s) in memory: the sync below resets the working
     # tree. All data-<month>.json ride along; frozen months rewrite identically
     # (no diff → not re-committed), only the current month's file changes.
-    rels = ["data.json"]
-    for fn in sorted(os.listdir(HERE)):
-        if fn.startswith("data-") and fn.endswith(".json"):
-            rels.append(fn)
+    # `only` (retro --month rebuild) restricts the commit to that one snapshot,
+    # so a data.json this run did NOT regenerate can never be pushed stale.
+    if only:
+        rels = list(only)
+    else:
+        rels = ["data.json"]
+        for fn in sorted(os.listdir(HERE)):
+            if fn.startswith("data-") and fn.endswith(".json"):
+                rels.append(fn)
     fresh = {}
     for rel in rels:
         with open(os.path.join(HERE, rel), encoding="utf-8") as f:
@@ -169,6 +207,14 @@ def git_push(n):
 
 
 if __name__ == "__main__":
-    n = build()
+    override = None
+    if "--month" in sys.argv:
+        try:
+            override = sys.argv[sys.argv.index("--month") + 1].strip().lower()
+        except IndexError:
+            raise SystemExit("--month needs a value: july | aug | sep")
+        if override not in MONTH_WINDOW:
+            raise SystemExit(f"--month must be one of {sorted(MONTH_WINDOW)} (got '{override}')")
+    n = build(month_override=override)
     if "--push" in sys.argv:
-        git_push(n)
+        git_push(n, only=[f"data-{override}.json"] if override else None)
