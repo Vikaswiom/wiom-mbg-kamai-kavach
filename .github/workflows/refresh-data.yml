@@ -13,7 +13,12 @@ on:
     # 15-min cadence on off-peak minutes — GitHub's scheduler drops slots at the
     # congested :00/:15/:30/:45 marks, so odd minutes fire far more reliably
     - cron: "4,19,34,49 * * * *" # UTC; Actions may still add a few minutes of delay
-  workflow_dispatch: {} # manual "Run workflow" button for testing
+  workflow_dispatch: # manual "Run workflow" button; optional retro month rebuild
+    inputs:
+      month:
+        description: "Rebuild ONLY this month's snapshot (july|aug|sep); empty = normal refresh"
+        required: false
+        default: ""
 
 # never let two refreshes race each other
 concurrency:
@@ -35,7 +40,8 @@ jobs:
       - name: refresh snapshot + push if changed
         env:
           METABASE_API_KEY: ${{ secrets.METABASE_API_KEY }}
+          MONTH: ${{ inputs.month }}
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          python3 refresh.py --push
+          python3 refresh.py --push ${MONTH:+--month "$MONTH"}

@@ -61,14 +61,149 @@ bucketed AS (
     END AS bucket
   FROM gated
 ),
+-- Per-CSP enrolment dates (MG payout spec §3.2/§4: leads and installs count only
+-- when they closed ON/AFTER the CSP's enrolment date). Source: csp-meta.json
+-- `joined` == the enrolled-CSPs sheet. CSPs absent here enrolled before the
+-- month start, so the month window alone is correct for them. REFRESH this
+-- block when new CSPs enrol mid-month (re-run the csv→meta builder).
+enrol AS (
+  SELECT * FROM VALUES
+    ('a0a6y6','2026-07-02'::date),
+    ('a0a6z3','2026-07-10'::date),
+    ('a0a7b5','2026-07-05'::date),
+    ('a0a7c5','2026-07-19'::date),
+    ('a0a7c6','2026-07-14'::date),
+    ('a0a7c7','2026-07-05'::date),
+    ('a0a7d1','2026-07-14'::date),
+    ('a0a7d2','2026-07-10'::date),
+    ('a0a7f7','2026-07-02'::date),
+    ('a0a7g3','2026-07-10'::date),
+    ('a0a7h0','2026-07-10'::date),
+    ('a0a9d4','2026-07-10'::date),
+    ('a0b0a0','2026-07-10'::date),
+    ('a0b2w1','2026-07-08'::date),
+    ('a0b3l5','2026-07-10'::date),
+    ('a0b5l9','2026-07-02'::date),
+    ('a0b5m5','2026-07-02'::date),
+    ('a0b5n4','2026-07-10'::date),
+    ('a0b5p0','2026-07-13'::date),
+    ('a0b5p5','2026-07-03'::date),
+    ('a0b5u8','2026-07-06'::date),
+    ('a0b5v0','2026-07-05'::date),
+    ('a0b5v3','2026-07-02'::date),
+    ('a0b5w9','2026-07-05'::date),
+    ('a0b5y1','2026-07-02'::date),
+    ('a0b5y5','2026-07-07'::date),
+    ('a0b5y6','2026-07-06'::date),
+    ('a0b5z1','2026-07-04'::date),
+    ('a0b5z7','2026-07-09'::date),
+    ('a0b6a3','2026-07-02'::date),
+    ('a0b6a6','2026-07-03'::date),
+    ('a0b6b0','2026-07-10'::date),
+    ('a0b6b2','2026-07-02'::date),
+    ('a0b6b6','2026-07-27'::date),
+    ('a0b6d1','2026-07-04'::date),
+    ('a0b6e2','2026-07-11'::date),
+    ('a0b6e6','2026-07-08'::date),
+    ('a0b6e7','2026-07-02'::date),
+    ('a0b6f1','2026-07-02'::date),
+    ('a0b6g1','2026-07-03'::date),
+    ('a0b6g6','2026-07-04'::date),
+    ('a0b6h2','2026-07-02'::date),
+    ('a0b6h6','2026-07-02'::date),
+    ('a0b6h7','2026-07-10'::date),
+    ('a0b6i2','2026-07-05'::date),
+    ('a0b6l0','2026-07-10'::date),
+    ('a0b6m4','2026-07-09'::date),
+    ('a0b6p0','2026-07-02'::date),
+    ('a0b6q3','2026-07-10'::date),
+    ('a0b6r1','2026-07-02'::date),
+    ('a0b6r6','2026-07-02'::date),
+    ('a0b6u2','2026-07-02'::date),
+    ('a0b6u3','2026-07-02'::date),
+    ('a0b6u4','2026-07-03'::date),
+    ('a0b6u7','2026-07-02'::date),
+    ('a0b6u9','2026-07-10'::date),
+    ('a0b6w0','2026-07-11'::date),
+    ('a0b6w7','2026-07-03'::date),
+    ('a0b6x5','2026-07-10'::date),
+    ('a0b6x6','2026-07-02'::date),
+    ('a0b6z7','2026-07-15'::date),
+    ('a0b7a9','2026-07-02'::date),
+    ('a0b7d0','2026-07-02'::date),
+    ('a0b7d1','2026-07-11'::date),
+    ('a0b7e7','2026-07-02'::date),
+    ('a0b7f3','2026-07-10'::date),
+    ('a0b7i2','2026-07-25'::date),
+    ('a0b7i4','2026-07-08'::date),
+    ('a0b7i5','2026-07-08'::date),
+    ('a0b8o5','2026-07-05'::date),
+    ('a0b8o6','2026-07-03'::date),
+    ('a0b8p8','2026-07-20'::date),
+    ('a0b8q5','2026-07-23'::date),
+    ('a0b8r9','2026-07-04'::date),
+    ('a0b8s0','2026-07-02'::date),
+    ('a0b8u0','2026-07-18'::date),
+    ('a0b8w5','2026-07-02'::date),
+    ('a0b8x6','2026-07-03'::date),
+    ('a0b8y2','2026-07-02'::date),
+    ('a0b8z1','2026-07-08'::date),
+    ('a0b9a1','2026-07-10'::date),
+    ('a0b9b5','2026-07-02'::date),
+    ('a0b9d5','2026-07-02'::date),
+    ('a0b9e1','2026-07-14'::date),
+    ('a0b9e3','2026-07-02'::date),
+    ('a0b9f6','2026-07-16'::date),
+    ('a0b9f8','2026-07-17'::date),
+    ('a0b9g4','2026-07-02'::date),
+    ('a0b9h5','2026-07-07'::date),
+    ('a0b9h8','2026-07-10'::date),
+    ('a0b9h9','2026-07-10'::date),
+    ('a0b9i9','2026-07-18'::date),
+    ('a0b9m6','2026-07-10'::date),
+    ('a0b9m7','2026-07-02'::date),
+    ('a0b9n7','2026-07-05'::date),
+    ('a0b9o3','2026-07-15'::date),
+    ('a0b9p4','2026-07-02'::date),
+    ('a0b9p6','2026-07-02'::date),
+    ('a0b9q0','2026-07-02'::date),
+    ('a0b9q7','2026-07-02'::date),
+    ('a0b9r4','2026-07-04'::date),
+    ('a0b9r8','2026-07-10'::date),
+    ('a0b9s2','2026-07-10'::date),
+    ('a0b9s8','2026-07-02'::date),
+    ('a0b9u0','2026-07-02'::date),
+    ('a0b9x1','2026-07-02'::date),
+    ('a0b9x3','2026-07-04'::date),
+    ('a0b9x9','2026-07-03'::date),
+    ('a0b9y6','2026-07-22'::date),
+    ('a0b9z6','2026-07-04'::date),
+    ('a0c0a9','2026-07-02'::date),
+    ('a0c0b1','2026-07-06'::date),
+    ('a0c0e4','2026-07-02'::date),
+    ('a0c0e6','2026-07-03'::date),
+    ('a0c0f2','2026-07-03'::date),
+    ('a0c0f6','2026-07-02'::date),
+    ('a0c0g7','2026-07-07'::date),
+    ('a0c0j1','2026-07-07'::date)
+  AS e(CSP_ID, JOINED)
+),
+-- The tagged month-window literals below are rewritten by refresh.py each run:
+-- {MS} = IST month start (or the --month override), {ME} = next month start.
+-- The upper bound matters for retro re-runs (e.g. rebuilding July in August).
 metrics AS (
-  SELECT CSP_ID,
-    COUNT_IF(bucket='installed' AND gate_ok=1 AND last_date>=DATE '2026-07-01') AS installs,
-    COUNT_IF(gate_ok=1 AND bucket NOT IN ('open','system_other') AND last_date>=DATE '2026-07-01') AS denom,
+  SELECT b.CSP_ID,
+    COUNT_IF(bucket='installed' AND gate_ok=1
+      AND last_date >= GREATEST(DATE '2026-07-01' /*{MS}*/, COALESCE(e.JOINED, DATE '2026-07-01' /*{MS}*/))
+      AND last_date <  DATE '2026-08-01' /*{ME}*/) AS installs,
+    COUNT_IF(gate_ok=1 AND bucket NOT IN ('open','system_other')
+      AND last_date >= GREATEST(DATE '2026-07-01' /*{MS}*/, COALESCE(e.JOINED, DATE '2026-07-01' /*{MS}*/))
+      AND last_date <  DATE '2026-08-01' /*{ME}*/) AS denom,
     COUNT_IF(bucket='open') AS pending,
     COUNT_IF(bucket='open' AND own_slot_latest=1) AS committed
-  FROM bucketed
-  GROUP BY CSP_ID
+  FROM bucketed b
+  LEFT JOIN enrol e ON e.CSP_ID = b.CSP_ID
+  GROUP BY b.CSP_ID
 ),
 open_tk AS (
   SELECT CSP_ID, EXECUTION_CANDIDATE_ID, ZONE_ID, UPDATED_AT,
@@ -117,5 +252,9 @@ SELECT m.CSP_ID AS csp_id, o.user_id,
 FROM metrics m
 LEFT JOIN tk    ON tk.CSP_ID = m.CSP_ID
 LEFT JOIN owner o ON o.CSP_ID = m.CSP_ID
-WHERE (m.installs + m.denom + m.pending) > 0
+LEFT JOIN enrol e ON e.CSP_ID = m.CSP_ID
+-- keep enrolled CSPs even at 0/0/0: the enrolment window can zero out a
+-- mid-month joiner whose only activity predates joining, and the settle
+-- screen must still find them (noleads case), not "हिसाब तैयार नहीं"
+WHERE (m.installs + m.denom + m.pending) > 0 OR e.CSP_ID IS NOT NULL
 ORDER BY m.installs DESC, m.denom DESC
