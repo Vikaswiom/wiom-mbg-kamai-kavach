@@ -40,7 +40,7 @@ Each month's file is maintained live during that month then **auto-freezes** whe
 ## Files
 | File | Role |
 |---|---|
-| `index.html` | During-month banner (states: keepgoing/almost/secured/noleads). Reads live `data.json`. |
+| `index.html` | During-month banner (states: keepgoing/almost/secured/noleads). Reads **live `data.json` = current month** (so `/?cspid=X` shows the current month, e.g. Aug now). **Overlay-aware:** loads `csp-meta.json`; from the month AFTER a CSP's rate switch, installs pay their new rate (₹750/₹1000) — banner earnings + "हर नए कनेक्शन पर ₹X" copy reflect it. Floor ₹10,000 (no Aug/Sep joiners). |
 | `settle.html` | **Month-end settlement** — 5 outcome cases. Reads **`data-july.json`** (frozen). |
 | `settle-prorata.html` | **Same overlay-driven logic as settle.html** (loads `csp-meta.json`, does pro-rata + two-tier), just with the joiner-forward header (`<month> का पहला हिसाब · <day> से जुड़े`) and pro-rata demo. `?cspId=X` auto-pulls the enrolment date & exact amount; full-month CSPs show ₹10,000 with no pro-rata card. `?joined=YYYY-MM-DD` / `?day=N` still work as manual overrides. Day-weighted base: `round(₹10,000 × active_days/days_in_month)` to the rupee (19 Jul → ₹4,194; 25 Jul → ₹2,258). |
 
