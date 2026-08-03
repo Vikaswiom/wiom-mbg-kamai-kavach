@@ -1,25 +1,25 @@
 {
-  "generated_ist": "2026-08-03 19:27 IST",
+  "generated_ist": "2026-08-03 22:13 IST",
   "window_start": "2026-08-01 12:30:00 IST",
   "eligible": 477,
-  "csps_opened": 312,
-  "pct_opened": 65,
-  "total_opens": 2134,
-  "avg_per_opener": 6.8,
+  "csps_opened": 320,
+  "pct_opened": 67,
+  "total_opens": 2257,
+  "avg_per_opener": 7.1,
   "first_open": "2026-08-01 12:32:52",
-  "last_open": "2026-08-03 18:08:11",
+  "last_open": "2026-08-03 21:10:55",
   "by_outcome": {
     "topup": {
       "label": "Got a top-up (guarantee applied)",
-      "opened": 217,
+      "opened": 221,
       "total": 334,
-      "pct": 65
+      "pct": 66
     },
     "piece": {
       "label": "No top-up — <60% & ≥3 leads",
-      "opened": 95,
+      "opened": 99,
       "total": 143,
-      "pct": 66
+      "pct": 69
     }
   },
   "daily": [
@@ -35,8 +35,8 @@
     },
     {
       "date": "2026-08-03",
-      "csps": 177,
-      "opens": 443
+      "csps": 200,
+      "opens": 566
     }
   ]
 }
