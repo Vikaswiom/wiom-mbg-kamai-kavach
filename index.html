@@ -61,6 +61,11 @@ html,body{background:var(--screen);}
 //   See docs/live-proxy/README.md for the 2-minute deploy.
 var PROXY_URL = "";
 
+// per-CSP overlay (csp-meta.json): joined (pro-rata) + two-tier rate. Merged by cspId.
+var OVERLAY = {};
+async function loadOverlay(){ try{ var r=await fetch('csp-meta.json',{cache:'no-store'}); OVERLAY=(await r.json()).meta||{}; }catch(e){} }
+function withOverlay(id,o){ var k=(id||'').toLowerCase(); return (o && OVERLAY[k]) ? Object.assign({}, o, OVERLAY[k]) : o; }
+
 // Ticket rows are informational only (no tap / no navigation).
 
 function cspIdFromUrl(){
@@ -77,14 +82,14 @@ async function getCspData(){
       var sep = PROXY_URL.indexOf('?')>-1 ? '&' : '?';
       var r = await fetch(PROXY_URL + sep + 'cspId=' + encodeURIComponent(id), {cache:'no-store'});
       var j = await r.json();
-      if(j && j.installs!==undefined) return j;      // proxy returns the same raw shape
+      if(j && j.installs!==undefined) return withOverlay(id,j);   // proxy returns the same raw shape
     }catch(e){}
   }
   // 2) fallback — baked snapshot (instant; refreshed by refresh.py)
   try{
     var s = await fetch('data.json', {cache:'no-store'});
     var DATA = (await s.json()).data || {};
-    return DATA[id] || noleads;                        // unknown id → noleads
+    return withOverlay(id, DATA[id] || noleads);        // unknown id → noleads
   }catch(e){ return noleads; }
 }
 </script>
@@ -92,7 +97,7 @@ async function getCspData(){
 <!-- ===== EXACT MBG CALCULATION (mirrors Appendix A of the reference doc) ===== -->
 <script>
 function computeMBG(d){
-  var PAY=300, GATE=0.60, FLOOR=10000;
+  var GATE=0.60, FLOOR=10000;
   var installs = +d.installs||0, denom = +d.denom||0, pending = +d.pending||0;
   // committed = open leads whose CURRENT attempt has a confirmed slot.
   // If the snapshot predates this field, fall back to all pending — that makes
@@ -115,7 +120,13 @@ function computeMBG(d){
   var im1 = ist.getUTCMonth()+1;                                              // 1-based IST month
   var dim = new Date(Date.UTC(ist.getUTCFullYear(), im1, 0)).getUTCDate();    // days in this IST month
 
+  // per-CSP install rate (csp-meta overlay): from the month AFTER the switch,
+  // every install pays the CSP's new rate (₹750/₹1000). Default ₹300.
+  var ymNow = ist.getUTCFullYear()+'-'+(im1<10?'0'+im1:''+im1);
+  var PAY = (d.rate_after && d.switch && ymNow > d.switch.slice(0,7)) ? (+d.rate_after) : 300;
+
   return {
+    rate       : PAY,                                                         // per-install rate this month
     screen     : screen,
     installs   : installs,
     denom      : denom,                                                       // mbg_leads
@@ -143,6 +154,7 @@ function computeMBG(d){
 <!-- ===== RENDER + EVENT TRACKING ===== -->
 <script>
 (async function(){
+  await loadOverlay();
   var d = await getCspData();
   var m = computeMBG(d);
   function set(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
@@ -163,7 +175,7 @@ function computeMBG(d){
 
   // ---- per-screen COPY: the parts that differ between the four screens ----
   // (tickets / guarantee / footer are identical across all screens)
-  var EARN = '↑ हर नए कनेक्शन पर ₹300 · कोई ऊपरी सीमा नहीं';
+  var EARN = '↑ हर नए कनेक्शन पर ₹'+m.rate+' · कोई ऊपरी सीमा नहीं';
   var COPY = {
     keepgoing:{ cls:'f-red',   pct:function(m){return m.pct;}, sign:'%', earnSub:EARN,
                 need:function(m){return m.needed+' कनेक्शन और चाहिए';},
