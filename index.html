@@ -37,7 +37,12 @@ html,body{background:var(--screen);}
 .cond .cp{font-size:10px;font-weight:800;color:var(--purple);background:var(--pill);padding:3px 9px;border-radius:999px;white-space:nowrap;}
 .prot .sb{font-size:11.5px;font-weight:800;color:#3a1a70;margin:9px 0 4px;}.prot .li{font-size:11.5px;color:#5a4a86;line-height:1.7;}
 .foot{font-size:11px;color:var(--t3);text-align:center;padding:2px 6px 14px;line-height:1.5;}
-</style></head><body><div class=wrap><div class=hdr><span class=t>गारंटी कमाई</span></div><div class=subhdr><span><span id=v_month>—</span> का हिसाब</span><span>इस महीने <span id=v_days>0</span> दिन बाकी</span></div><div class=body><div class=card><div class=k>इस महीने नए कनेक्शन से कमाया</div><div class=earn-amt>₹<span id=v_installpay>0</span></div><div class=earn-sub id=v_earnsub>↑ हर नए कनेक्शन पर ₹300 · कोई ऊपरी सीमा नहीं</div></div><div class="card f-amber" id=whcard><div class=k>आप कहाँ हैं</div><div class=wyh-top><span class=wyh-pct><span id=v_pct>0</span><span id=v_pctsign>%</span></span><span class=wyh-need60>/ 60% से अधिक चाहिए</span></div><div class=bar><div class=fill id=v_fill style="width:0%"></div><div class=mk></div></div><div class=wyh-need id=v_needline>—</div><div class=wyh-line id=v_subline>—</div></div><div class="act " id=actcard><div class=h>🔥 अगला कनेक्शन ज़रूर लगाएं</div><div class=s id=thead>खुले टिकट — पहले ये लगाएं:</div><div class=tkt id=trow1><span class=tn>इंस्टॉल <span id=d1n></span></span></div><div class=tkt id=trow2><span class=tn>इंस्टॉल <span id=d2n></span></span></div><div class=notkt id=notkt>अभी कोई खुला टिकट नहीं — जो आए, उसी दिन समय तय करें।</div></div><div class=prot id=guar><div class=ph>🛡 आपकी सुरक्षा</div><div class=big>₹10,000 <span>तक कमाई पूरी होगी</span></div><div class=when>कब लागू? — दोनों बातें ज़रूरी</div><div class=cond><div class=cl><span class=em>🔧</span>आपका 60% पूरा हो</div><span class=cp>आपका वादा</span></div><div class=cond><div class=cl><span class=em>📉</span>फिर भी कमाई ₹10,000 से कम रहे</div><span class=cp>व्योम की कमी</span></div><div class=sb>साफ़ बात</div><div class=li>· सिर्फ़ नए कनेक्शन की कमाई गिनी जाएगी<br>· बाकी आमदनी इससे अलग</div></div><div class=foot>प्रोग्राम सिर्फ़ 3 महीने का।</div></div></div>
+.prevrow{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:11px 13px;cursor:pointer;text-decoration:none;}
+.prevrow .pr-ic{font-size:15px;flex:none;}
+.prevrow .pr-t{font-size:12.5px;font-weight:700;color:var(--text);flex:1;}.prevrow .pr-t b{color:var(--t2);font-weight:600;}
+.prevrow .pr-sum{font-size:12px;font-weight:800;color:var(--purple);white-space:nowrap;}
+.prevrow .pr-arr{color:var(--t3);font-weight:800;}
+</style></head><body><div class=wrap><div class=hdr><span class=t>गारंटी कमाई</span></div><div class=subhdr><span><span id=v_month>—</span> का हिसाब</span><span>इस महीने <span id=v_days>0</span> दिन बाकी</span></div><div class=body><div class=card><div class=k>इस महीने नए कनेक्शन से कमाया</div><div class=earn-amt>₹<span id=v_installpay>0</span></div><div class=earn-sub id=v_earnsub>↑ हर नए कनेक्शन पर ₹300 · कोई ऊपरी सीमा नहीं</div></div><div class="card f-amber" id=whcard><div class=k>आप कहाँ हैं</div><div class=wyh-top><span class=wyh-pct><span id=v_pct>0</span><span id=v_pctsign>%</span></span><span class=wyh-need60>/ 60% से अधिक चाहिए</span></div><div class=bar><div class=fill id=v_fill style="width:0%"></div><div class=mk></div></div><div class=wyh-need id=v_needline>—</div><div class=wyh-line id=v_subline>—</div></div><div class="act " id=actcard><div class=h>🔥 अगला कनेक्शन ज़रूर लगाएं</div><div class=s id=thead>खुले टिकट — पहले ये लगाएं:</div><div class=tkt id=trow1><span class=tn>इंस्टॉल <span id=d1n></span></span></div><div class=tkt id=trow2><span class=tn>इंस्टॉल <span id=d2n></span></span></div><div class=notkt id=notkt>अभी कोई खुला टिकट नहीं — जो आए, उसी दिन समय तय करें।</div></div><div class=prot id=guar><div class=ph>🛡 आपकी सुरक्षा</div><div class=big>₹10,000 <span>तक कमाई पूरी होगी</span></div><div class=when>कब लागू? — दोनों बातें ज़रूरी</div><div class=cond><div class=cl><span class=em>🔧</span>आपका 60% पूरा हो</div><span class=cp>आपका वादा</span></div><div class=cond><div class=cl><span class=em>📉</span>फिर भी कमाई ₹10,000 से कम रहे</div><span class=cp>व्योम की कमी</span></div><div class=sb>साफ़ बात</div><div class=li>· सिर्फ़ नए कनेक्शन की कमाई गिनी जाएगी<br>· बाकी आमदनी इससे अलग</div></div><a class=prevrow id=prevrow hidden></a><div class=foot>प्रोग्राम सिर्फ़ 3 महीने का।</div></div></div>
 
 <!-- ============================================================================
      DATA SOURCE — real per-CSP snapshot in data.json (refreshed by refresh.py).
@@ -158,6 +163,39 @@ function computeMBG(d){
 
 <!-- ===== RENDER + EVENT TRACKING ===== -->
 <script>
+// ── previous-month settlement row ("🗓️ पिछले महीने का हिसाब · <month>") ──
+// mirrors settle.html: two-tier install pay + pro-rata floor + ≤2-leads/≥60% floor gate.
+function prevMonthTotal(rec, ov, MO){
+  var installs=+rec.installs||0, denom=+rec.denom||0, im;
+  if(ov && ov.rate_after && ov.switch){
+    var sw=ov.switch.slice(0,7);
+    im = (MO.ym<sw) ? 300*installs
+       : (MO.ym===sw) ? 300*(+ov.inst_before||0)+(+ov.rate_after)*(+ov.inst_after||0)
+       : (+ov.rate_after)*installs;
+  } else im=300*installs;
+  var F=10000;
+  if(ov && ov.joined && ov.joined.slice(0,7)===MO.ym){ var day=+ov.joined.slice(8,10); F=Math.round(10000*(MO.days-day+1)/MO.days); }
+  var rate=denom>0?installs/denom:0, fe=(denom<=2)||(rate>=0.60);
+  return im + (fe?Math.max(0,F-im):0);
+}
+async function renderPrev(cspId){
+  if(!cspId) return;
+  var ist=new Date(Date.now()+330*60000), im1=ist.getUTCMonth()+1;
+  var PREV={8:{key:'july',label:'जुलाई',ym:'2026-07',days:31},9:{key:'aug',label:'अगस्त',ym:'2026-08',days:31}}[im1];
+  if(!PREV) return;                                   // July = no previous program month
+  try{
+    var s=await fetch('data-'+PREV.key+'.json',{cache:'no-store'});
+    var D=(await s.json()).data||{};
+    if(!D[cspId]) return;                             // no settlement record last month → no row
+    var total=prevMonthTotal(D[cspId], OVERLAY[cspId], PREV);
+    var el=document.getElementById('prevrow');
+    el.innerHTML='<span class="pr-ic">🗓️</span><div class="pr-t">पिछले महीने का हिसाब <b>· '+PREV.label+'</b></div>'+
+                 '<div class="pr-sum">कुल ₹'+total.toLocaleString('en-IN')+'</div><span class="pr-arr">›</span>';
+    el.href='settle.html?cspId='+encodeURIComponent(cspId)+'&month='+PREV.key;
+    el.hidden=false;
+  }catch(e){}
+}
+
 (async function(){
   await loadOverlay();
   // ?case= previews the four standing modes (from progress-v3 s4/s5/s6/s6a) without data
@@ -171,6 +209,7 @@ function computeMBG(d){
   var _c=new URLSearchParams(location.search).get('case');
   var d = (_c && CASES[_c]) ? CASES[_c] : await getCspData();
   var m = computeMBG(d);
+  renderPrev((cspIdFromUrl()||'').toLowerCase());   // "पिछले महीने का हिसाब · <month>" row (Aug+)
   function set(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
 
   // ---- in-house analytics hook (no CleverTap here) ----
