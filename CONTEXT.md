@@ -23,6 +23,7 @@ context (files, rules, deploy, gotchas) as of **3 Aug 2026** — **July is close
 | Live data (current month = Aug) | …/data.json |
 | **Frozen July payout data** | …/data-july.json |
 | Live August snapshot | …/data-aug.json  (settle via `?month=aug`) |
+| **Banner engagement dashboard** (team-shareable, auto-refresh) | https://vikaswiom.github.io/wiom-mbg-kamai-kavach/banner-dashboard.html |
 
 `cspId` is the only variable, e.g. `settle.html?cspId=a0b8r0`. Preview cases without data:
 `settle.html?case=above|topup|deep|noleads|below` or `?demo=1`.
@@ -79,6 +80,7 @@ feed) is untouched.
 | `csp-meta.json` | **Per-CSP overlay** (static): `joined` (pro-rata) + two-tier rate split. Merged into settle.html by cspId. See DONE section above. |
 | `v750/`, `v1000/` | Superseded flat-rate what-ifs (real per-CSP rate now lives in settle.html via csp-meta.json). |
 | `analytics-dashboard/` | Separate internal dashboard (`data.js`, own `refresh.py`, own workflow). Not the CSP-facing screen. |
+| `banner-dashboard.html` + `banner-data.json` | **Banner-engagement dashboard** (team-shareable). Reads `banner-data.json` (306/477 opened, opens, by payout outcome, daily trend), auto-re-checks every 5 min. `banner/fetch_banner.py` queries CleverTap `banner_opened` for the 477 (via `banner/banner-groups.json`); **`.github/workflows/refresh-banner.yml`** refreshes it hourly (`:27 UTC`). CleverTap `EVENTS_DATA.TIMESTAMP` is IST (no +330). |
 
 ## Rules / config (in the JS of each page)
 ```
