@@ -1,0 +1,38 @@
+# Scheduled refresh of banner-data.json — MBG banner_opened engagement for the
+# 477 enrolled CSPs (feeds banner-dashboard.html on GitHub Pages).
+# Hourly; runs banner/fetch_banner.py against Metabase, pushes if changed.
+# Uses the same repo secret METABASE_API_KEY.
+name: refresh-banner
+
+on:
+  schedule:
+    - cron: "27 * * * *" # hourly at :27 UTC (off-peak minute; Actions may add delay)
+  workflow_dispatch: {} # manual "Run workflow" button
+
+concurrency:
+  group: refresh-banner
+  cancel-in-progress: false
+
+permissions:
+  contents: write # push banner-data.json to main
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10 # the CleverTap-events query can take ~1-2 min
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: refresh banner engagement + push if changed
+        env:
+          METABASE_API_KEY: ${{ secrets.METABASE_API_KEY }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python3 banner/fetch_banner.py --push

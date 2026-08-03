@@ -1,0 +1,84 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>MBG Banner Engagement</title>
+<style>
+:root{--maroon:#3f2a44;--purple:#6D17CE;--green:#008043;--amber:#B85C00;--bg:#F5F3F8;--card:#fff;
+--text:#181022;--t2:#6b6478;--t3:#a8a2b4;--line:#ECE7F2;--track:#EDEAF2;}
+*{box-sizing:border-box;margin:0;font-family:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;}
+body{background:var(--bg);color:var(--text);line-height:1.5;}
+.wrap{max-width:860px;margin:0 auto;padding:0 0 40px;}
+.hdr{background:var(--maroon);color:#fff;padding:22px 22px 20px;}
+.hdr h1{font-size:20px;font-weight:800;letter-spacing:-.3px;}
+.hdr .sub{font-size:12.5px;color:#d9cde0;margin-top:4px;}
+.hdr .win{font-size:11.5px;color:#b9a9c4;margin-top:9px;}
+.body{padding:20px 18px;display:flex;flex-direction:column;gap:16px;}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 15px;}
+.kpi .lab{font-size:11.5px;color:var(--t2);font-weight:600;}
+.kpi .val{font-size:30px;font-weight:800;letter-spacing:-1px;margin-top:4px;font-variant-numeric:tabular-nums;}
+.kpi .val small{font-size:14px;font-weight:700;color:var(--t3);letter-spacing:0;}
+.kpi.hero .val{color:var(--purple);}
+.card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:17px 16px;}
+.card h2{font-size:13.5px;font-weight:800;color:var(--text);margin-bottom:2px;}
+.card .h-sub{font-size:11.5px;color:var(--t2);margin-bottom:14px;}
+.row2{display:flex;flex-direction:column;gap:13px;}
+.orow .ot{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;font-weight:600;margin-bottom:5px;}
+.orow .ot .n{color:var(--t2);font-weight:600;}
+.orow .ot b{font-size:14px;font-weight:800;}
+.bar{height:12px;background:var(--track);border-radius:7px;overflow:hidden;}
+.bar>span{display:block;height:100%;border-radius:7px;}
+.g-purple>span{background:var(--purple);}.g-amber>span{background:var(--amberbar,#E08A1E);}
+.daily{display:flex;gap:12px;align-items:flex-end;height:150px;padding-top:6px;}
+.day{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;height:100%;}
+.day .db{width:70%;max-width:54px;background:var(--purple);border-radius:6px 6px 0 0;min-height:3px;}
+.day .dv{font-size:12px;font-weight:800;}
+.day .dl{font-size:10.5px;color:var(--t3);font-weight:600;}
+.foot{font-size:11px;color:var(--t3);text-align:center;padding:6px 10px;line-height:1.6;}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:5px;vertical-align:middle;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.skel{text-align:center;color:var(--t3);padding:60px 20px;font-weight:600;}
+@media(max-width:560px){.kpis{grid-template-columns:1fr;}.kpi .val{font-size:26px;}}
+</style></head>
+<body><div class="wrap">
+  <div class="hdr">
+    <h1>🎯 MBG — Banner Engagement</h1>
+    <div class="sub">Kamai Kavach · गारंटी कमाई banner · 477 enrolled Install-MG CSPs</div>
+    <div class="win" id="win">—</div>
+  </div>
+  <div class="body" id="body"><div class="skel">लोड हो रहा है…</div></div>
+  <div class="foot" id="foot"></div>
+</div>
+<script>
+function inr(n){return Number(n).toLocaleString('en-IN');}
+function render(d){
+  document.getElementById('win').textContent='Window: '+d.window_start+'  ·  opens '+(d.first_open||'').slice(0,16)+' → '+(d.last_open||'').slice(0,16);
+  var maxOpens=Math.max.apply(null,d.daily.map(function(x){return x.opens;}).concat([1]));
+  var days=d.daily.map(function(x){
+    var h=Math.round(100*x.opens/maxOpens);
+    return '<div class="day"><div class="dv">'+inr(x.opens)+'</div><div class="db" style="height:'+h+'%"></div>'+
+           '<div class="dl">'+x.date.slice(5)+'<br>'+x.csps+' CSPs</div></div>';
+  }).join('');
+  function orow(o,cls){
+    return '<div class="orow"><div class="ot"><span>'+o.label+'</span><span class="n"><b>'+o.pct+'%</b> · '+o.opened+' / '+o.total+'</span></div>'+
+           '<div class="bar '+cls+'"><span style="width:'+o.pct+'%"></span></div></div>';
+  }
+  document.getElementById('body').innerHTML =
+    '<div class="kpis">'+
+      '<div class="kpi hero"><div class="lab">CSPs who opened</div><div class="val">'+d.csps_opened+' <small>/ '+d.eligible+'</small></div><div class="lab" style="margin-top:3px;color:var(--purple);font-weight:800">'+d.pct_opened+'% of enrolled</div></div>'+
+      '<div class="kpi"><div class="lab">Total opens</div><div class="val">'+inr(d.total_opens)+'</div></div>'+
+      '<div class="kpi"><div class="lab">Opens per engaged CSP</div><div class="val">'+d.avg_per_opener+'</div></div>'+
+    '</div>'+
+    '<div class="card"><h2>Engagement by payout outcome</h2><div class="h-sub">Did the CSPs who benefited open more than those who missed out?</div>'+
+      '<div class="row2">'+orow(d.by_outcome.topup,'g-purple')+orow(d.by_outcome.piece,'g-amber')+'</div></div>'+
+    '<div class="card"><h2>Daily opens</h2><div class="h-sub">Banner opens per day (and unique CSPs)</div>'+
+      '<div class="daily">'+days+'</div></div>';
+  document.getElementById('foot').innerHTML='<span class="dot"></span>Data as of <b>'+d.generated_ist+'</b> · auto-refreshes hourly · page re-checks every 5 min';
+}
+async function load(){
+  try{ var r=await fetch('banner-data.json?t='+Date.now(),{cache:'no-store'}); render(await r.json()); }
+  catch(e){ document.getElementById('body').innerHTML='<div class="skel">Data not available yet.</div>'; }
+}
+load(); setInterval(load, 5*60*1000);
+</script>
+</body></html>
