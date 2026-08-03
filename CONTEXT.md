@@ -1,8 +1,10 @@
 # Kamai Kavach — Working Context (settlement + freeze)
 
 Practical handoff so this project can be picked up on **any machine**. For the number
-spec see [`docs/CALCULATIONS.md`](./docs/CALCULATIONS.md); this file is the *operational*
-context (files, rules, deploy, gotchas) as of **31 Jul 2026**.
+spec see [`docs/CALCULATIONS.md`](./docs/CALCULATIONS.md) and the payout ruleset
+[`docs/MG-payout-logic.md`](./docs/MG-payout-logic.md); this file is the *operational*
+context (files, rules, deploy, gotchas) as of **3 Aug 2026** — **July is closed & frozen
+(`data-july.json`), August is live (`data-aug.json`).**
 
 ## Repo & deploy
 - **Repo (public):** https://github.com/Vikaswiom/wiom-mbg-kamai-kavach
@@ -18,8 +20,9 @@ context (files, rules, deploy, gotchas) as of **31 Jul 2026**.
 | Pro-rata settlement (same logic, joiner-forward header) | https://vikaswiom.github.io/wiom-mbg-kamai-kavach/settle-prorata.html?cspId=`<id>` |
 | ₹750/install version | …/v750/  and  …/v750/settle.html?cspId=`<id>` |
 | ₹1000/install version | …/v1000/  and  …/v1000/settle.html?cspId=`<id>` |
-| Live data | …/data.json |
+| Live data (current month = Aug) | …/data.json |
 | **Frozen July payout data** | …/data-july.json |
+| Live August snapshot | …/data-aug.json  (settle via `?month=aug`) |
 
 `cspId` is the only variable, e.g. `settle.html?cspId=a0b8r0`. Preview cases without data:
 `settle.html?case=above|topup|deep|noleads|below` or `?demo=1`.
@@ -58,11 +61,17 @@ It's **static** (refresh.py doesn't touch it; survives the data refresh). Built 
 CSV→meta script (parses enrolment/change dates; queries Metabase for the 19 splits using the SAME
 install definition as metrics.sql so counts reconcile).
 
-**⚠️ Refinalize the 19 two-tier splits at freeze:** `inst_before`/`inst_after` were computed on
-live data (installs still accruing today). Re-run the builder on the **frozen** `data-july.json`
-(after 31 Jul 23:59) so the split reconciles exactly with the final install count. Enrolment dates
-are static and need no refresh. (`v750/`, `v1000/` are now superseded flat-rate what-ifs — the real
-per-CSP rate lives in `settle.html`.)
+**✅ Two-tier splits FINALIZED against frozen July (3 Aug):** all 19 `inst_before`/`inst_after`
+reconcile with `data-july.json`'s final `installs` (before+after == installs). Individual late-install
+fixes landed as commits (a0b9r3 2+3→2+4, a0b7i2 zeroed — installs predated enrolment, a0b8o1 added).
+The one non-match, a0b9j1, has 0 installs and is absent from the data — consistent. Enrolment dates
+are static. (`v750/`, `v1000/` are superseded flat-rate what-ifs — the real per-CSP rate lives in
+`settle.html`.)
+
+**Retro re-run** (if a month's snapshot ever needs a rebuild on final data): `python refresh.py
+--month july` rewrites ONLY `data-july.json` using July's window (the `{MS}`/`{ME}` DATE literals in
+`metrics.sql` are substituted per `MONTH_WINDOW` in refresh.py); `data.json` (the live current-month
+feed) is untouched.
 | `data.json` | Live per-CSP raw inputs `{installs, denom, pending, committed, tickets}`, refreshed by `refresh.py`. |
 | `data-july.json` | **Frozen July snapshot** for the 1-Aug payout (see Freeze below). |
 | `refresh.py` | Pulls `sql/metrics.sql` from Metabase → writes `data.json` (+ `data-july.json` while it's July). `--push` commits. |
