@@ -38,6 +38,7 @@ html,body{background:var(--screen);}
 .prot .sb{font-size:11.5px;font-weight:800;color:#3a1a70;margin:9px 0 4px;}.prot .li{font-size:11.5px;color:#5a4a86;line-height:1.7;}
 .foot{font-size:11px;color:var(--t3);text-align:center;padding:2px 6px 14px;line-height:1.5;}
 .prevrow{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:11px 13px;cursor:pointer;text-decoration:none;}
+.prevrow[hidden]{display:none;}
 .prevrow .pr-ic{font-size:15px;flex:none;}
 .prevrow .pr-t{font-size:12.5px;font-weight:700;color:var(--text);flex:1;}.prevrow .pr-t b{color:var(--t2);font-weight:600;}
 .prevrow .pr-sum{font-size:12px;font-weight:800;color:var(--purple);white-space:nowrap;}
@@ -69,6 +70,9 @@ var PROXY_URL = "";
 // per-CSP overlay (csp-meta.json): joined (pro-rata) + two-tier rate. Merged by cspId.
 var OVERLAY = {};
 async function loadOverlay(){ try{ var r=await fetch('csp-meta.json',{cache:'no-store'}); OVERLAY=(await r.json()).meta||{}; }catch(e){} }
+// the 477 enrolled Install-MG cspIds — ONLY these see the "पिछले महीने का हिसाब" row.
+var ENROLLED = null;   // null until loaded → prevrow stays hidden (fail-closed)
+async function loadEnrolled(){ try{ var r=await fetch('enrolled-july.json',{cache:'no-store'}); ENROLLED=new Set(await r.json()); }catch(e){} }
 function withOverlay(id,o){ var k=(id||'').toLowerCase(); return (o && OVERLAY[k]) ? Object.assign({}, o, OVERLAY[k]) : o; }
 
 // Ticket rows are informational only (no tap / no navigation).
@@ -179,6 +183,7 @@ function prevMonthTotal(rec, ov, MO){
 }
 async function renderPrev(cspId){
   if(!cspId) return;
+  if(!ENROLLED || !ENROLLED.has(cspId)) return;   // ONLY the 477 enrolled CSPs see the previous-month row
   var ist=new Date(Date.now()+330*60000), im1=ist.getUTCMonth()+1;
   var PREV={8:{key:'july',label:'जुलाई',ym:'2026-07',days:31},9:{key:'aug',label:'अगस्त',ym:'2026-08',days:31}}[im1];
   if(!PREV) return;                                   // July = no previous program month
@@ -197,6 +202,7 @@ async function renderPrev(cspId){
 
 (async function(){
   await loadOverlay();
+  await loadEnrolled();
   // ?case= previews the four standing modes (from progress-v3 s4/s5/s6/s6a) without data
   var CASES={
     almost   :{installs:16,denom:27,pending:2,committed:1,tickets:[]},   // 7 · 1 और — 60% पार (59%)
