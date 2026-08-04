@@ -76,7 +76,7 @@ feed) is untouched.
 | `data.json` | Live per-CSP raw inputs `{installs, denom, pending, committed, tickets}`, refreshed by `refresh.py`. |
 | `data-july.json` | **Frozen July snapshot** for the 1-Aug payout (see Freeze below). |
 | `refresh.py` | Pulls `sql/metrics.sql` from Metabase → writes `data.json` (+ `data-july.json` while it's July). `--push` commits. |
-| `sql/metrics.sql` | The Snowflake query (Metabase db 113). |
+| `sql/metrics.sql` | The Snowflake query (Metabase db 113). **Denom gate = `reached_slot=1`** (customer-confirmed-slot, payout-logic §3, Aug-2026) — the S4 hybrid slot/tech gate is retired. Aug denom ~2× vs S4 (auto-slot-confirm flow). **July was disbursed under S4 and is frozen — `refresh.py` BLOCKS `--month july`.** Banner "connections to 60%" uses §7b `ceil((0.6·denom−installs)/0.4)`. |
 | `csp-meta.json` | **Per-CSP overlay** (static): `joined` (pro-rata) + two-tier rate split. Merged into settle.html by cspId. See DONE section above. |
 | `v750/`, `v1000/` | Superseded flat-rate what-ifs (real per-CSP rate now lives in settle.html via csp-meta.json). |
 | `analytics-dashboard/` | Separate internal dashboard (`data.js`, own `refresh.py`, own workflow). Not the CSP-facing screen. |
