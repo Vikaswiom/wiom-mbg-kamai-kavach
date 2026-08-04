@@ -15,7 +15,7 @@ It covers the three changes locked on 31-Jul-2026:
 > **Total payout = Installation money + Top-up**, where
 > **Installation money** = Σ (per-install rate) over the CSP's installs, and
 > **Top-up** = `max(0, pro-rata guarantee − installation money)` **only if** the CSP is *floor-eligible*
-> (≤ 2 leads **or** install-rate > 60 %). Otherwise top-up = 0.
+> (≤ 2 leads **or** install-rate ≥ 60 %). Otherwise top-up = 0.
 
 Everything below is just the precise definition of each term.
 
@@ -43,36 +43,41 @@ Convert to **IST date** (`YYYY-MM-DD`). All 477 current enrollment dates are in 
 
 ---
 
-## 3. "CSP ko kitne leads mile" (the Denominator) — counted **since enrollment**
+## 3. "CSP ko kitne leads mile" (the Denominator) — leads that reached AWAITING_TECHNICIAN_ASSIGNMENT (customer confirmed a slot)
 
-Grain = **one row per (connection × CSP)** — every install task offered to the CSP.
+**FINAL rule (Aug-2026):** a lead counts once **the customer has confirmed a slot** — i.e. it reached **`AWAITING_TECHNICIAN_ASSIGNMENT`** (equivalently `CONFIRMED_SLOT_AT IS NOT NULL`; the poller already computes this as `reached_slot=1`). In the new booking flow the **customer picks the slot at the time of booking**, so **~90% of leads reach this the instant they're offered** — they cascade `ASSIGNED → AWAITING_CUSTOMER_SCHEDULE → SLOT_CONFIRMED_BY_CUSTOMER → AWAITING_TECHNICIAN_ASSIGNMENT` in the same second. From there the CSP's job is to **assign a technician and install**.
+
+Grain = **one row per (connection × CSP)**.
 
 A lead **counts in the denominator** if **ALL** of these are true:
 
-1. **Terminal (closed):** the lead reached an end-state (installed or finally cancelled) — *not still open / in-progress*.
-2. **Closed on/after the CSP's enrollment date** and within the payout month (`enrollment_date ≤ terminal_date ≤ month_end`). *Leads that closed before the CSP enrolled do NOT count.*
-3. **Passes the S4 engagement gate** (see §3a).
-4. Its end-state is **not** `system/upstream cancel` (see §3b).
+1. **The customer confirmed a slot** — the lead reached **`AWAITING_TECHNICIAN_ASSIGNMENT`** (or any later stage); `CONFIRMED_SLOT_AT IS NOT NULL`. *(This is the bar — **NOT** bare "offered", and **NOT** "technician assigned".)*
+2. **Terminal (closed):** the lead reached an end-state — *not still open / in-progress*.
+3. **Closed on/after the CSP's enrollment date** and within the payout month (`enrollment_date ≤ terminal_date ≤ month_end`).
+4. Its end-state is **not a system/upstream cancel** (not the CSP's fault).
 
-### 3a. S4 engagement gate (keyed on the CSP-offer / task-creation date)
-- Task **offered ≤ 16-Jul** → counts only if the **customer confirmed a slot**.
-- Task **offered ≥ 17-Jul** → counts only if a **technician was assigned**.
-- *(Reason: after ~22-Jul customer slot-confirmation became automatic, so "confirmed slot" no longer proves the CSP engaged — "technician assigned" is the new proof. Cutoff set to 16-Jul, ~7 days before the change, to grace the in-flight tail.)*
+### 3a. The bar = customer confirmed a slot (reached AWAITING_TECHNICIAN_ASSIGNMENT)
+- **Too loose ("just offered")** would charge the CSP for leads the customer never committed to; **too strict ("technician assigned")** let CSPs dodge by never assigning a tech. **"Customer confirmed a slot"** is the middle ground: the customer is committed and it's now squarely on the CSP to install.
+- **Includes:** the ~90% of leads that arrive slot-confirmed at booking, plus any that confirm later.
+- **Excludes: the ~10% "no-slot" leads** — customer never confirmed a slot (CSP declined / timed-out **before** any slot). The CSP is **not charged** for a lead the customer never committed to.
+- History: this is effectively the pre-S4 `reached_slot=1` rule, brought back because the new flow makes slot-confirmation automatic at booking.
 
-### 3b. Which cancelled tasks COUNT vs are EXCLUDED
+### 3b. Which leads COUNT vs are EXCLUDED
+*Among leads that reached slot-confirmed (`AWAITING_TECHNICIAN_ASSIGNMENT`), the terminal outcome decides:*
 
 | End-state | In denom? |
 |---|---|
 | Installed | ✅ (also the numerator) |
-| CSP declined the lead | ✅ counts (CSP miss) |
+| CSP declined (after slot confirmed) | ✅ counts (CSP miss) |
 | CSP no-show (P74) / abandoned | ✅ counts (CSP miss) |
 | CSP timed out (P41) | ✅ counts (CSP miss) |
-| **Retry-exhaustion** (`CANCELLED_BY_UPSTREAM` + `RETRY_EXHAUSTION`) | ✅ **counts** (CSP miss — re-assigned repeatedly until the retry cap; ~72 % died from CSP no-show/timeout) |
+| **Retry-exhaustion** (`CANCELLED_BY_UPSTREAM` + `RETRY_EXHAUSTION`) | ✅ counts |
 | Install attempt failed / cancelled on-site / install expired | ✅ counts (CSP miss) |
 | Customer cancelled **after** confirming a slot | ✅ counts |
-| Customer cancelled **before** confirming a slot | ❌ excluded (fails the gate) |
+| **Never reached slot-confirmed** (no customer slot; declined/timed-out before any slot) | ❌ **excluded** — customer never committed (`reached_slot=0`) |
+| Customer cancelled **before** confirming a slot | ❌ excluded (`reached_slot=0`) |
 | **System / upstream cancel** (any other `CANCELLED_BY_UPSTREAM`) | ❌ excluded (not the CSP's fault) |
-| Still open / in-progress | ❌ not counted (pending) |
+| Still open / in-progress | ❌ not counted (pending, not yet resolved) |
 
 ---
 
@@ -146,9 +151,28 @@ For **July (31 days)**:
 
 A CSP is guaranteed the (pro-rata) floor if **either**:
 - **≤ 2 leads** — `denominator ("CSP ko kitne leads mile") ≤ 2` → few leads, not their fault, so protected. *(This replaced the old "0 leads" rule.)*
-- **Secured** — `install rate > 60 %` (needs ≥ 3 leads to qualify here) → performed, so protected.
+- **Secured** — `install rate ≥ 60 %` (needs ≥ 3 leads to qualify here) → performed, so protected.
 
-Otherwise (**≥ 3 leads AND rate ≤ 60 %**) = **piece-rate only**, no guarantee.
+Otherwise (**≥ 3 leads AND rate < 60 %**) = **piece-rate only**, no guarantee.
+
+---
+
+## 7b. "How many more connections to reach 60%" — the CSP banner (FIX: denominator grows!)
+
+**Bug being fixed:** the app currently computes "X more connections needed" against a **fixed denominator**, which is wrong. Every new install is **also a new lead**, so the denominator grows with each one.
+
+- **Wrong (current app):** `needed = ceil(0.60 × denom) − installs`. For 9 installed / 17 leads → `ceil(10.2) − 9 = 2`. **This is misleading** — if he installs 2 more it becomes **11 / 19 = 58 %**, still under 60 %.
+- **Correct formula** — solve `(installs + n) / (denom + n) ≥ 0.60` for the minimum `n` (assuming each new lead installs):
+
+```
+n = CEIL( (0.60 × denom − installs) / (1 − 0.60) )
+  = CEIL( (0.60 × denom − installs) / 0.40 )
+```
+
+**Worked example (9 installed / 17 leads):** `(0.60 × 17 − 9) / 0.40 = (10.2 − 9) / 0.40 = 3`.
+→ **He needs 3 more (12 / 20 = 60 %)**, not 2. (And that assumes he installs *every* new lead; if any of the next leads miss, he needs more — 5 straight installs → 14 / 22 = 64 % gives comfortable headroom.)
+
+**Banner rule of thumb:** always compute with the **growing denominator** (`n = ceil((0.6·denom − installs)/0.4)`), and phrase it as *"install your next N connections"* — never a fixed "N more," because a mix of installs + misses only pushes the target further away.
 
 ---
 
@@ -157,7 +181,7 @@ Otherwise (**≥ 3 leads AND rate ≤ 60 %**) = **piece-rate only**, no guarante
 ```
 installation_money = Σ per_install_rate(install)          # §5
 pro_rata_guarantee = §6
-floor_eligible     = (denom <= 2) OR (rate > 0.60)         # §7
+floor_eligible     = (denom <= 2) OR (rate >= 0.60)        # §7
 
 top_up = max(0, pro_rata_guarantee − installation_money)  if floor_eligible
          0                                                 otherwise
@@ -186,27 +210,31 @@ TOTAL PAYOUT = installation_money + top_up
 
 | Item | Source |
 |---|---|
-| Leads / installs / states | `PROD_DB.CSP_TAS_SERVICE_CSP_TAS_SERVICE.INSTALL_EXECUTION_CANDIDATES` (per connection: `MAX_BY(CURRENT_STATE, UPDATED_AT)`; installed = OTP/ INSTALLATION_COMPLETED_AT / COMPLETED_STEP≥7; slot = CONFIRMED_SLOT_AT) |
-| Technician-assigned (S4 gate) | `…INSTALL_STATE_TRANSITION_LOG`, `TO_STATE='TECHNICIAN_ASSIGNED'` on the connection's representative candidate |
+| Leads / installs / states | `PROD_DB.CSP_TAS_SERVICE_CSP_TAS_SERVICE.INSTALL_EXECUTION_CANDIDATES` — one row per (connection × CSP). Per connection: `MAX_BY(CURRENT_STATE, UPDATED_AT)`; installed = OTP / INSTALLATION_COMPLETED_AT / COMPLETED_STEP≥7. |
+| **Denominator gate = customer confirmed a slot** | `reached_slot = MAX(CONFIRMED_SLOT_AT IS NOT NULL)` per (connection × CSP) = the lead reached `AWAITING_TECHNICIAN_ASSIGNMENT`. **Only `reached_slot=1` leads count.** (Technician-assigned, `INSTALL_STATE_TRANSITION_LOG.TO_STATE='TECHNICIAN_ASSIGNED'`, is a later funnel milestone — shown but NOT the denom bar.) |
 | Terminal / install date | `TO_DATE(DATEADD(minute,330, MAX(UPDATED_AT)))` (IST); install completion = `INSTALLATION_COMPLETED_AT` |
 | partner_id ↔ csp_id | `PROD_DB.CSP_GATEWAY_SERVICE_CSP_GATEWAY_SERVICE.CSP_ACCOUNT` |
 | Enrollment date | Supabase `mg_optins.first_opted_at` (Flow 1) · `campaign_partners.scan_complete_at` (Flow 2) |
 | Per-install rate (750/1000) | Google Sheet **Project Dominance - CSPs** → `CSP ID`, `Cluster Plan`, `Dates for MG` |
 
-Constants: `MONTH_FLOOR = 10000`, `BASE_RATE = 300`, `GATE = 0.60`, `S4_CUTOFF = 16-Jul-2026`.
+Constants: `MONTH_FLOOR = 10000`, `BASE_RATE = 300`, `RATE_GATE = 0.60` (the ≥60% install-rate bar for "Secured"). **Denominator gate = `reached_slot=1` (customer confirmed a slot / reached `AWAITING_TECHNICIAN_ASSIGNMENT`).** *(The S4 hybrid slot/tech gate is retired.)*
 
 ---
 
-## 11. Current totals (31-Jul-2026, 477 CSPs)
+## 11. July-settlement totals (AS DISBURSED — old S4 tech-assigned gate)
+
+> ⚠️ **These July numbers were computed & paid under the OLD S4 hybrid gate** (confirmed-slot for offers ≤16-Jul, technician-assigned for ≥17-Jul). They are frozen — the disbursement is final. The **new denominator (§3) — customer confirmed a slot / reached `AWAITING_TECHNICIAN_ASSIGNMENT` — applies from August onward.**
+
+Leads terminal ≤ 31-Jul 23:59 IST · 477 CSPs · rate gate = ≥60%:
 
 | Metric | Value |
 |---|---|
-| Installs (since enrollment) | 1,579 |
-| Installation money | ₹4,85,300 |
-| Top-up money | ₹26,69,985 |
-| **Total payout** | **₹31,55,285** |
-| Floor-eligible | 319 (≤2 leads 182 + Secured 137) |
-| Piece-rate only | 158 |
-| Higher-rate installs so far (750/1000) | 23 → +₹11,600 vs flat ₹300 |
+| Installs (since enrollment) | 1,594 |
+| Installation money | ₹4,90,250 |
+| Top-up money | ₹27,93,982 |
+| **Total payout** | **₹32,84,232** |
+| Floor-eligible | 334 (≤2 leads 181 + Secured 153) |
+| Piece-rate only | 143 |
+| Higher-rate installs (750/1000) | 24 → +₹12,050 vs flat ₹300 |
 
 Live per-CSP numbers: **MG pilot sheet → tab "MG Payout (prorata)"**.

@@ -17,25 +17,17 @@ WITH base AS (
     AND UPDATED_AT >= DATEADD(day,-120,CURRENT_DATE)
   GROUP BY CONNECTION_ID, CSP_ID
 ),
--- S4 hybrid denominator gate (24-Jul): after ~22-Jul the customer's slot is
--- auto-confirmed, so reached_slot no longer proves the CSP engaged. Connections
--- OFFERED <= 16-Jul keep the old slot gate; >= 17-Jul require a technician
--- assignment. IEC alone can't tell (a closed lead's CURRENT_STATE is already
--- terminal) — the transition-log join on the representative candidate is mandatory.
-tech AS (
-  SELECT r.rep_ecid,
-    MAX(CASE WHEN t.TO_STATE='TECHNICIAN_ASSIGNED' THEN 1 ELSE 0 END) AS tech_assigned
-  FROM (SELECT DISTINCT rep_ecid FROM base) r
-  JOIN PROD_DB.CSP_TAS_SERVICE_CSP_TAS_SERVICE.INSTALL_STATE_TRANSITION_LOG t
-    ON t.EXECUTION_CANDIDATE_ID = r.rep_ecid
-  GROUP BY r.rep_ecid
-),
+-- Denominator gate (payout-logic §3, Aug-2026): the bar is "customer confirmed
+-- a slot" — the lead reached AWAITING_TECHNICIAN_ASSIGNMENT, i.e. reached_slot=1
+-- (CONFIRMED_SLOT_AT IS NOT NULL). The new booking flow makes slot-confirmation
+-- automatic at booking, so this (the pre-S4 rule) is the right proof-of-lead
+-- again; the S4 hybrid slot/tech gate is retired. Technician-assigned is a later
+-- funnel milestone, NOT the denom bar.
+-- ⚠️ July was disbursed under the OLD S4 gate and is FROZEN — never rebuild
+-- data-july.json with this SQL (refresh.py refuses --month july).
 gated AS (
-  SELECT b.*,
-    IFF(TO_DATE(DATEADD(minute,330,b.offered)) <= DATE '2026-07-16',
-        b.reached_slot, COALESCE(t.tech_assigned,0)) AS gate_ok
+  SELECT b.*, b.reached_slot AS gate_ok
   FROM base b
-  LEFT JOIN tech t ON t.rep_ecid = b.rep_ecid
 ),
 bucketed AS (
   SELECT *,

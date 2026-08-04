@@ -215,6 +215,13 @@ if __name__ == "__main__":
             raise SystemExit("--month needs a value: july | aug | sep")
         if override not in MONTH_WINDOW:
             raise SystemExit(f"--month must be one of {sorted(MONTH_WINDOW)} (got '{override}')")
+        if override == "july":
+            # July was disbursed under the OLD S4 hybrid gate and data-july.json is
+            # frozen; this SQL now uses the §3 reached_slot gate, which would MIS-SCORE
+            # July. Refuse the retro rebuild.
+            raise SystemExit("--month july is BLOCKED: July is frozen/disbursed under the "
+                             "old S4 gate; rebuilding it with the new reached_slot gate would "
+                             "corrupt the frozen payout snapshot.")
     n = build(month_override=override)
     if "--push" in sys.argv:
         git_push(n, only=[f"data-{override}.json"] if override else None)
