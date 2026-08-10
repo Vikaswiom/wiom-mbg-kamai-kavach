@@ -73,7 +73,7 @@ are static. (`v750/`, `v1000/` are superseded flat-rate what-ifs — the real pe
 --month july` rewrites ONLY `data-july.json` using July's window (the `{MS}`/`{ME}` DATE literals in
 `metrics.sql` are substituted per `MONTH_WINDOW` in refresh.py); `data.json` (the live current-month
 feed) is untouched.
-| `data.json` | Live per-CSP raw inputs `{installs, denom, pending, committed, tickets}`, refreshed by `refresh.py`. |
+| `data.json` | Live per-CSP raw inputs `{installs, denom, pending, committed, leads, ontime, late, tickets}`, refreshed by `refresh.py`. |
 | `data-july.json` | **Frozen July snapshot** for the 1-Aug payout (see Freeze below). |
 | `refresh.py` | Pulls `sql/metrics.sql` from Metabase → writes `data.json` (+ `data-july.json` while it's July). `--push` commits. |
 | `sql/metrics.sql` | The Snowflake query (Metabase db 113). **Denom gate = `reached_slot=1`** (customer-confirmed-slot, payout-logic §3, Aug-2026) — the S4 hybrid slot/tech gate is retired. Aug denom ~2× vs S4 (auto-slot-confirm flow). **July was disbursed under S4 and is frozen — `refresh.py` BLOCKS `--month july`.** Banner "connections to 60%" uses §7b `ceil((0.6·denom−installs)/0.4)`. |
@@ -84,12 +84,34 @@ feed) is untouched.
 
 ## Rules / config (in the JS of each page)
 ```
-PAY   = 300      # ₹ per install
-GATE  = 0.60     # INCLUSIVE: secured = installs/denom >= 0.60
+PAY   = 300      # ₹ per install  (ALL installs — on-time AND late)
+GATE  = 0.60     # INCLUSIVE: secured = ontime/leads >= 0.60   (v2.0, Aug-2026)
 FLOOR = 10000    # ₹ guarantee floor
 DEEP  = 5000     # top-up above this = "बड़ी कमी" (deep shortfall) case
 ```
-- **Gate is inclusive `>= 60%`** (ruling 1-Aug-2026, supersedes the 31-Jul strict ruling). A CSP at **exactly 60%** (e.g. 3/5, 6/10) **DOES** get the guarantee. Screen says "60% या अधिक चाहिए".
+
+### ⚠️ v2.0 (Aug-2026 onward) — the rate is the ON-TIME install rate
+`docs/MG-payout-logic.md` §3.0 (source spec: `docs/BANNER-ontime-changes-v2.md`). Both sides of the
+percentage now come from the app's own quality ledger `CSP_QUALITY_SERVICE…INSTALL_MATURATION_LEDGER`,
+so MG scores a CSP with the same formula as the product's M1 / Installation Compliance card:
+
+| Field in `data.json` | Meaning | Drives |
+|---|---|---|
+| `leads`  | `mbg_leads` — terminal outcomes where the **technician went onsite**: `ON_TIME_ACTIVE`, `LATE_ACTIVE`, `REPORTED_FAILED`, `CANCELLED_ONSITE`. Declines, customer cancels and **all** upstream cancels (P41 *and* P74) are OUT. | the % denominator, `needed`, the ≤2-lead floor |
+| `ontime` | `mbg_ontime` — `ON_TIME_ACTIVE` (installed on/before the slot day) | the % numerator, `pct`/`next_pct`, the 60% gate, the "Y लगे" number |
+| `late`   | `mbg_late` — `LATE_ACTIVE`. **Earns its rate, doesn't move the %** (copy says so). | the "N देर से लगे" note |
+| `installs` | ALL installs (on-time + late), IEC-derived — **unchanged** | `installpay` / `topup` **only** |
+| `denom` | the v1 denominator — **kept only for back-compat** | frozen July snapshots |
+
+- **Window = calendar month on `TERMINAL_AT` (IST).** The app's M1 card is **60-day rolling**, so a
+  CSP's app % will NOT equal the banner %. Expected — don't "fix" it. Verified: `a0b9x8` on 10-Aug =
+  app 24/28 (86%, rolling) vs banner 10/14 (71%, August).
+- **Frozen July is safe:** `data-july.json` has no `leads`/`ontime`, and every screen falls back to
+  `denom`/`installs` when they're absent — July renders exactly as it was disbursed. Same for
+  `v750/`, `v1000/` (July-only, superseded, left on v1).
+- **Impacted-booking phones** (§3.0): `sql/metrics.sql` has an **empty `impacted` CTE** — paste the
+  connection ids in to activate the drop-unless-installed rule. No list supplied yet → currently a no-op.
+- **Gate is inclusive `>= 60%`** (v2.0: on the **on-time** rate `ontime/leads`) (ruling 1-Aug-2026, supersedes the 31-Jul strict ruling). A CSP at **exactly 60%** (e.g. 3/5, 6/10) **DOES** get the guarantee. Screen says "60% या अधिक चाहिए".
 - **≤ 2 leads → floor-protected** (`docs/MG-payout-logic.md` §7, replaced the old 0-leads-only rule): `denom <= 2` is floor-eligible regardless of rate — top-up = `max(0, floor − install money)`. `denom === 0` keeps the `noleads` copy; `denom` 1–2 shows the new `fewleads` case.
 - FLOOR and GATE are **unchanged** in the v750/v1000 versions; only PAY differs.
 

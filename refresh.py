@@ -107,10 +107,17 @@ def build(month_override=None):
         data[cid] = {
             "cspId":    cid,
             "userId":   str(r[idx["USER_ID"]] or ""),     # representative identity (for mbg_id/tracking)
-            "installs":  int(r[idx["INSTALLS"]] or 0),
-            "denom":     int(r[idx["DENOM"]] or 0),
+            "installs":  int(r[idx["INSTALLS"]] or 0),   # ALL installs — pay only (on-time + late)
+            "denom":     int(r[idx["DENOM"]] or 0),      # v1 denominator, kept for back-compat
             "pending":   int(r[idx["PENDING"]] or 0),
             "committed": int(r[idx["COMMITTED"]] or 0),
+            # ON-TIME metric (v2.0, Aug-2026) — from the app's M1 quality ledger.
+            # leads = mbg_leads (technician actually went onsite), ontime = mbg_ontime
+            # (installed on/before the slot day), late = mbg_late. The % and the 60%
+            # gate run on ontime/leads; installpay/topup still run on `installs`.
+            "leads":     int(r[idx["LEADS"]] or 0),
+            "ontime":    int(r[idx["ONTIME"]] or 0),
+            "late":      int(r[idx["LATE"]] or 0),
             "tickets":   tickets,
         }
 

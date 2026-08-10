@@ -1,6 +1,13 @@
 # MG Install Payout — Calculation Logic
 
-**Version:** 1.0 · **Date:** 31-Jul-2026 · **Owner:** Shariq · **For:** Vikas / Design + Eng (payment build)
+**Version:** 2.0 · **Date:** 08-Aug-2026 · **Owner:** Shariq · **For:** Vikas / Design + Eng (payment build)
+*(v1.0 = 31-Jul-2026. **v2.0 applies from the AUGUST month onward**; July was disbursed under v1.0 and is frozen.)*
+
+> **v2.0 headline — the rate is now the ON-TIME install rate.** The denominator and the
+> numerator both move to the app's own quality ledger (same formula as the product's M1 /
+> Installation Compliance card). **Pay is unchanged**: every install, on-time or late, still
+> earns its ₹300 / ₹750 / ₹1000. See **§3.0** below — it supersedes §3 and §4.
+> Source spec: [`BANNER-ontime-changes-v2.md`](./BANNER-ontime-changes-v2.md).
 
 This document is **self-contained**: anyone can compute any enrolled CSP's MG payout from the rules below.
 It covers the three changes locked on 31-Jul-2026:
@@ -15,7 +22,7 @@ It covers the three changes locked on 31-Jul-2026:
 > **Total payout = Installation money + Top-up**, where
 > **Installation money** = Σ (per-install rate) over the CSP's installs, and
 > **Top-up** = `max(0, pro-rata guarantee − installation money)` **only if** the CSP is *floor-eligible*
-> (≤ 2 leads **or** install-rate ≥ 60 %). Otherwise top-up = 0.
+> (≤ 2 leads **or** **on-time** install rate ≥ 60 % — v2.0, §3.0). Otherwise top-up = 0.
 
 Everything below is just the precise definition of each term.
 
@@ -40,6 +47,47 @@ Enrolled **Install-MG** CSPs. **Currently 477** (442 Flow-1 + 35 Flow-2).
 | Flow 2 | `MAX(scan_complete_at)` from `campaign_partners` for the MG campaign |
 
 Convert to **IST date** (`YYYY-MM-DD`). All 477 current enrollment dates are in **July 2026**.
+
+---
+
+## 3.0 ⚠️ v2.0 (Aug-2026 onward) — the ON-TIME metric SUPERSEDES §3 and §4
+
+From the August payout, both sides of the rate come from the app's own quality ledger
+`PROD_DB.CSP_QUALITY_SERVICE_CSP_QUALITY_SERVICE.INSTALL_MATURATION_LEDGER`, so MG scores a CSP
+with exactly the formula the product's M1 (Installation Compliance) card uses.
+
+**Denominator (`mbg_leads`)** — a lead counts **only if the technician actually went onsite**,
+i.e. **only** these four terminal outcomes:
+
+| `TERMINAL_OUTCOME` | Meaning | In denom | In numerator |
+|---|---|---|---|
+| `ON_TIME_ACTIVE` | installed on/before the slot day | ✅ | ✅ |
+| `LATE_ACTIVE` | installed after the slot day | ✅ | ❌ (still **paid**) |
+| `REPORTED_FAILED` | technician onsite, install failed | ✅ | ❌ |
+| `CANCELLED_ONSITE` | cancelled at the door | ✅ | ❌ |
+
+**Everything else is excluded:** declines (`csp_denied`), customer cancellations
+(`CUSTOMER_CANCELLED`), and **ALL** upstream cancels — `UPSTREAM_CANCEL_PRE_CONFIRM` (P41, before
+tech) **and** `UPSTREAM_CANCEL_POST_CONFIRM` (P74 / no-show, after tech) — plus never-slot-confirmed
+and still-open leads. There is **no before/after-tech split** any more (that was a v2.0 draft rule).
+
+**Numerator = ON-TIME installs only** — `TERMINAL_OUTCOME = 'ON_TIME_ACTIVE'`, i.e.
+`INSTALLATION_COMPLETED_AT` (IST date) `<= CONFIRMED_SLOT_DATE`. A **late** install adds to the
+denominator without moving the numerator, so it **pushes the % DOWN** while still earning its rate.
+
+**Impacted-booking phones:** drop from `mbg_leads` unless that connection was installed.
+*(No impacted list has been supplied yet — `sql/metrics.sql` carries an empty `impacted` CTE, so
+this rule is currently a no-op. Paste connection ids there to activate it.)*
+
+**⚠️ Window = the calendar MONTH (month-to-date) on `TERMINAL_AT` (IST) — NOT the app's 60-day
+rolling window.** The product app's M1 card is 60-day rolling, so **the % a CSP sees in the app will
+not match the banner** — same formula, different clock. Verified example: **DH Cable (`a0b9x8`),
+10-Aug — app 24/28 = 86 % (rolling) vs banner 10/14 = 71 % (August).** This is expected; don't
+"fix" it. (Switching MG to rolling would be a separate product decision.)
+
+**Unchanged by v2.0:** per-install pay (§5 — all installs, late included), pro-rata floor (§6),
+≤2-lead floor protection (§7, now counted on `mbg_leads`), the ≥60 % gate itself (§7, inclusive),
+and the payout formula (§8).
 
 ---
 
@@ -82,6 +130,8 @@ A lead **counts in the denominator** if **ALL** of these are true:
 ---
 
 ## 4. Installs (the Numerator) — counted **since enrollment**
+> ⚠️ **v1.0 (July only).** From August the numerator is **on-time installs** off the M1 ledger — see §3.0.
+> This definition still drives the **pay** side (all installs, on-time + late) in every month.
 
 An **install** = the connection reached installed state:
 `OTP_VERIFIED = TRUE` **OR** `INSTALLATION_COMPLETED_AT` is set **OR** `COMPLETED_STEP ≥ 7`,
@@ -172,6 +222,10 @@ n = CEIL( (0.60 × denom − installs) / (1 − 0.60) )
 **Worked example (9 installed / 17 leads):** `(0.60 × 17 − 9) / 0.40 = (10.2 − 9) / 0.40 = 3`.
 → **He needs 3 more (12 / 20 = 60 %)**, not 2. (And that assumes he installs *every* new lead; if any of the next leads miss, he needs more — 5 straight installs → 14 / 22 = 64 % gives comfortable headroom.)
 
+**v2.0:** the same formula, on the on-time numbers — `n = ceil((0.6·leads − ontime)/0.4)`, where
+`leads`/`ontime` are §3.0's. Phrase it *"install your next N connections **on time**"*: a late install
+grows the denominator only, so it moves the target **further away**.
+
 **Banner rule of thumb:** always compute with the **growing denominator** (`n = ceil((0.6·denom − installs)/0.4)`), and phrase it as *"install your next N connections"* — never a fixed "N more," because a mix of installs + misses only pushes the target further away.
 
 ---
@@ -210,6 +264,7 @@ TOTAL PAYOUT = installation_money + top_up
 
 | Item | Source |
 |---|---|
+| **v2.0 leads + on-time installs (Aug onward)** | `PROD_DB.CSP_QUALITY_SERVICE_CSP_QUALITY_SERVICE.INSTALL_MATURATION_LEDGER` — `TERMINAL_OUTCOME` (4 onsite outcomes = denom; `ON_TIME_ACTIVE` = numerator), windowed on `TERMINAL_AT` (IST) within the calendar month. One row per terminal attempt. |
 | Leads / installs / states | `PROD_DB.CSP_TAS_SERVICE_CSP_TAS_SERVICE.INSTALL_EXECUTION_CANDIDATES` — one row per (connection × CSP). Per connection: `MAX_BY(CURRENT_STATE, UPDATED_AT)`; installed = OTP / INSTALLATION_COMPLETED_AT / COMPLETED_STEP≥7. |
 | **Denominator gate = customer confirmed a slot** | `reached_slot = MAX(CONFIRMED_SLOT_AT IS NOT NULL)` per (connection × CSP) = the lead reached `AWAITING_TECHNICIAN_ASSIGNMENT`. **Only `reached_slot=1` leads count.** (Technician-assigned, `INSTALL_STATE_TRANSITION_LOG.TO_STATE='TECHNICIAN_ASSIGNED'`, is a later funnel milestone — shown but NOT the denom bar.) |
 | Terminal / install date | `TO_DATE(DATEADD(minute,330, MAX(UPDATED_AT)))` (IST); install completion = `INSTALLATION_COMPLETED_AT` |
@@ -217,7 +272,7 @@ TOTAL PAYOUT = installation_money + top_up
 | Enrollment date | Supabase `mg_optins.first_opted_at` (Flow 1) · `campaign_partners.scan_complete_at` (Flow 2) |
 | Per-install rate (750/1000) | Google Sheet **Project Dominance - CSPs** → `CSP ID`, `Cluster Plan`, `Dates for MG` |
 
-Constants: `MONTH_FLOOR = 10000`, `BASE_RATE = 300`, `RATE_GATE = 0.60` (the ≥60% install-rate bar for "Secured"). **Denominator gate = `reached_slot=1` (customer confirmed a slot / reached `AWAITING_TECHNICIAN_ASSIGNMENT`).** *(The S4 hybrid slot/tech gate is retired.)*
+Constants: `MONTH_FLOOR = 10000`, `BASE_RATE = 300`, `RATE_GATE = 0.60` (v2.0: the ≥60% **on-time** install-rate bar for "Secured"). **Denominator gate = `reached_slot=1` (customer confirmed a slot / reached `AWAITING_TECHNICIAN_ASSIGNMENT`).** *(The S4 hybrid slot/tech gate is retired.)*
 
 ---
 

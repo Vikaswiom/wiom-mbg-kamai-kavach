@@ -181,9 +181,49 @@ enrol AS (
     ('a0c0j1','2026-07-07'::date)
   AS e(CSP_ID, JOINED)
 ),
+-- Impacted-booking drop (payout-logic v2.0 §1): connections on the impacted-
+-- booking list do NOT count as leads unless they were actually installed.
+-- PASTE the impacted CONNECTION_IDs here, one per VALUES row — the placeholder
+-- below matches nothing, so today this rule is a no-op:
+--   SELECT column1::string AS CONNECTION_ID FROM VALUES ('c-123'),('c-456')
+impacted AS (
+  SELECT column1::string AS CONNECTION_ID FROM VALUES ('__no_impacted_bookings__')
+),
+-- ── M1 / on-time ledger — mbg_leads + mbg_ontime (payout-logic v2.0, Aug-2026)
+-- The banner's denominator and numerator come from the app's OWN quality ledger,
+-- so MG uses the same formula as the product's M1 (Installation Compliance) card.
+-- A lead counts ONLY when the technician actually went onsite — exactly these
+-- four terminal outcomes. Everything else is OUT: declines, customer cancels,
+-- and ALL upstream cancels (P41 before tech AND P74 no-show after tech), plus
+-- never-slot-confirmed and still-open. No before/after-tech split needed.
+--   ontime = TERMINAL_OUTCOME='ON_TIME_ACTIVE' (installed on/before the slot day)
+--   late   = 'LATE_ACTIVE' (still earns its ₹300/750/1000 — see `installs`)
+-- ⚠️ WINDOW = the calendar MONTH ({MS}..{ME}) on TERMINAL_AT (IST). The product
+-- app's M1 card is a 60-DAY ROLLING window, so the % a CSP sees in the app will
+-- NOT match the banner — same formula, different clock. Expected, don't "fix" it:
+-- a0b9x8 on 10-Aug = app 24/28 (86%, rolling) vs banner 10/14 (71%, August).
+led AS (
+  SELECT l.CSP_ID,
+    COUNT(*) AS leads,
+    COUNT_IF(l.TERMINAL_OUTCOME='ON_TIME_ACTIVE') AS ontime,
+    COUNT_IF(l.TERMINAL_OUTCOME='LATE_ACTIVE')    AS late
+  FROM PROD_DB.CSP_QUALITY_SERVICE_CSP_QUALITY_SERVICE.INSTALL_MATURATION_LEDGER l
+  LEFT JOIN enrol e ON e.CSP_ID = l.CSP_ID
+  WHERE l._FIVETRAN_ACTIVE=TRUE
+    AND l.TERMINAL_OUTCOME IN ('ON_TIME_ACTIVE','LATE_ACTIVE','REPORTED_FAILED','CANCELLED_ONSITE')
+    AND TO_DATE(DATEADD(minute,330,l.TERMINAL_AT))
+        >= GREATEST(DATE '2026-08-01' /*{MS}*/, COALESCE(e.JOINED, DATE '2026-08-01' /*{MS}*/))
+    AND TO_DATE(DATEADD(minute,330,l.TERMINAL_AT)) <  DATE '2026-09-01' /*{ME}*/
+    -- impacted bookings drop out unless the connection actually got installed
+    AND (l.TERMINAL_OUTCOME IN ('ON_TIME_ACTIVE','LATE_ACTIVE')
+         OR NOT EXISTS (SELECT 1 FROM impacted i WHERE i.CONNECTION_ID = l.CONNECTION_ID))
+  GROUP BY l.CSP_ID
+),
 -- The tagged month-window literals below are rewritten by refresh.py each run:
 -- {MS} = IST month start (or the --month override), {ME} = next month start.
 -- The upper bound matters for retro re-runs (e.g. rebuilding July in August).
+-- `installs` stays the IEC-derived all-installs count: it drives the PAY tokens
+-- (installpay/topup), which v2.0 leaves unchanged — a late install still earns.
 metrics AS (
   SELECT b.CSP_ID,
     COUNT_IF(bucket='installed' AND gate_ok=1
@@ -238,16 +278,31 @@ owner AS (   -- one representative userId per CSP (for mbg_id / tracking), owner
   WHERE _FIVETRAN_ACTIVE=TRUE AND STATUS='ACTIVE'
     AND ROLE IN ('OWNER','MANAGER','MANAGER_PLUS') AND ID IS NOT NULL
   GROUP BY CSP_ID
+),
+-- FULL OUTER so a CSP that appears in only one source still lands in the
+-- snapshot (ledger-only or IEC-only), rather than silently vanishing.
+agg AS (
+  SELECT COALESCE(m.CSP_ID, l.CSP_ID) AS CSP_ID,
+    COALESCE(m.installs,0)  AS installs,   -- ALL installs (pay) — IEC
+    COALESCE(m.denom,0)     AS denom,      -- v1 denominator, kept for July/back-compat
+    COALESCE(m.pending,0)   AS pending,
+    COALESCE(m.committed,0) AS committed,
+    COALESCE(l.leads,0)     AS leads,      -- v2 mbg_leads  — M1 ledger
+    COALESCE(l.ontime,0)    AS ontime,     -- v2 mbg_ontime — M1 ledger
+    COALESCE(l.late,0)      AS late        -- v2 mbg_late   — M1 ledger
+  FROM metrics m
+  FULL OUTER JOIN led l ON l.CSP_ID = m.CSP_ID
 )
-SELECT m.CSP_ID AS csp_id, o.user_id,
-  m.installs, m.denom, m.pending, m.committed,
+SELECT a.CSP_ID AS csp_id, o.user_id,
+  a.installs, a.denom, a.pending, a.committed,
+  a.leads, a.ontime, a.late,
   tk.t1_no, tk.t1_area, tk.t1_cid, tk.t2_no, tk.t2_area, tk.t2_cid
-FROM metrics m
-LEFT JOIN tk    ON tk.CSP_ID = m.CSP_ID
-LEFT JOIN owner o ON o.CSP_ID = m.CSP_ID
-LEFT JOIN enrol e ON e.CSP_ID = m.CSP_ID
+FROM agg a
+LEFT JOIN tk    ON tk.CSP_ID = a.CSP_ID
+LEFT JOIN owner o ON o.CSP_ID = a.CSP_ID
+LEFT JOIN enrol e ON e.CSP_ID = a.CSP_ID
 -- keep enrolled CSPs even at 0/0/0: the enrolment window can zero out a
 -- mid-month joiner whose only activity predates joining, and the settle
 -- screen must still find them (noleads case), not "हिसाब तैयार नहीं"
-WHERE (m.installs + m.denom + m.pending) > 0 OR e.CSP_ID IS NOT NULL
-ORDER BY m.installs DESC, m.denom DESC
+WHERE (a.installs + a.denom + a.pending + a.leads) > 0 OR e.CSP_ID IS NOT NULL
+ORDER BY a.ontime DESC, a.leads DESC

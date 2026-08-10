@@ -12,6 +12,21 @@ the server and pass them in.
 Constants: `PAY = 300` (₹ per install) · `GATE = 0.60` (60% target) · `FLOOR = 10000`
 (₹ guarantee) · `MS = 2026-07-01` (program month start).
 
+> ## ⚠️ v2.0 (August 2026 onward) — read this first
+> The rate is now the **ON-TIME install rate**, and both of its sides come from the app's M1
+> ledger (`CSP_QUALITY_SERVICE…INSTALL_MATURATION_LEDGER`), not from the IEC buckets described
+> below. **Every formula on this page that reads `installs / denom` now reads `ontime / leads`:**
+> `pct`, `next_pct`, `needed`, and the `screen` route (`secured` = `ontime/leads >= 0.60`).
+> New raw inputs: **`leads`** (technician-went-onsite outcomes), **`ontime`** (`ON_TIME_ACTIVE`),
+> **`late`** (`LATE_ACTIVE`). **`installs` keeps its old IEC definition and still drives
+> `installpay` / `topup` only — a late install earns its full rate, it just doesn't move the %.**
+> Window = calendar month on `TERMINAL_AT` (IST); the app's own card is 60-day rolling, so the two
+> percentages legitimately differ. Full rules: [`MG-payout-logic.md`](./MG-payout-logic.md) §3.0 ·
+> source spec: [`BANNER-ontime-changes-v2.md`](./BANNER-ontime-changes-v2.md).
+> The IEC bucket rules below still govern `installs`, `pending` and `committed`, and remain the
+> whole story for **frozen July** (pre-v2 snapshots have no `leads`/`ontime` → the screens fall back
+> to `denom`/`installs` automatically).
+
 ---
 
 ## 1. Raw inputs (what the backend returns)
