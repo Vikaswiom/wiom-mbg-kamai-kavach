@@ -18,8 +18,11 @@ Constants: `PAY = 300` (₹ per install) · `GATE = 0.60` (60% target) · `FLOOR
 > below. **Every formula on this page that reads `installs / denom` now reads `ontime / leads`:**
 > `pct`, `next_pct`, `needed`, and the `screen` route (`secured` = `ontime/leads >= 0.60`).
 > New raw inputs: **`leads`** (technician-went-onsite outcomes), **`ontime`** (`ON_TIME_ACTIVE`),
-> **`late`** (`LATE_ACTIVE`). **`installs` keeps its old IEC definition and still drives
-> `installpay` / `topup` only — a late install earns its full rate, it just doesn't move the %.**
+> **`late`** (`LATE_ACTIVE`). **`installs` now also comes from the ledger** (`ON_TIME_ACTIVE +
+> LATE_ACTIVE`) and still drives `installpay` / `topup` **only** — a late install earns its full
+> rate, it just doesn't move the %. Ledger rows are deduped to **one per CONNECTION** (latest
+> terminal event). `pct` rounds **half-up**; `needed` uses the exact-integer form
+> `ceil((3·leads − 5·ontime)/2)` — see [`../sql/ontime-m1.sql`](../sql/ontime-m1.sql), the source of truth.
 > Window = calendar month on `TERMINAL_AT` (IST); the app's own card is 60-day rolling, so the two
 > percentages legitimately differ. Full rules: [`MG-payout-logic.md`](./MG-payout-logic.md) §3.0 ·
 > source spec: [`BANNER-ontime-changes-v2.md`](./BANNER-ontime-changes-v2.md).

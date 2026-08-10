@@ -107,17 +107,21 @@ def build(month_override=None):
         data[cid] = {
             "cspId":    cid,
             "userId":   str(r[idx["USER_ID"]] or ""),     # representative identity (for mbg_id/tracking)
-            "installs":  int(r[idx["INSTALLS"]] or 0),   # ALL installs — pay only (on-time + late)
-            "denom":     int(r[idx["DENOM"]] or 0),      # v1 denominator, kept for back-compat
-            "pending":   int(r[idx["PENDING"]] or 0),
-            "committed": int(r[idx["COMMITTED"]] or 0),
-            # ON-TIME metric (v2.0, Aug-2026) — from the app's M1 quality ledger.
-            # leads = mbg_leads (technician actually went onsite), ontime = mbg_ontime
-            # (installed on/before the slot day), late = mbg_late. The % and the 60%
-            # gate run on ontime/leads; installpay/topup still run on `installs`.
+            # ON-TIME metric (v2.0, Aug-2026) — every number below except pending/
+            # committed comes from the app's M1 quality ledger (sql/ontime-m1.sql):
+            #   installs = on-time + late  -> installpay/topup (a late install pays)
+            #   leads    = mbg_leads       -> the % denominator, needed, ≤2-lead floor
+            #   ontime   = mbg_ontime      -> the % numerator and the 60% gate
+            #   late     = mbg_late        -> the "N देर से लगे" copy
+            "installs":  int(r[idx["INSTALLS"]] or 0),
             "leads":     int(r[idx["LEADS"]] or 0),
             "ontime":    int(r[idx["ONTIME"]] or 0),
             "late":      int(r[idx["LATE"]] or 0),
+            "pending":   int(r[idx["PENDING"]] or 0),     # open leads (IEC) — `almost` screen
+            "committed": int(r[idx["COMMITTED"]] or 0),
+            # reconciliation only — no screen reads these (pre-v2 IEC counts)
+            "installs_iec": int(r[idx["INSTALLS_IEC"]] or 0),
+            "denom_iec":    int(r[idx["DENOM_IEC"]] or 0),
             "tickets":   tickets,
         }
 

@@ -85,7 +85,13 @@ not match the banner** — same formula, different clock. Verified example: **DH
 10-Aug — app 24/28 = 86 % (rolling) vs banner 10/14 = 71 % (August).** This is expected; don't
 "fix" it. (Switching MG to rolling would be a separate product decision.)
 
-**Unchanged by v2.0:** per-install pay (§5 — all installs, late included), pro-rata floor (§6),
+**Install money** counts `ON_TIME_ACTIVE + LATE_ACTIVE` **from the same ledger** — so one table
+drives leads, the %, and the money, and the per-CSP mismatch against the old IEC install count
+(which differed for ~40% of CSPs, in both directions) is gone. Ledger rows are deduped to **one per
+CONNECTION**, latest terminal event winning. Authoritative query: [`../sql/ontime-m1.sql`](../sql/ontime-m1.sql)
+(received 10-Aug-2026); `sql/metrics.sql` reproduces it per-CSP and is what the pipeline runs.
+
+**Unchanged by v2.0:** per-install *rate* (§5 — every install pays, late included), pro-rata floor (§6),
 ≤2-lead floor protection (§7, now counted on `mbg_leads`), the ≥60 % gate itself (§7, inclusive),
 and the payout formula (§8).
 

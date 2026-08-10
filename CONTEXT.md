@@ -76,6 +76,7 @@ feed) is untouched.
 | `data.json` | Live per-CSP raw inputs `{installs, denom, pending, committed, leads, ontime, late, tickets}`, refreshed by `refresh.py`. |
 | `data-july.json` | **Frozen July snapshot** for the 1-Aug payout (see Freeze below). |
 | `refresh.py` | Pulls `sql/metrics.sql` from Metabase → writes `data.json` (+ `data-july.json` while it's July). `--push` commits. |
+| `sql/ontime-m1.sql` | **SOURCE OF TRUTH** for the v2.0 on-time numbers (kept verbatim as received). `metrics.sql` must reproduce it per-CSP. |
 | `sql/metrics.sql` | The Snowflake query (Metabase db 113). **Denom gate = `reached_slot=1`** (customer-confirmed-slot, payout-logic §3, Aug-2026) — the S4 hybrid slot/tech gate is retired. Aug denom ~2× vs S4 (auto-slot-confirm flow). **July was disbursed under S4 and is frozen — `refresh.py` BLOCKS `--month july`.** Banner "connections to 60%" uses §7b `ceil((0.6·denom−installs)/0.4)`. |
 | `csp-meta.json` | **Per-CSP overlay** (static): `joined` (pro-rata) + two-tier rate split. Merged into settle.html by cspId. See DONE section above. |
 | `v750/`, `v1000/` | Superseded flat-rate what-ifs (real per-CSP rate now lives in settle.html via csp-meta.json). |
@@ -100,8 +101,8 @@ so MG scores a CSP with the same formula as the product's M1 / Installation Comp
 | `leads`  | `mbg_leads` — terminal outcomes where the **technician went onsite**: `ON_TIME_ACTIVE`, `LATE_ACTIVE`, `REPORTED_FAILED`, `CANCELLED_ONSITE`. Declines, customer cancels and **all** upstream cancels (P41 *and* P74) are OUT. | the % denominator, `needed`, the ≤2-lead floor |
 | `ontime` | `mbg_ontime` — `ON_TIME_ACTIVE` (installed on/before the slot day) | the % numerator, `pct`/`next_pct`, the 60% gate, the "Y लगे" number |
 | `late`   | `mbg_late` — `LATE_ACTIVE`. **Earns its rate, doesn't move the %** (copy says so). | the "N देर से लगे" note |
-| `installs` | ALL installs (on-time + late), IEC-derived — **unchanged** | `installpay` / `topup` **only** |
-| `denom` | the v1 denominator — **kept only for back-compat** | frozen July snapshots |
+| `installs` | ALL installs = `ON_TIME_ACTIVE + LATE_ACTIVE` — **also off the ledger now**, so one table drives मिले / लगे / कमाई | `installpay` / `topup` **only** |
+| `installs_iec`, `denom_iec` | the old IEC counts, carried for **reconciliation only** — no screen reads them | nothing |
 
 - **Window = calendar month on `TERMINAL_AT` (IST).** The app's M1 card is **60-day rolling**, so a
   CSP's app % will NOT equal the banner %. Expected — don't "fix" it. Verified: `a0b9x8` on 10-Aug =
@@ -109,8 +110,23 @@ so MG scores a CSP with the same formula as the product's M1 / Installation Comp
 - **Frozen July is safe:** `data-july.json` has no `leads`/`ontime`, and every screen falls back to
   `denom`/`installs` when they're absent — July renders exactly as it was disbursed. Same for
   `v750/`, `v1000/` (July-only, superseded, left on v1).
-- **Impacted-booking phones** (§3.0): `sql/metrics.sql` has an **empty `impacted` CTE** — paste the
-  connection ids in to activate the drop-unless-installed rule. No list supplied yet → currently a no-op.
+- **Impacted-booking phones** (§3.0): `sql/metrics.sql` has an **`imp` CTE holding a dummy UUID** —
+  replace it with the month's published impacted CONNECTION_IDs to activate the drop rule (impacted
+  connections that installed still count, and still pay). No list supplied yet → currently a no-op.
+- **`sql/ontime-m1.sql` is the SOURCE OF TRUTH** (Shariq, 10-Aug-2026) for `ontime` / `late` /
+  `installs` / `leads` / `pct` / `needed`. `sql/metrics.sql` reproduces it exactly and is what the
+  pipeline runs; a per-CSP diff of the two is the regression test. Three things to know:
+  - **One row per CONNECTION** — `QUALIFY ROW_NUMBER() … PARTITION BY CONNECTION_ID ORDER BY
+    TERMINAL_AT DESC`, so a retried connection counts once (its latest terminal event).
+  - **Rounding is half-UP** (Snowflake `ROUND` / JS `Math.round`), *not* the old poller's
+    banker's rounding. `pct` of exactly 62.5 → 63.
+  - **`needed` is computed as `ceil((3·leads − 5·ontime)/2)`**, the exact-integer form of
+    `ceil((0.6·leads − ontime)/0.4)`. The float form is wrong in JS: at 7 leads / 3 on-time it
+    lands on 3.0000000000000004 and would tell the CSP "next 4" where the payout query says 3.
+  - **Window is IST**, while the source query uses the session's UTC `DATE_TRUNC`. Deliberate: the
+    whole program (freeze, `last_date`, month names) is IST. Measured gap for August = **1 install**
+    (a `LATE_ACTIVE` at 31-Jul 18:53 UTC = 1-Aug 00:23 IST) — which under the UTC boundary would
+    land in *no* month at all, since July is frozen.
 - **Gate is inclusive `>= 60%`** (v2.0: on the **on-time** rate `ontime/leads`) (ruling 1-Aug-2026, supersedes the 31-Jul strict ruling). A CSP at **exactly 60%** (e.g. 3/5, 6/10) **DOES** get the guarantee. Screen says "60% या अधिक चाहिए".
 - **≤ 2 leads → floor-protected** (`docs/MG-payout-logic.md` §7, replaced the old 0-leads-only rule): `denom <= 2` is floor-eligible regardless of rate — top-up = `max(0, floor − install money)`. `denom === 0` keeps the `noleads` copy; `denom` 1–2 shows the new `fewleads` case.
 - FLOOR and GATE are **unchanged** in the v750/v1000 versions; only PAY differs.
