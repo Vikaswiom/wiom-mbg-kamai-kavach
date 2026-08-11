@@ -12,23 +12,18 @@ the server and pass them in.
 Constants: `PAY = 300` (₹ per install) · `GATE = 0.60` (60% target) · `FLOOR = 10000`
 (₹ guarantee) · `MS = 2026-07-01` (program month start).
 
-> ## ⚠️ v2.0 (August 2026 onward) — read this first
-> The rate is now the **ON-TIME install rate**, and both of its sides come from the app's M1
-> ledger (`CSP_QUALITY_SERVICE…INSTALL_MATURATION_LEDGER`), not from the IEC buckets described
-> below. **Every formula on this page that reads `installs / denom` now reads `ontime / leads`:**
-> `pct`, `next_pct`, `needed`, and the `screen` route (`secured` = `ontime/leads >= 0.60`).
-> New raw inputs: **`leads`** (technician-went-onsite outcomes), **`ontime`** (`ON_TIME_ACTIVE`),
-> **`late`** (`LATE_ACTIVE`). **`installs` now also comes from the ledger** (`ON_TIME_ACTIVE +
-> LATE_ACTIVE`) and still drives `installpay` / `topup` **only** — a late install earns its full
-> rate, it just doesn't move the %. Ledger rows are deduped to **one per CONNECTION** (latest
-> terminal event). `pct` rounds **half-up**; `needed` uses the exact-integer form
-> `ceil((3·leads − 5·ontime)/2)` — see [`../sql/ontime-m1.sql`](../sql/ontime-m1.sql), the source of truth.
-> Window = calendar month on `TERMINAL_AT` (IST); the app's own card is 60-day rolling, so the two
-> percentages legitimately differ. Full rules: [`MG-payout-logic.md`](./MG-payout-logic.md) §3.0 ·
-> source spec: [`BANNER-ontime-changes-v2.md`](./BANNER-ontime-changes-v2.md).
-> The IEC bucket rules below still govern `installs`, `pending` and `committed`, and remain the
-> whole story for **frozen July** (pre-v2 snapshots have no `leads`/`ontime` → the screens fall back
-> to `denom`/`installs` automatically).
+> ## ⚠️ v3.0 (11-Aug-2026) — read this first
+> The MG metric is **installs ÷ tech-assigned leads**:
+> **numerator** = installs done, **denominator** = leads that reached *tech assigned*
+> (`EXECUTOR_ID IS NOT NULL`), both from IEC. Source of truth:
+> [`../sql/mg-metric.sql`](../sql/mg-metric.sql). So `pct`, `next_pct`, `needed` and the `screen`
+> route all read `installs / denom`, and `installs` is also the pay base (`installpay` / `topup`).
+> This **supersedes v2.0's on-time/M1 metric** (10-Aug) — late vs on-time no longer affects the
+> percentage. The ledger view survives in the snapshot as `ontime_m1` / `late_m1` / `leads_m1`,
+> **reference only**. Two implementation notes: `pct` rounds **half-up**, and `needed` uses the
+> exact-integer form `ceil((3·denom − 5·installs)/2)` (the float form misreports — see CONTEXT.md).
+> The IEC bucket rules below still govern `pending` / `committed` and remain the whole story for
+> **frozen July**.
 
 ---
 

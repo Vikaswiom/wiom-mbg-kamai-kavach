@@ -48,21 +48,18 @@ html,body{background:var(--screen);}
 <!-- ============================================================================
      DATA SOURCE — real per-CSP snapshot in data.json (refreshed by refresh.py).
 
-     data.json = { "meta":{...}, "data": { "<cspId>": { cspId, userId, installs,
-     leads, ontime, late, pending, committed, tickets:[{no,area,cid}] } } } — the RAW
-     inputs. installs/leads/ontime/late come from the app's M1 quality ledger
-     (sql/ontime-m1.sql = the source of truth); pending/committed from
-     PROD_DB...INSTALL_EXECUTION_CANDIDATES. Everything else (screen, pct, needed,
-     next_pct, installpay, topup, days_left, month) is COMPUTED client-side below,
-     with the same formulas that query uses. See docs/CALCULATIONS.md.
+     data.json = { "meta":{...}, "data": { "<userId>": { userId, installs, denom,
+     pending, committed, tickets:[{no,area,cid}] } } }  — the RAW inputs the poller derives from
+     PROD_DB...INSTALL_EXECUTION_CANDIDATES (see docs/CALCULATIONS.md). Everything else
+     (screen, pct, needed, next_pct, installpay, topup, days_left, month) is COMPUTED
+     client-side below with the exact poller formulas.
 
      loadData() fetches  the snapshot; getCspData(DATA) picks the viewer via ?cspId=
      (any casing) and falls back to a zero/noleads record for an unknown id.
 
      GOING LIVE on the authenticated platform: replace loadData()/getCspData() with a
      single call to your backend — GET /api/mbg/me (session identifies the CSP) →
-     { userId, installs, leads, ontime, late, pending, committed, tickets:[...] }.
-     Nothing else changes.
+     { userId, installs, denom, pending, committed, tickets:[...] }. Nothing else changes.
      ============================================================================ -->
 <script>
 // ► Paste your deployed Apps Script /exec URL here to go LIVE PER TAP (fresh from
@@ -115,33 +112,20 @@ function computeMBG(d){
   // If the snapshot predates this field, fall back to all pending — that makes
   // the almost-needed formula degrade to the old total-based number, not to 0.
   var committed = d.committed==null ? pending : (+d.committed||0);
+  var total = denom + pending;
 
-  // ── ON-TIME metric (v2.0, Aug-2026) — the rate is now on-time installs over
-  // leads-the-technician-actually-attended, both straight off the app's M1
-  // ledger (see sql/metrics.sql `led`). `installs` stays ALL installs and keeps
-  // driving the PAY tokens below: a late install still earns its ₹300/750/1000.
-  //   leads  = mbg_leads   (replaces the v1 `denom` for everything rate-related)
-  //   ontime = mbg_ontime  (the "Y लगे" number and the whole %)
-  //   late   = mbg_late    (installs that missed the slot day — earn, don't count)
-  // Pre-v2 snapshots (e.g. frozen July) carry no leads/ontime → fall back to the
-  // v1 denom/installs, so those months keep rendering exactly as they did.
-  var leads  = d.leads ==null ? denom    : (+d.leads ||0);
-  var ontime = d.ontime==null ? installs : (+d.ontime||0);
-  var late   = d.late  ==null ? Math.max(0, installs-ontime) : (+d.late||0);
-  var total = leads + pending;
-
-  // Rounding is half-UP, matching Snowflake's ROUND() in sql/ontime-m1.sql — the
-  // source of truth is now that query, not the old Python poller (whose round()
-  // was banker's/half-to-even). Only ties are affected, e.g. 12.5% -> 13, not 12.
+  // Rounding is half-UP, matching ROUND() in sql/mg-metric.sql — the source of
+  // truth is that query, not the old Python poller (whose round() was banker's/
+  // half-to-even). Only ties move, e.g. a pct of exactly 62.5 -> 63, not 62.
 
   // route() — mutually-exclusive screen (the four standing modes + noleads)
   //   secured   = 60% पूरा (≥60%)           · almost  = 1 और — 60% पार (pending can reach it)
   //   keepgoing = रफ़्तार धीमी (will miss)   · dropped = 60% से नीचे आए (new leads dropped a ≥60% rate)
   var nl = +d.new_leads||0;   // leads added since the CSP last crossed 60% (optional poller signal)
   var screen = total===0 ? 'noleads'
-             : (leads>0 && ontime/leads >= GATE) ? 'secured'
-             : (nl>0 && (leads-nl)>0 && ontime/(leads-nl) >= GATE) ? 'dropped'   // was ≥60%, new leads pushed it below
-             : ((ontime+pending) >= GATE*total) ? 'almost'
+             : (denom>0 && installs/denom >= GATE) ? 'secured'
+             : (nl>0 && (denom-nl)>0 && installs/(denom-nl) >= GATE) ? 'dropped'   // was ≥60%, new leads pushed it below
+             : ((installs+pending) >= GATE*total) ? 'almost'
              : 'keepgoing';
 
   // IST calendar facts (universal — same for every CSP)
@@ -158,28 +142,20 @@ function computeMBG(d){
   return {
     rate       : PAY,                                                         // per-install rate this month
     screen     : screen,
-    installs   : installs,                                                    // on-time + late — pay base only
-    ontime     : ontime,                                                      // mbg_ontime — the whole %
-    late       : late,                                                        // mbg_late
-    leads      : leads,                                                       // mbg_leads (v2, M1 ledger)
-    denom      : denom,                                                       // v1 denominator (kept for back-compat)
+    installs   : installs,
+    denom      : denom,                                                       // mbg_leads
     pending    : pending,
-    pct        : leads>0 ? Math.round(100*ontime/leads) : 0,                  // mbg_pct   (ON-TIME rate)
-    next_pct   : Math.round(100*(ontime+1)/(leads+1)),                       // mbg_next_pct
+    pct        : denom>0 ? Math.round(100*installs/denom) : 0,                // mbg_pct
+    next_pct   : Math.round(100*(installs+1)/(denom+1)),                     // mbg_next_pct
     // mbg_needed (payout-logic §7b) — the denominator GROWS with each install
-    // (every new install is also a new lead), so solve (ontime+n)/(leads+n) ≥ 60%:
-    //   n = ceil((0.6·leads − ontime) / 0.4).  NOT the old fixed 0.6·leads − ontime.
-    // ⚠️ n counts ON-TIME installs: a late one adds to the denominator without
-    // moving the numerator, so it makes `needed` go UP, not down.
-    // Matches ontime-m1.sql exactly: GREATEST(0, CEIL(...)) when leads>0, else 0.
-    // ⚠️ Computed as ceil((3·leads − 5·ontime)/2), the exact-integer form of
-    // ceil((0.6·leads − ontime)/0.4). The float form is NOT safe here: Snowflake
-    // evaluates it in exact decimal, JS in binary — at 7 leads / 3 on-time the
-    // float lands on 3.0000000000000004 and tells the CSP "next 4" where the
-    // payout query says 3. (Identity holds only for GATE = 0.60.)
-    // The one addition is the leads-0-but-leads-are-open case, where the SQL has
-    // nothing to say and the banner still needs a call to action ("your next 1").
-    needed     : leads>0 ? Math.max(0, Math.ceil((3*leads - 5*ontime)/2))
+    // (every new install is also a new lead), so solve (installs+n)/(denom+n) ≥ 60%:
+    //   n = ceil((0.6·denom − installs) / 0.4).  NOT the old fixed 0.6·denom − installs.
+    // ⚠️ Computed as ceil((3·denom − 5·installs)/2), the exact-integer form of
+    // ceil((0.6·denom − installs)/0.4). The float form is NOT safe in JS: at
+    // 7 leads / 3 installs it lands on 3.0000000000000004 and would tell the CSP
+    // "next 4" where the payout query says 3. (Holds only for GATE = 0.60.)
+    // For denom 0 with only open leads, this falls back to 1 — "install your next one".
+    needed     : denom>0 ? Math.max(0, Math.ceil((3*denom - 5*installs)/2))
                          : (pending>0 ? 1 : 0),
     installpay : (PAY*installs).toLocaleString('en-US'),                     // mbg_installpay (₹, comma-grouped)
     topup      : Math.max(0, FLOOR - PAY*installs),                          // mbg_topup
@@ -199,12 +175,7 @@ function computeMBG(d){
 // ── previous-month settlement row ("🗓️ पिछले महीने का हिसाब · <month>") ──
 // mirrors settle.html: two-tier install pay + pro-rata floor + ≤2-leads/≥60% floor gate.
 function prevMonthTotal(rec, ov, MO){
-  var installs=+rec.installs||0, im;
-  // floor gate follows the month's own rule: v2 months (Aug+) settle on the
-  // ON-TIME rate over M1 leads; pre-v2 snapshots (July) have no leads/ontime
-  // and keep settling on all-installs / v1 denom exactly as they were paid.
-  var denom  = rec.leads ==null ? (+rec.denom||0) : (+rec.leads||0);
-  var numer  = rec.ontime==null ? installs       : (+rec.ontime||0);
+  var installs=+rec.installs||0, denom=+rec.denom||0, im;
   if(ov && ov.rate_after && ov.switch){
     var sw=ov.switch.slice(0,7);
     im = (MO.ym<sw) ? 300*installs
@@ -213,7 +184,7 @@ function prevMonthTotal(rec, ov, MO){
   } else im=300*installs;
   var F=10000;
   if(ov && ov.joined && ov.joined.slice(0,7)===MO.ym){ var day=+ov.joined.slice(8,10); F=Math.round(10000*(MO.days-day+1)/MO.days); }
-  var rate=denom>0?numer/denom:0, fe=(denom<=2)||(rate>=0.60);
+  var rate=denom>0?installs/denom:0, fe=(denom<=2)||(rate>=0.60);
   return im + (fe?Math.max(0,F-im):0);
 }
 async function renderPrev(cspId){
@@ -239,13 +210,12 @@ async function renderPrev(cspId){
   await loadOverlay();
   await loadEnrolled();
   // ?case= previews the four standing modes (from progress-v3 s4/s5/s6/s6a) without data
-  // v2.0 fixtures: leads/ontime drive the %, installs (≥ ontime) drives the pay
   var CASES={
-    almost   :{installs:18,ontime:16,late:2,leads:27,pending:2,committed:1,tickets:[]},   // 7 · 1 और — 60% पार (59%)
-    keepgoing:{installs:16,ontime:13,late:3,leads:29,pending:1,committed:0,tickets:[]},   // 8 · रफ़्तार धीमी (45%)
-    secured  :{installs:18,ontime:17,late:1,leads:27,pending:2,committed:1,tickets:[]},   // 9 · 60% पूरा (63%)
-    dropped  :{installs:18,ontime:17,late:1,leads:29,pending:1,committed:0,new_leads:2,tickets:[]},  // 10 · 60% से नीचे आए (59%)
-    noleads  :{installs:0,ontime:0,late:0,leads:0,pending:0,committed:0,tickets:[]}
+    almost   :{installs:16,denom:27,pending:2,committed:1,tickets:[]},   // 7 · 1 और — 60% पार (59%)
+    keepgoing:{installs:13,denom:29,pending:1,committed:0,tickets:[]},   // 8 · रफ़्तार धीमी (45%)
+    secured  :{installs:17,denom:27,pending:2,committed:1,tickets:[]},   // 9 · 60% पूरा (63%)
+    dropped  :{installs:17,denom:29,pending:1,committed:0,new_leads:2,tickets:[]},  // 10 · 60% से नीचे आए (59%)
+    noleads  :{installs:0,denom:0,pending:0,committed:0,tickets:[]}
   };
   var _c=new URLSearchParams(location.search).get('case');
   var d = (_c && CASES[_c]) ? CASES[_c] : await getCspData();
@@ -270,24 +240,19 @@ async function renderPrev(cspId){
   // ---- per-screen COPY: the parts that differ between the four screens ----
   // (tickets / guarantee / footer are identical across all screens)
   var EARN = '↑ हर नए कनेक्शन पर ₹'+m.rate+' · कोई ऊपरी सीमा नहीं';
-  // ON-TIME copy (v2.0 §4): the "X मिले · Y लगे" line counts ON-TIME installs, so
-  // a CSP with late installs is told why the two numbers differ — the late ones
-  // still paid, they just don't move the %.
-  var LATE  = m.late>0 ? ' · '+m.late+' देर से लगे — ये % में नहीं गिने' : '';
-  var NUDGE = ' · समय पर लगाएँ — स्लॉट वाले दिन या उससे पहले';
   var COPY = {
     keepgoing:{ cls:'f-red',   pct:function(m){return m.pct;}, sign:'%', earnSub:EARN,
-                need:function(m){return 'अगले '+m.needed+' कनेक्शन समय पर लगाएं — 60% के लिए';},
-                line:function(m){return m.leads+' मिले · '+m.ontime+' लगे = '+m.pct+'%'+LATE+' · ऐसे ही चला तो महीना 60% से नीचे बंद होगा'+NUDGE;} },
+                need:function(m){return 'अगले '+m.needed+' कनेक्शन लगाएं — 60% के लिए';},
+                line:function(m){return m.denom+' मिले · '+m.installs+' लगे = '+m.pct+'% · ऐसे ही चला तो महीना 60% से नीचे बंद होगा';} },
     almost:{    cls:'f-amber', pct:function(m){return m.pct;}, sign:'%', earnSub:EARN,
-                need:function(m){return 'अगले '+m.needed+' कनेक्शन समय पर लगाएं — 60% पार';},
-                line:function(m){return m.leads+' मिले · '+m.ontime+' लगे = '+m.pct+'%'+LATE+' · अगला समय पर लगते ही '+m.next_pct+'%'+NUDGE;} },
+                need:function(m){return 'अगले '+m.needed+' कनेक्शन लगाएं — 60% पार';},
+                line:function(m){return m.denom+' मिले · '+m.installs+' लगे = '+m.pct+'% · अगला लगते ही '+m.next_pct+'%';} },
     secured:{   cls:'f-green', pct:function(m){return m.pct;}, sign:'%', earnSub:EARN,
                 need:function(m){return '✓ 60% पार';},
-                line:function(m){return m.leads+' मिले · '+m.ontime+' लगे = '+m.pct+'%'+LATE+' · नए कनेक्शन आने पर % बदल सकता है';} },
+                line:function(m){return m.denom+' मिले · '+m.installs+' लगे = '+m.pct+'% · नए कनेक्शन आने पर % बदल सकता है';} },
     dropped:{   cls:'f-amber', pct:function(m){return m.pct;}, sign:'%', earnSub:EARN,
-                need:function(m){return 'अगले '+m.needed+' कनेक्शन समय पर लगाएं — फिर 60% पार';},
-                line:function(m){return (m.new_leads?m.new_leads+' नए कनेक्शन जुड़े · ':'')+m.leads+' मिले · '+m.ontime+' लगे = '+m.pct+'%'+LATE;} },
+                need:function(m){return 'अगले '+m.needed+' कनेक्शन लगाएं — फिर 60% पार';},
+                line:function(m){return (m.new_leads?m.new_leads+' नए कनेक्शन जुड़े · ':'')+m.denom+' मिले · '+m.installs+' लगे = '+m.pct+'%';} },
     noleads:{   cls:'f-idle',  pct:function(m){return '—';},  sign:'',  earnSub:'0 कनेक्शन — पहला जल्द आएगा', needColor:'#1d6b43',
                 need:function(m){return 'गिनती पहले कनेक्शन से शुरू होगी';},
                 line:function(m){return 'व्योम कनेक्शन भेज रहा है — जो आए, उसी दिन लगाएं';} }

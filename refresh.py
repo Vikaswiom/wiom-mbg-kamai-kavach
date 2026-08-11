@@ -107,21 +107,19 @@ def build(month_override=None):
         data[cid] = {
             "cspId":    cid,
             "userId":   str(r[idx["USER_ID"]] or ""),     # representative identity (for mbg_id/tracking)
-            # ON-TIME metric (v2.0, Aug-2026) — every number below except pending/
-            # committed comes from the app's M1 quality ledger (sql/ontime-m1.sql):
-            #   installs = on-time + late  -> installpay/topup (a late install pays)
-            #   leads    = mbg_leads       -> the % denominator, needed, ≤2-lead floor
-            #   ontime   = mbg_ontime      -> the % numerator and the 60% gate
-            #   late     = mbg_late        -> the "N देर से लगे" copy
+            # MG metric v3.0 (sql/mg-metric.sql): installs = NUMERATOR and the pay
+            # base (rate x installs); denom = DENOMINATOR = leads that reached
+            # "tech assigned" (EXECUTOR_ID set). Both from IEC.
             "installs":  int(r[idx["INSTALLS"]] or 0),
-            "leads":     int(r[idx["LEADS"]] or 0),
-            "ontime":    int(r[idx["ONTIME"]] or 0),
-            "late":      int(r[idx["LATE"]] or 0),
-            "pending":   int(r[idx["PENDING"]] or 0),     # open leads (IEC) — `almost` screen
+            "denom":     int(r[idx["DENOM"]] or 0),
+            "pending":   int(r[idx["PENDING"]] or 0),     # open leads — `almost` screen
             "committed": int(r[idx["COMMITTED"]] or 0),
-            # reconciliation only — no screen reads these (pre-v2 IEC counts)
-            "installs_iec": int(r[idx["INSTALLS_IEC"]] or 0),
-            "denom_iec":    int(r[idx["DENOM_IEC"]] or 0),
+            # reference only — the M1 on-time ledger view. NO screen reads these;
+            # kept so "how many were late?" stays answerable after v3.0 moved the
+            # metric off the ledger.
+            "ontime_m1": int(r[idx["ONTIME_M1"]] or 0),
+            "late_m1":   int(r[idx["LATE_M1"]] or 0),
+            "leads_m1":  int(r[idx["LEADS_M1"]] or 0),
             "tickets":   tickets,
         }
 

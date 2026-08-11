@@ -96,13 +96,7 @@ function inr(n){ return Number(n).toLocaleString('en-IN'); }
 
 /* per-CSP dynamic: two-tier install pay + pro-rata floor (from csp-meta overlay) */
 function settle(d){
-  var installs=+d.installs||0;
-  /* ON-TIME metric (v2.0, Aug-2026) — identical to settle.html: the 60% gate is
-     the ON-TIME install rate over M1 leads; PAY still counts ALL installs.
-     Pre-v2 snapshots (frozen July) have no leads/ontime -> v1 fallback. */
-  var denom  = d.leads ==null ? (+d.denom||0) : (+d.leads||0);
-  var ontime = d.ontime==null ? installs      : (+d.ontime||0);
-  var late   = d.late  ==null ? Math.max(0, installs-ontime) : (+d.late||0);
+  var installs=+d.installs||0, denom=+d.denom||0;
   /* install pay — two-tier when the CSP had a rate change (₹300 → rate_after on `switch`) */
   var installpay, rateNote=null;
   if(d.rate_after!==undefined && d.switch){
@@ -124,8 +118,8 @@ function settle(d){
       ji={day:day, daysActive:da, daysInMonth:MO.days};
     }
   }
-  var pct=denom>0?Math.round(100*ontime/denom):0;
-  var secured=denom>0 && ontime/denom>=GATE;
+  var pct=denom>0?Math.round(100*installs/denom):0;
+  var secured=denom>0 && installs/denom>=GATE;
   var fewleads=denom<=2;                                          /* ≤2 leads → floor protected (MG payout logic §7) */
   var dp=F/2;                                                     /* deep-shortfall threshold scales with the floor */
   var topup=0, total=installpay, kase='below60';
@@ -134,7 +128,7 @@ function settle(d){
     else { topup=F-installpay; total=F;
       kase = denom===0 ? 'noleads' : fewleads ? 'fewleads' : (topup>dp)?'deep':'topup'; }
   }
-  return {installs:installs,ontime:ontime,late:late,denom:denom,pct:pct,installpay:installpay,topup:topup,total:total,
+  return {installs:installs,denom:denom,pct:pct,installpay:installpay,topup:topup,total:total,
           secured:secured,fewleads:fewleads,kase:kase,floor:F,ji:ji,rateNote:rateNote};
 }
 
@@ -149,8 +143,7 @@ function render(d){
   /* pro-rata screen framing: name the join date in the subheader when applicable */
   document.getElementById('subhdr').textContent=m.ji?(MO.name+' का पहला हिसाब · '+m.ji.day+' '+MO.name+' से जुड़े'):(MO.name+' का हिसाब');
   var ip='₹'+inr(m.installpay), tp='+₹'+inr(m.topup), tpp='₹'+inr(m.topup), tot='₹'+inr(m.total), Fs='₹'+inr(m.floor);
-  var lateNote=m.late>0?' · '+m.late+' देर से लगे — कमाई में गिने, % में नहीं':'';
-  var connLine='व्योम '+m.denom+' लाया · आपने '+m.ontime+' समय पर लगाए = '+m.pct+'%'+lateNote;
+  var connLine='व्योम '+m.denom+' लाया · आपने '+m.installs+' लगाए = '+m.pct+'%';
   /* connection-pay breakdown (blended when a rate change applies this month) */
   var rn=m.rateNote;
   var paySub=rn?(rn.b+'×₹300 + '+rn.a+'×₹'+rn.rate):(m.installs+' × ₹300');
@@ -174,13 +167,13 @@ function render(d){
   } else if(m.fewleads){
     standHTML='<div class="card f-green"><div class="k">आप कहाँ हैं</div>'+
       '<div class="wyh-need" style="margin-top:6px">आपका वादा टूटा नहीं — मौके ही बहुत कम आए</div>'+
-      '<div class="wyh-line">'+m.denom+' कनेक्शन मिले · '+m.ontime+' समय पर लगे — 2 या कम पर गारंटी बनी रहती है</div></div>';
+      '<div class="wyh-line">'+m.denom+' कनेक्शन मिले · '+m.installs+' लगे — 2 या कम पर गारंटी बनी रहती है</div></div>';
   } else {
     var standCls, standNeed, standWhy;
     if(m.secured){ standCls='f-green'; standNeed='✓ आपका वादा पूरा — 60% पार';
       standWhy=(m.kase==='above'?'✓ दोनों वादे पूरे · ':'')+connLine; }
     else{ standCls='f-amber'; standNeed='महीना 60% से नीचे बंद';
-      standWhy=m.denom+' मिले · '+m.ontime+' समय पर लगे = '+m.pct+'%'+lateNote+' · अगले महीने, नई गिनती'; }
+      standWhy=m.denom+' मिले · '+m.installs+' लगे = '+m.pct+'% · अगले महीने, नई गिनती'; }
     standHTML='<div class="card '+standCls+'"><div class="k">आप कहाँ हैं</div>'+
       '<div class="wyh-top"><span class="wyh-pct">'+m.pct+'%</span><span class="wyh-need60">/ 60% या अधिक चाहिए</span></div>'+
       '<div class="bar"><div class="fill" style="width:'+Math.min(100,m.pct)+'%"></div><div class="mk"></div></div>'+
@@ -255,12 +248,12 @@ async function getCsp(){
 
 /* ── demo (preview all 4 cases) — shows when ?demo=1 or no cspId ── */
 var DEMO={
-  above  :{label:'16 · गारंटी से ऊपर',        installs:17, ontime:15, late:2, leads:25, joined:'2026-07-19'},
-  topup  :{label:'17 · बेस ने दिया (+₹1,194)',  installs:10, ontime:10, late:0, leads:15, joined:'2026-07-19'},
-  deep   :{label:'18 · बड़ी कमी (+₹2,994)',     installs:4,  ontime:4, late:0, leads:5,  joined:'2026-07-19'},
-  noleads:{label:'19 · 0 कनेक्शन — पूरे ₹4,194', installs:0, ontime:0, late:0, leads:0,  joined:'2026-07-19'},
-  fewleads:{label:'19b · सिर्फ़ 2 कनेक्शन — बेस लागू', installs:1, ontime:1, late:0, leads:2, joined:'2026-07-19'},
-  below  :{label:'20 · 60% नहीं हुआ',           installs:3,  ontime:2, late:1, leads:8,  joined:'2026-07-19'}
+  above  :{label:'16 · गारंटी से ऊपर',        installs:17, denom:25, joined:'2026-07-19'},
+  topup  :{label:'17 · बेस ने दिया (+₹1,194)',  installs:10, denom:15, joined:'2026-07-19'},
+  deep   :{label:'18 · बड़ी कमी (+₹2,994)',     installs:4,  denom:5,  joined:'2026-07-19'},
+  noleads:{label:'19 · 0 कनेक्शन — पूरे ₹4,194', installs:0, denom:0,  joined:'2026-07-19'},
+  fewleads:{label:'19b · सिर्फ़ 2 कनेक्शन — बेस लागू', installs:1, denom:2, joined:'2026-07-19'},
+  below  :{label:'20 · 60% नहीं हुआ',           installs:3,  denom:8,  joined:'2026-07-19'}
 };
 function mountDemo(){
   var el=document.getElementById('demo'); el.hidden=false;

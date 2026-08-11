@@ -1,13 +1,15 @@
 # MG Install Payout — Calculation Logic
 
-**Version:** 2.0 · **Date:** 08-Aug-2026 · **Owner:** Shariq · **For:** Vikas / Design + Eng (payment build)
+**Version:** 3.0 · **Date:** 11-Aug-2026 · **Owner:** Shariq · **For:** Vikas / Design + Eng (payment build)
 *(v1.0 = 31-Jul-2026. **v2.0 applies from the AUGUST month onward**; July was disbursed under v1.0 and is frozen.)*
 
-> **v2.0 headline — the rate is now the ON-TIME install rate.** The denominator and the
-> numerator both move to the app's own quality ledger (same formula as the product's M1 /
-> Installation Compliance card). **Pay is unchanged**: every install, on-time or late, still
-> earns its ₹300 / ₹750 / ₹1000. See **§3.0** below — it supersedes §3 and §4.
-> Source spec: [`BANNER-ontime-changes-v2.md`](./BANNER-ontime-changes-v2.md).
+> **v3.0 headline (11-Aug-2026) — the rate is `installs ÷ tech-assigned leads`.**
+> **Numerator** = installs done. **Denominator** = leads that reached *tech assigned*
+> (`EXECUTOR_ID IS NOT NULL`). Both from the execution service (IEC). Pay is unchanged
+> (rate × installs). Authoritative query: [`../sql/mg-metric.sql`](../sql/mg-metric.sql).
+> **This replaces v2.0's ON-TIME metric** (§3.0 below, 08-Aug) — a late install now counts in
+> the numerator like any other, so on-time no longer changes anyone's percentage.
+> Verified: installs are a strict subset of tech-assigned (0 installs without an executor).
 
 This document is **self-contained**: anyone can compute any enrolled CSP's MG payout from the rules below.
 It covers the three changes locked on 31-Jul-2026:
@@ -50,7 +52,7 @@ Convert to **IST date** (`YYYY-MM-DD`). All 477 current enrollment dates are in 
 
 ---
 
-## 3.0 ⚠️ v2.0 (Aug-2026 onward) — the ON-TIME metric SUPERSEDES §3 and §4
+## 3.0 ~~v2.0 (08-Aug) — the ON-TIME metric~~ · **SUPERSEDED by v3.0, kept for history**
 
 From the August payout, both sides of the rate come from the app's own quality ledger
 `PROD_DB.CSP_QUALITY_SERVICE_CSP_QUALITY_SERVICE.INSTALL_MATURATION_LEDGER`, so MG scores a CSP
