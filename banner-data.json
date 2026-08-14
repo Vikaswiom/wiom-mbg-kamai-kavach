@@ -1,97 +1,97 @@
 {
-  "generated_ist": "2026-08-14 08:33 IST",
+  "generated_ist": "2026-08-14 10:41 IST",
   "window_start": "2026-08-01 12:30:00 IST",
   "eligible": 477,
-  "csps_opened": 388,
-  "pct_opened": 81,
-  "total_opens": 7161,
-  "avg_per_opener": 18.5,
-  "first_open": "2026-08-01 12:33:27",
-  "last_open": "2026-08-14 06:00:13",
+  "csps_opened": 393,
+  "pct_opened": 82,
+  "total_opens": 7231,
+  "avg_per_opener": 18.4,
+  "first_open": "2026-08-01 12:32:52",
+  "last_open": "2026-08-14 09:09:29",
   "by_outcome": {
     "topup": {
       "label": "Got a top-up (guarantee applied)",
-      "opened": 269,
+      "opened": 277,
       "total": 334,
-      "pct": 81
+      "pct": 83
     },
     "piece": {
       "label": "No top-up — <60% & ≥3 leads",
-      "opened": 119,
+      "opened": 116,
       "total": 143,
-      "pct": 83
+      "pct": 81
     }
   },
   "daily": [
     {
       "date": "2026-08-01",
-      "csps": 158,
-      "opens": 579
+      "csps": 165,
+      "opens": 648
     },
     {
       "date": "2026-08-02",
-      "csps": 188,
-      "opens": 674
+      "csps": 181,
+      "opens": 619
     },
     {
       "date": "2026-08-03",
-      "csps": 160,
-      "opens": 467
+      "csps": 161,
+      "opens": 436
     },
     {
       "date": "2026-08-04",
-      "csps": 155,
+      "csps": 162,
       "opens": 645
     },
     {
       "date": "2026-08-05",
-      "csps": 144,
-      "opens": 512
+      "csps": 147,
+      "opens": 558
     },
     {
       "date": "2026-08-06",
-      "csps": 130,
-      "opens": 462
+      "csps": 126,
+      "opens": 523
     },
     {
       "date": "2026-08-07",
-      "csps": 126,
-      "opens": 405
+      "csps": 125,
+      "opens": 432
     },
     {
       "date": "2026-08-08",
-      "csps": 143,
-      "opens": 488
+      "csps": 142,
+      "opens": 543
     },
     {
       "date": "2026-08-09",
-      "csps": 155,
-      "opens": 541
+      "csps": 139,
+      "opens": 511
     },
     {
       "date": "2026-08-10",
-      "csps": 145,
-      "opens": 650
+      "csps": 141,
+      "opens": 566
     },
     {
       "date": "2026-08-11",
-      "csps": 187,
-      "opens": 644
+      "csps": 176,
+      "opens": 619
     },
     {
       "date": "2026-08-12",
-      "csps": 149,
-      "opens": 589
+      "csps": 150,
+      "opens": 600
     },
     {
       "date": "2026-08-13",
-      "csps": 140,
-      "opens": 477
+      "csps": 129,
+      "opens": 448
     },
     {
       "date": "2026-08-14",
-      "csps": 20,
-      "opens": 28
+      "csps": 56,
+      "opens": 83
     }
   ]
 }
