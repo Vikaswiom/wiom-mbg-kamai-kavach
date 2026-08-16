@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>क्वालिटी बोनस — बहुत अच्छी</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800;900&display=swap');
+
+:root{
+  /* CA Design System */
+  --brand:#D9008D; --brand100:#FFE5F6; --brand200:#FFCCED;
+  --secondary:#443152; --n900:#161021; --n700:#665E75;
+  --white:#FAF9FC; --green:#008043; --red:#E01E00; --warn:#E2B203;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;font-family:'Noto Sans Devanagari','Noto Sans','Segoe UI',system-ui,sans-serif;
+  background:var(--brand);color:#fff;overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}
+
+/* ── Full-page blocker · solid pink (no gradient) ── */
+.blocker{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;background:var(--brand);overflow:hidden;
+  padding:calc(40px + env(safe-area-inset-top)) 16px calc(96px + env(safe-area-inset-bottom))}
+.blocker>*{position:relative;z-index:2}
+
+/* ── Confetti shower ── */
+#confetti{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+.confetti{position:absolute;top:0;left:0;width:9px;height:15px;border-radius:2px;opacity:1;will-change:transform;
+  animation:fall linear infinite}
+.confetti.r{border-radius:50%;width:10px;height:10px}
+.confetti:nth-child(3n){width:7px;height:11px}
+.confetti:nth-child(4n){width:11px;height:18px}
+
+/* ── Burst (one-time explosion from centre, then falls) ── */
+.burst-piece{position:absolute;left:50%;top:44%;width:11px;height:15px;margin:-7px 0 0 -5px;border-radius:2px;
+  opacity:0;will-change:transform;animation:burst 1.5s cubic-bezier(.12,.62,.28,1) forwards}
+.burst-piece.r{border-radius:50%;width:11px;height:11px}
+@keyframes burst{
+  0%  {transform:translate(0,0) scale(.3) rotate(0);opacity:1}
+  14% {transform:translate(calc(var(--bx)*.72),calc(var(--by)*.72)) scale(1) rotate(calc(var(--rot)*.3));opacity:1}
+  100%{transform:translate(var(--fx),var(--fy)) rotate(var(--rot));opacity:0}
+}
+@keyframes fall{0%{transform:translateY(-12vh) rotate(0)}100%{transform:translateY(112vh) rotate(620deg)}}
+
+/* ── State-icon on colour (CA pattern): translucent white ring + icon ── */
+.state-icon{width:104px;height:104px;border-radius:50%;background:rgba(255,255,255,.16);
+  border:2px solid rgba(255,255,255,.42);display:grid;place-items:center;margin-bottom:22px;
+  animation:pop .5s cubic-bezier(.2,1.2,.4,1) both}
+@keyframes pop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
+
+/* ── Copy ── */
+.title{font-size:22px;font-weight:700;line-height:1.36;letter-spacing:-.2px;margin-top:14px;max-width:320px;
+  color:#fff;animation:rise .45s .18s both}
+.title .t-lead{display:block;font-size:34px;font-weight:900;letter-spacing:-.6px;margin-bottom:6px}
+
+/* ── Bonus block · no amount, no ₹ — the number lives on the earnings screen ── */
+.bonuswrap{margin-top:26px;max-width:320px;animation:rise .45s .3s both}
+.bonus{font-size:32px;font-weight:900;line-height:1.24;letter-spacing:-.8px;color:#fff}
+.sub{font-size:18px;font-weight:700;color:rgba(255,255,255,.92);margin-top:10px}
+
+/* ── CTA bar · white button, pink text (bleed) ── */
+.ctabar{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--brand);
+  padding:16px 16px calc(20px + env(safe-area-inset-bottom));animation:rise .45s .42s both}
+.btn{display:block;width:100%;max-width:328px;margin:0 auto;padding:14px;border-radius:16px;border:none;
+  font-size:18px;font-weight:800;text-align:center;text-decoration:none}
+.btn-primary{background:#fff;color:var(--brand)}
+.btn-primary:active{transform:scale(.98)}
+
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<section class="blocker">
+  <div id="confetti">
+    <i class="confetti" style="left:3vw;transform:translateY(6vh) rotate(24deg);background:#FFFFFF;animation-duration:3.4s;animation-delay:-0.4s"></i>
+    <i class="confetti r" style="left:8vw;transform:translateY(72vh);background:#FFD65A;animation-duration:4.2s;animation-delay:-2.1s"></i>
+    <i class="confetti" style="left:13vw;transform:translateY(34vh) rotate(-40deg);background:#FFCCED;animation-duration:3.0s;animation-delay:-1.2s"></i>
+    <i class="confetti" style="left:17vw;transform:translateY(88vh) rotate(60deg);background:#8AE0B0;animation-duration:4.8s;animation-delay:-3.3s"></i>
+    <i class="confetti r" style="left:22vw;transform:translateY(18vh);background:#FDE9A6;animation-duration:3.6s;animation-delay:-0.9s"></i>
+    <i class="confetti" style="left:27vw;transform:translateY(56vh) rotate(15deg);background:#FFFFFF;animation-duration:4.4s;animation-delay:-2.7s"></i>
+    <i class="confetti" style="left:31vw;transform:translateY(40vh) rotate(-70deg);background:#FFD65A;animation-duration:3.2s;animation-delay:-1.8s"></i>
+    <i class="confetti r" style="left:36vw;transform:translateY(94vh);background:#FFCCED;animation-duration:5.0s;animation-delay:-4.1s"></i>
+    <i class="confetti" style="left:41vw;transform:translateY(12vh) rotate(50deg);background:#FDE9A6;animation-duration:3.8s;animation-delay:-0.6s"></i>
+    <i class="confetti" style="left:45vw;transform:translateY(64vh) rotate(-20deg);background:#8AE0B0;animation-duration:4.0s;animation-delay:-2.9s"></i>
+    <i class="confetti r" style="left:50vw;transform:translateY(30vh);background:#FFFFFF;animation-duration:3.3s;animation-delay:-1.5s"></i>
+    <i class="confetti" style="left:54vw;transform:translateY(80vh) rotate(35deg);background:#FFD65A;animation-duration:4.6s;animation-delay:-3.7s"></i>
+    <i class="confetti" style="left:59vw;transform:translateY(4vh) rotate(-55deg);background:#FFCCED;animation-duration:3.1s;animation-delay:-0.3s"></i>
+    <i class="confetti r" style="left:63vw;transform:translateY(50vh);background:#FDE9A6;animation-duration:4.9s;animation-delay:-2.3s"></i>
+    <i class="confetti" style="left:68vw;transform:translateY(24vh) rotate(80deg);background:#8AE0B0;animation-duration:3.5s;animation-delay:-1.1s"></i>
+    <i class="confetti" style="left:72vw;transform:translateY(90vh) rotate(-10deg);background:#FFFFFF;animation-duration:4.3s;animation-delay:-3.9s"></i>
+    <i class="confetti r" style="left:77vw;transform:translateY(14vh);background:#FFD65A;animation-duration:3.7s;animation-delay:-0.8s"></i>
+    <i class="confetti" style="left:81vw;transform:translateY(60vh) rotate(45deg);background:#FFCCED;animation-duration:4.7s;animation-delay:-2.5s"></i>
+    <i class="confetti" style="left:86vw;transform:translateY(38vh) rotate(-65deg);background:#FDE9A6;animation-duration:3.0s;animation-delay:-1.9s"></i>
+    <i class="confetti r" style="left:90vw;transform:translateY(84vh);background:#8AE0B0;animation-duration:4.5s;animation-delay:-3.2s"></i>
+    <i class="confetti" style="left:95vw;transform:translateY(20vh) rotate(30deg);background:#FFFFFF;animation-duration:3.9s;animation-delay:-0.5s"></i>
+    <i class="confetti" style="left:6vw;transform:translateY(48vh) rotate(-30deg);background:#FFD65A;animation-duration:4.1s;animation-delay:-3.5s"></i>
+    <i class="confetti r" style="left:19vw;transform:translateY(78vh);background:#FFFFFF;animation-duration:3.4s;animation-delay:-2.2s"></i>
+    <i class="confetti" style="left:34vw;transform:translateY(8vh) rotate(70deg);background:#8AE0B0;animation-duration:4.9s;animation-delay:-1.3s"></i>
+    <i class="confetti" style="left:47vw;transform:translateY(70vh) rotate(-45deg);background:#FFCCED;animation-duration:3.2s;animation-delay:-4.0s"></i>
+    <i class="confetti r" style="left:61vw;transform:translateY(28vh);background:#FFD65A;animation-duration:4.4s;animation-delay:-0.7s"></i>
+    <i class="confetti" style="left:75vw;transform:translateY(54vh) rotate(20deg);background:#FDE9A6;animation-duration:3.6s;animation-delay:-2.8s"></i>
+    <i class="confetti" style="left:88vw;transform:translateY(96vh) rotate(-80deg);background:#FFFFFF;animation-duration:4.8s;animation-delay:-1.6s"></i>
+    <i class="confetti r" style="left:11vw;transform:translateY(44vh);background:#8AE0B0;animation-duration:3.3s;animation-delay:-3.8s"></i>
+    <i class="confetti" style="left:25vw;transform:translateY(16vh) rotate(55deg);background:#FFFFFF;animation-duration:4.6s;animation-delay:-1.0s"></i>
+    <i class="confetti" style="left:39vw;transform:translateY(74vh) rotate(-25deg);background:#FFD65A;animation-duration:3.1s;animation-delay:-2.6s"></i>
+    <i class="confetti r" style="left:53vw;transform:translateY(2vh);background:#FDE9A6;animation-duration:4.2s;animation-delay:-0.2s"></i>
+    <i class="confetti" style="left:67vw;transform:translateY(66vh) rotate(40deg);background:#FFCCED;animation-duration:3.8s;animation-delay:-3.4s"></i>
+    <i class="confetti" style="left:83vw;transform:translateY(32vh) rotate(-60deg);background:#8AE0B0;animation-duration:4.0s;animation-delay:-1.7s"></i>
+    <i class="confetti r" style="left:98vw;transform:translateY(86vh);background:#FFFFFF;animation-duration:3.5s;animation-delay:-2.4s"></i>
+    <i class="confetti" style="left:1vw;transform:translateY(58vh) rotate(10deg);background:#FFD65A;animation-duration:4.7s;animation-delay:-0.1s"></i>
+  </div>
+
+  <!-- Celebration mark stands in for the amount that used to sit here -->
+  <div class="state-icon" aria-hidden="true">
+    <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 21h8"/><path d="M12 17v4"/>
+      <path d="M6 4h12v5a6 6 0 0 1-12 0V4z"/>
+      <path d="M18 5h2.5a2.5 2.5 0 0 1 0 5H18"/>
+      <path d="M6 5H3.5a2.5 2.5 0 0 0 0 5H6"/>
+    </svg>
+  </div>
+
+  <div class="title"><span class="t-lead">बधाई हो</span>आपकी सेवा स्थिति<br>बहुत अच्छी रही।</div>
+
+  <div class="bonuswrap">
+    <div class="bonus">आपको क्वालिटी<br>बोनस मिला है</div>
+    <div class="sub">नीचे देखें आपको कितना मिला</div>
+  </div>
+</section>
+
+<div class="ctabar">
+  <a class="btn btn-primary" id="cta" href="https://csp.wiom.in/assurance/earnings">बोनस चेक करें</a>
+</div>
+
+<script>
+(function(){
+/* ── क्वालिटी बोनस · बहुत अच्छी — generic creative ──────────────────────────
+   Amount-free by design: the bonus amount is dynamic per CSP, so this screen
+   never prints a number or a ₹ figure. It only announces that the bonus is
+   there; the exact amount is shown on the earnings screen behind the CTA.
+   Nothing here needs a CleverTap token or a ?amount= param.
+
+   Per-cohort swap: the only lines that change are .title and .bonus.
+   ───────────────────────────────────────────────────────────────────────── */
+
+var DEEPLINK = 'https://csp.wiom.in/assurance/earnings';
+
+/* ── One-time burst on open, then it rains into the shower ── */
+function fireBurst(){
+  var host = document.getElementById('confetti');
+  if(!host) return;
+  var cols = ['#FFFFFF','#FFD65A','#FFCCED','#FDE9A6','#8AE0B0'];
+  var vh = window.innerHeight || 700;
+  for(var i=0;i<32;i++){
+    var b = document.createElement('i');
+    b.className = 'burst-piece' + (i % 3 === 0 ? ' r' : '');
+    var ang = (200 + Math.random()*140) * Math.PI/180;   /* upward hemisphere */
+    var dist = 90 + Math.random()*160;
+    var bx = Math.cos(ang)*dist, by = Math.sin(ang)*dist; /* by<0 → up */
+    b.style.setProperty('--bx', bx.toFixed(0)+'px');
+    b.style.setProperty('--by', by.toFixed(0)+'px');
+    b.style.setProperty('--fx', (bx*1.25 + (Math.random()*40-20)).toFixed(0)+'px');
+    b.style.setProperty('--fy', (vh*0.72).toFixed(0)+'px');
+    b.style.setProperty('--rot', (Math.random()*720-360).toFixed(0)+'deg');
+    b.style.background = cols[i % cols.length];
+    b.style.animationDuration = (1.3 + Math.random()*0.7).toFixed(2)+'s';
+    host.appendChild(b);
+    (function(node){ setTimeout(function(){ node.remove(); }, 2400); })(b);
+  }
+}
+requestAnimationFrame(fireBurst);
+
+/* ── Deep link out of the in-app WebView ──
+   A plain <a href> only loads the web page in place, so intercept the tap.
+   Chain is exactly: openDeepLink → iOS postMessage → location.href.
+   Do NOT add triggerInAppAction — it feature-detects true, then silently
+   strands the tap so the location.href branch never runs. */
+function goDeep(e){
+  if(e && e.preventDefault) e.preventDefault();
+  try{
+    if(window.CleverTap && typeof window.CleverTap.openDeepLink === 'function'){
+      window.CleverTap.openDeepLink(DEEPLINK);
+    }else if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap){
+      window.webkit.messageHandlers.clevertap.postMessage({action:'openDeepLink', url:DEEPLINK});
+    }
+  }catch(err){}
+  /* Last resort — the branch that actually carries the CSP across when
+     openDeepLink is absent from this SDK's CTWebInterface. */
+  setTimeout(function(){ window.location.href = DEEPLINK; }, 300);
+  return false;
+}
+document.getElementById('cta').addEventListener('click', goDeep);
+})();
+</script>
+</body>
+</html>
