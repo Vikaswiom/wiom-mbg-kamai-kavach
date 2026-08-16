@@ -263,7 +263,9 @@ function fitAmount(amount){
   if(!row || !el) return;
   var was = el.textContent;
   el.textContent = inr(amount);
-  var avail = Math.min(row.parentNode.clientWidth, document.documentElement.clientWidth - 32) - 12;
+  /* Measure against the screen, NOT .amtwrap — the blocker is a centred flex
+     column, so .amtwrap shrinks to its own content and would measure itself. */
+  var avail = (document.documentElement.clientWidth || 360) - 40;
   for(var size=66; size>=38; size-=4){
     row.style.fontSize = size+'px';
     if(row.getBoundingClientRect().width <= avail) break;   /* inline-block → real text width */
