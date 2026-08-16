@@ -1,0 +1,15 @@
+{
+  "note": "क्वालिटी बोनस cohorts, keyed by cspId (lowercase). Read by quality.html?cspId=<id>. tier = verygood | good | basic | none (aliases accepted: very_good, बहुत अच्छी, अच्छी, बेसिक, poor, खराब). amount is optional — omit it and the tier default applies (verygood 2000, good 1500, basic 1000, none 2000 सहायता राशि).",
+  "meta": {
+    "month": "aug",
+    "generated_ist": "2026-08-16",
+    "count": 4,
+    "source": "pending — cohort list to be supplied"
+  },
+  "data": {
+    "demo1": { "tier": "verygood" },
+    "demo2": { "tier": "good" },
+    "demo3": { "tier": "basic" },
+    "demo4": { "tier": "none" }
+  }
+}
