@@ -24,6 +24,7 @@ context (files, rules, deploy, gotchas) as of **3 Aug 2026** — **July is close
 | **Frozen July payout data** | …/data-july.json |
 | Live August snapshot | …/data-aug.json  (settle via `?month=aug`) |
 | **Banner engagement dashboard** (team-shareable, auto-refresh) | https://vikaswiom.github.io/wiom-mbg-kamai-kavach/banner-dashboard.html |
+| **क्वालिटी बोनस — one link, all 4 cohorts** | https://vikaswiom.github.io/wiom-mbg-kamai-kavach/quality.html?cspId=`<id>` |
 
 `cspId` is the only variable, e.g. `settle.html?cspId=a0b8r0`. Preview cases without data:
 `settle.html?case=above|topup|deep|noleads|below` or `?demo=1`.
@@ -82,6 +83,7 @@ feed) is untouched.
 | `csp-meta.json` | **Per-CSP overlay** (static): `joined` (pro-rata) + two-tier rate split. Merged into settle.html by cspId. See DONE section above. |
 | `v750/`, `v1000/` | Superseded flat-rate what-ifs (real per-CSP rate now lives in settle.html via csp-meta.json). |
 | `analytics-dashboard/` | Separate internal dashboard (`data.js`, own `refresh.py`, own workflow). Not the CSP-facing screen. |
+| `quality.html` + `quality-data.json` | **क्वालिटी बोनस — one shareable link for all four cohorts.** `quality.html?cspId=X` looks the CSP up in `quality-data.json` and renders that cohort's screen: `verygood` (बहुत अच्छी · ₹2,000) · `good` (अच्छी · ₹1,500) · `basic` (बेसिक · ₹1,000, + "बेहतर करें" nudge) · `none` (खराब · ₹2,000 **Wiom सहायता राशि**, no celebration, 2 warning bullets). First three CTA → `/assurance/earnings`; `none` → `/assurance/quality`. Amount defaults per cohort; a per-CSP `amount` in the JSON overrides it. Unknown/missing cspId → "अभी तैयार नहीं". Preview: `?tier=verygood\|good\|basic\|none` · `?amount=` · `?demo=1`. Optional month files via `?month=aug` → `quality-aug.json` (falls back to `quality-data.json`). Same CleverTap deeplink chain as the creatives (`openDeepLink` → iOS `postMessage` → `location.href`; **never** add `triggerInAppAction`). |
 | `banner-dashboard.html` + `banner-data.json` | **Banner-engagement dashboard** (team-shareable). Reads `banner-data.json` (306/477 opened, opens, by payout outcome, daily trend), auto-re-checks every 5 min. `banner/fetch_banner.py` queries CleverTap `banner_opened` for the 477 (via `banner/banner-groups.json`); **`.github/workflows/refresh-banner.yml`** refreshes it hourly (`:27 UTC`). CleverTap `EVENTS_DATA.TIMESTAMP` is IST (no +330). |
 
 ## Rules / config (in the JS of each page)

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
+<title>क्वालिटी बोनस</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800;900&display=swap');
+:root{
+  /* CA Design System */
+  --brand:#D9008D;--brand100:#FFE5F6;--brand200:#FFCCED;--secondary:#443152;
+  --n900:#161021;--n700:#665E75;--white:#FAF9FC;
+  --green:#008043;--red:#E01E00;--warn:#E2B203;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;
+  font-family:'Noto Sans Devanagari','Noto Sans','Segoe UI',system-ui,sans-serif;
+  background:var(--brand);color:#fff;overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}
+
+/* ── Full-page blocker · solid pink (no gradient) ── */
+.blocker{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;background:var(--brand);overflow:hidden;
+  padding:calc(40px + env(safe-area-inset-top)) 16px calc(96px + env(safe-area-inset-bottom))}
+.blocker>*{position:relative;z-index:2}
+
+/* ── Confetti shower ── */
+#confetti{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+.confetti{position:absolute;top:0;left:0;width:9px;height:15px;border-radius:2px;opacity:1;
+  will-change:transform;animation:fall linear infinite}
+.confetti.r{border-radius:50%;width:10px;height:10px}
+.confetti:nth-child(3n){width:7px;height:11px}
+.confetti:nth-child(4n){width:11px;height:18px}
+
+/* ── Burst (one-time explosion from centre, then falls) ── */
+.burst-piece{position:absolute;left:50%;top:44%;width:11px;height:15px;margin:-7px 0 0 -5px;
+  border-radius:2px;opacity:0;will-change:transform;
+  animation:burst 1.5s cubic-bezier(.12,.62,.28,1) forwards}
+.burst-piece.r{border-radius:50%;width:11px;height:11px}
+@keyframes burst{
+  0%  {transform:translate(0,0) scale(.3) rotate(0);opacity:1}
+  14% {transform:translate(calc(var(--bx)*.72),calc(var(--by)*.72)) scale(1) rotate(calc(var(--rot)*.3));opacity:1}
+  100%{transform:translate(var(--fx),var(--fy)) rotate(var(--rot));opacity:0}
+}
+@keyframes fall{
+  0%  {transform:translateY(-12vh) rotate(0)}
+  100%{transform:translateY(112vh) rotate(620deg)}
+}
+
+/* ── Copy · celebratory tiers ── */
+.title{font-size:22px;font-weight:700;line-height:1.36;letter-spacing:-.2px;margin-top:14px;
+  max-width:320px;color:#fff;animation:rise .45s .18s both}
+.title.sm{font-size:20px;letter-spacing:-.3px}
+.title .t-lead{display:block;font-size:34px;font-weight:900;letter-spacing:-.6px;margin-bottom:6px}
+
+/* ── Copy · "खराब" tier ── */
+.lead{font-size:23px;font-weight:900;line-height:1.28;letter-spacing:-.4px;max-width:300px;
+  color:#fff;animation:rise .45s .1s both}
+.desc{font-size:17px;font-weight:500;line-height:1.5;margin-top:14px;max-width:300px;
+  color:rgba(255,255,255,.9);animation:rise .45s .2s both}
+
+.amtwrap{margin-top:26px;animation:rise .45s .3s both}
+.amt{font-size:66px;font-weight:900;line-height:1;letter-spacing:-2px;color:#fff}
+.amt .rup{font-size:42px;vertical-align:6px;letter-spacing:0;font-weight:800}
+.sub{font-size:18px;font-weight:700;color:rgba(255,255,255,.92);margin-top:10px}
+.hint{font-size:14px;font-weight:500;color:rgba(255,255,255,.78);margin-top:6px;max-width:280px;line-height:1.4;margin-left:auto;margin-right:auto}
+
+/* ── Highlighted pointer card ── */
+.notes{margin-top:22px;width:100%;max-width:320px;text-align:left;
+  background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);
+  border-radius:14px;padding:13px 15px;animation:rise .45s .4s both}
+.note{position:relative;padding-left:17px;font-size:14px;font-weight:600;
+  line-height:1.5;color:#fff}
+.note::before{content:"";position:absolute;left:1px;top:7px;width:7px;height:7px;
+  border-radius:50%;background:#FFD65A}
+.note + .note{margin-top:10px}
+
+/* ── Not-ready / loading ── */
+.skel{font-size:17px;font-weight:600;line-height:1.6;max-width:300px;color:rgba(255,255,255,.92);
+  animation:rise .45s .1s both}
+
+/* ── CTA bar · white button, pink text (bleed) ── */
+.ctabar{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--brand);
+  padding:16px 16px calc(20px + env(safe-area-inset-bottom));
+  animation:rise .45s .42s both}
+.ctabar[hidden]{display:none}
+.btn{display:block;width:100%;max-width:328px;margin:0 auto;padding:14px;
+  border-radius:16px;border:none;font-size:18px;font-weight:800;
+  text-align:center;text-decoration:none}
+.btn-primary{background:#fff;color:var(--brand)}
+.btn-primary:active{transform:scale(.98)}
+
+/* ── Demo tier switcher (?demo=1 or no cspId) ── */
+#demo{position:fixed;top:0;left:0;right:0;z-index:40;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;
+  padding:calc(8px + env(safe-area-inset-top)) 10px 8px;background:rgba(0,0,0,.18)}
+#demo[hidden]{display:none}
+#demo button{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.34);
+  border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700}
+#demo button[aria-pressed="true"]{background:#fff;color:var(--brand);border-color:#fff}
+
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<div id="demo" hidden></div>
+
+<section class="blocker">
+  <div id="confetti"></div>
+  <div id="screen"><div class="skel">…</div></div>
+</section>
+
+<div class="ctabar" id="ctabar" hidden>
+  <a class="btn btn-primary" id="cta" href="#">बोनस चेक करें</a>
+</div>
+
+<script>
+(function(){
+/* ── क्वालिटी बोनस · one shareable link for all four cohorts ─────────────
+   Share:  quality.html?cspId=<id>
+   The cohort (सेवा स्थिति) + amount come from quality-data.json, keyed by cspId,
+   so ONE link serves every CSP — no per-segment creative.
+
+   Preview without data:  ?tier=verygood|good|basic|none  ·  ?amount=1500  ·  ?demo=1
+   Month-wise files (optional): ?month=aug → quality-aug.json, falls back to quality-data.json
+   ───────────────────────────────────────────────────────────────────── */
+
+var EARN_LINK = 'https://csp.wiom.in/assurance/earnings';
+var QUAL_LINK = 'https://csp.wiom.in/assurance/quality';
+
+/* Copy per cohort — verbatim from the four approved creatives. */
+var TIERS = {
+  verygood:{
+    label:'बहुत अच्छी', amount:2000, celebrate:true, link:EARN_LINK, cta:'बोनस चेक करें',
+    head:'<div class="title"><span class="t-lead">बधाई हो</span>आपकी सेवा स्थिति<br>बहुत अच्छी रही।</div>',
+    sub:'बोनस मिला है'
+  },
+  good:{
+    label:'अच्छी', amount:1500, celebrate:true, link:EARN_LINK, cta:'बोनस चेक करें',
+    head:'<div class="title"><span class="t-lead">बधाई हो</span>आपकी सेवा स्थिति<br>अच्छी रही।</div>',
+    sub:'बोनस मिला है'
+  },
+  basic:{
+    label:'बेसिक', amount:1000, celebrate:true, link:EARN_LINK, cta:'बोनस चेक करें',
+    head:'<div class="title sm"><span class="t-lead">बधाई हो</span>आपकी सेवा स्थिति इस बार बेसिक है।</div>',
+    sub:'बोनस मिला है',
+    hint:'सेवा स्थिति बेहतर करें ताकि अगली बार और ज़्यादा बोनस पाएं'
+  },
+  none:{
+    label:'खराब', amount:2000, celebrate:false, link:QUAL_LINK, cta:'अपनी क्वालिटी देखें',
+    head:'<div class="lead">आपकी सेवा स्थिति खराब है,</div>'+
+         '<div class="desc">सुधार के लिए Wiom सिर्फ इस बार सहायता राशि दे रहा है</div>',
+    sub:'Wiom सहायता राशि',
+    notes:['इस राशि का उद्देश्य आपकी सेवा स्थिति को बेहतर बनाना है।',
+           'यदि आपकी सेवा स्थिति में सुधार नहीं हुआ, तो अगली बार आपको बोनस नहीं मिलेगा।']
+  }
+};
+
+/* Whatever the cohort sheet spells it as → our four keys. */
+var ALIAS = {
+  verygood:'verygood', very_good:'verygood', 'very good':'verygood', vg:'verygood',
+  excellent:'verygood', 'बहुत अच्छी':'verygood', 'बहुत अच्छा':'verygood',
+  good:'good', g:'good', 'अच्छी':'good', 'अच्छा':'good',
+  basic:'basic', average:'basic', ok:'basic', 'बेसिक':'basic',
+  none:'none', no_bonus:'none', nobonus:'none', poor:'none', bad:'none',
+  'खराब':'none', support:'none'
+};
+function normTier(t){
+  if(t===null||t===undefined) return null;
+  var k=String(t).trim().toLowerCase();
+  return ALIAS[k] || (TIERS[k] ? k : null);
+}
+
+var Q = new URLSearchParams(location.search);
+function cspIdFromUrl(){
+  return (Q.get('cspId')||Q.get('cspid')||Q.get('csp_id')||Q.get('id')||'').trim().toLowerCase();
+}
+function inr(n){ return Number(n).toLocaleString('en-IN'); }
+
+/* ── Render one cohort ── */
+var DEEPLINK = EARN_LINK;
+function render(tierKey, amount){
+  var T = TIERS[tierKey];
+  var amt = (amount===undefined||amount===null||isNaN(amount)) ? T.amount : amount;
+
+  var html = T.head +
+    '<div class="amtwrap">'+
+      '<div class="amt"><span class="rup">₹</span><span id="amt">0</span></div>'+
+      '<div class="sub">'+T.sub+'</div>'+
+      (T.hint ? '<div class="hint">'+T.hint+'</div>' : '')+
+    '</div>'+
+    (T.notes ? '<div class="notes">'+T.notes.map(function(n){return '<div class="note">'+n+'</div>';}).join('')+'</div>' : '');
+
+  document.getElementById('screen').innerHTML = html;
+
+  DEEPLINK = T.link;
+  var cta = document.getElementById('cta');
+  cta.textContent = T.cta;
+  cta.href = T.link;
+  document.getElementById('ctabar').hidden = false;
+
+  document.getElementById('confetti').innerHTML = '';
+  if(T.celebrate){ mountShower(); requestAnimationFrame(fireBurst); }
+
+  countUp(amt);
+}
+
+/* Nothing for this cspId yet — same tone as settle.html's not-ready state. */
+function renderNotReady(){
+  document.getElementById('screen').innerHTML =
+    '<div class="skel">आपका क्वालिटी बोनस अभी तैयार नहीं है.<br>App में दोबारा खोलें, या helpline पर call करें.</div>';
+  document.getElementById('ctabar').hidden = true;
+}
+
+/* ── Confetti shower · 36 pieces, deterministic so it looks identical every open ── */
+function mountShower(){
+  var host = document.getElementById('confetti');
+  var cols = ['#FFFFFF','#FFD65A','#FFCCED','#FDE9A6','#8AE0B0'];
+  var out = '';
+  for(var i=0;i<36;i++){
+    var left = ((i*2.7 + (i%5)*3.1) % 98) + 1;              /* spread across the width */
+    var dur  = (3.0 + ((i*7)%21)/10).toFixed(1);            /* 3.0s – 5.0s */
+    var del  = -(((i*13)%42)/10).toFixed(1);                /* negative → mid-fall on open */
+    var rot  = ((i*37)%140) - 70;
+    out += '<i class="confetti'+(i%3===1?' r':'')+'" style="left:'+left+'vw;'+
+           'transform:translateY('+(((i*17)%96)+2)+'vh) rotate('+rot+'deg);'+
+           'background:'+cols[i%cols.length]+';animation-duration:'+dur+'s;animation-delay:'+del+'s"></i>';
+  }
+  host.innerHTML = out;
+}
+
+/* ── One-time burst on open, then it rains into the shower ── */
+function fireBurst(){
+  var host = document.getElementById('confetti');
+  if(!host) return;
+  var cols = ['#FFFFFF','#FFD65A','#FFCCED','#FDE9A6','#8AE0B0'];
+  var vh = window.innerHeight || 700;
+  for(var i=0;i<32;i++){
+    var b = document.createElement('i');
+    b.className = 'burst-piece' + (i % 3 === 0 ? ' r' : '');
+    var ang  = (200 + Math.random()*140) * Math.PI/180;   /* upward hemisphere */
+    var dist = 90 + Math.random()*160;
+    var bx = Math.cos(ang)*dist, by = Math.sin(ang)*dist;  /* by<0 → up */
+    b.style.setProperty('--bx', bx.toFixed(0)+'px');
+    b.style.setProperty('--by', by.toFixed(0)+'px');
+    b.style.setProperty('--fx', (bx*1.25 + (Math.random()*40-20)).toFixed(0)+'px');
+    b.style.setProperty('--fy', (vh*0.72).toFixed(0)+'px');
+    b.style.setProperty('--rot', (Math.random()*720-360).toFixed(0)+'deg');
+    b.style.background = cols[i % cols.length];
+    b.style.animationDuration = (1.3 + Math.random()*0.7).toFixed(2)+'s';
+    host.appendChild(b);
+    (function(node){ setTimeout(function(){ node.remove(); }, 2400); })(b);
+  }
+}
+
+function countUp(amount){
+  var el = document.getElementById('amt');
+  if(!el) return;
+  var start = null, dur = 800, from = 0;
+  function tick(t){
+    if(!start) start = t;
+    var p = Math.min((t-start)/dur, 1);
+    var eased = 1 - Math.pow(1-p, 3);
+    el.textContent = inr(Math.round(from + (amount-from)*eased));
+    if(p < 1) requestAnimationFrame(tick); else el.textContent = inr(amount);
+  }
+  el.textContent = '0';
+  setTimeout(function(){ requestAnimationFrame(tick); }, 420);
+}
+
+/* ── Deep link out of the in-app WebView ──
+   A plain <a href> only loads the web page in place, so intercept the tap.
+   Chain is exactly: openDeepLink → iOS postMessage → location.href.
+   Do NOT add triggerInAppAction — it feature-detects true, then silently
+   strands the tap so the location.href branch never runs. */
+function goDeep(e){
+  if(e && e.preventDefault) e.preventDefault();
+  try{
+    if(window.CleverTap && typeof window.CleverTap.openDeepLink === 'function'){
+      window.CleverTap.openDeepLink(DEEPLINK);
+    }else if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap){
+      window.webkit.messageHandlers.clevertap.postMessage({action:'openDeepLink', url:DEEPLINK});
+    }
+  }catch(err){}
+  /* Last resort — the branch that actually carries the CSP across when
+     openDeepLink is absent from this SDK's CTWebInterface. */
+  setTimeout(function(){ window.location.href = DEEPLINK; }, 300);
+  return false;
+}
+document.getElementById('cta').addEventListener('click', goDeep);
+
+/* ── Cohort lookup ── */
+async function getCohort(id){
+  var month = (Q.get('month')||'').trim().toLowerCase();
+  var files = month ? ['quality-'+month+'.json','quality-data.json'] : ['quality-data.json'];
+  for(var i=0;i<files.length;i++){
+    try{
+      var r = await fetch(files[i], {cache:'no-store'});
+      if(!r.ok) continue;
+      var D = (await r.json()).data || {};
+      var row = D[id] || D[id.toUpperCase()] || null;
+      if(row) return row;
+    }catch(e){}
+  }
+  return null;
+}
+
+/* ── Demo (preview all four cohorts) — shows on ?demo=1 or no cspId ── */
+function mountDemo(){
+  var el = document.getElementById('demo'); el.hidden = false;
+  ['verygood','good','basic','none'].forEach(function(k){
+    var b = document.createElement('button'); b.type='button'; b.textContent = TIERS[k].label;
+    b.onclick = function(){
+      Array.prototype.forEach.call(el.querySelectorAll('button'), function(x){ x.setAttribute('aria-pressed','false'); });
+      b.setAttribute('aria-pressed','true'); render(k);
+    };
+    el.appendChild(b);
+  });
+  el.querySelector('button').click();
+}
+
+(async function(){
+  var amtOverride = Q.get('amount');
+  amtOverride = (amtOverride && !isNaN(amtOverride)) ? parseInt(amtOverride,10) : undefined;
+
+  var forced = normTier(Q.get('tier') || Q.get('cohort'));
+  if(forced){ render(forced, amtOverride); return; }
+
+  var id = cspIdFromUrl();
+  if(!id || Q.get('demo')==='1'){ mountDemo(); return; }
+
+  var row = await getCohort(id);
+  var tier = row ? normTier(row.tier || row.cohort || row.quality) : null;
+  if(!tier){ renderNotReady(); return; }
+
+  var amt = amtOverride;
+  if(amt===undefined && row.amount!==undefined && row.amount!==null && !isNaN(row.amount)) amt = Number(row.amount);
+  render(tier, amt);
+})();
+})();
+</script>
+</body>
+</html>
