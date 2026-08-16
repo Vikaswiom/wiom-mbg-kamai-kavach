@@ -62,8 +62,8 @@ button{font-family:inherit;cursor:pointer}
   color:rgba(255,255,255,.9);animation:rise .45s .2s both}
 
 .amtwrap{margin-top:26px;animation:rise .45s .3s both}
-.amt{font-size:66px;font-weight:900;line-height:1;letter-spacing:-2px;color:#fff}
-.amt .rup{font-size:42px;vertical-align:6px;letter-spacing:0;font-weight:800}
+.amt{display:inline-block;font-size:66px;font-weight:900;line-height:1;letter-spacing:-2px;color:#fff;white-space:nowrap}
+.amt .rup{font-size:.64em;vertical-align:6px;letter-spacing:0;font-weight:800}
 .sub{font-size:18px;font-weight:700;color:rgba(255,255,255,.92);margin-top:10px}
 .hint{font-size:14px;font-weight:500;color:rgba(255,255,255,.78);margin-top:6px;max-width:280px;line-height:1.4;margin-left:auto;margin-right:auto}
 
@@ -255,9 +255,26 @@ function fireBurst(){
   }
 }
 
+/* सहायता राशि runs from ₹1,000 to ₹38,000 — step the type down so the
+   biggest payouts still sit on one line on a 360px phone. Fit against the
+   FINAL amount before the count-up starts, so the size never jumps mid-count. */
+function fitAmount(amount){
+  var row = document.querySelector('.amt'), el = document.getElementById('amt');
+  if(!row || !el) return;
+  var was = el.textContent;
+  el.textContent = inr(amount);
+  var avail = Math.min(row.parentNode.clientWidth, document.documentElement.clientWidth - 32) - 12;
+  for(var size=66; size>=38; size-=4){
+    row.style.fontSize = size+'px';
+    if(row.getBoundingClientRect().width <= avail) break;   /* inline-block → real text width */
+  }
+  el.textContent = was;
+}
+
 function countUp(amount){
   var el = document.getElementById('amt');
   if(!el) return;
+  fitAmount(amount);
   var start = null, dur = 800, from = 0;
   function tick(t){
     if(!start) start = t;
