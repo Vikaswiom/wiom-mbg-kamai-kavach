@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>सेवा स्थिति — सुधार राशि</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800;900&display=swap');
+
+:root{
+  /* CA Design System */
+  --brand:#D9008D; --brand100:#FFE5F6; --brand200:#FFCCED;
+  --secondary:#443152; --n900:#161021; --n700:#665E75;
+  --white:#FAF9FC; --green:#008043; --red:#E01E00; --warn:#E2B203;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;font-family:'Noto Sans Devanagari','Noto Sans','Segoe UI',system-ui,sans-serif;
+  background:var(--brand);color:#fff;overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}
+
+/* ── Full-page blocker · solid pink (no gradient) · no celebration for this cohort ── */
+.blocker{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;background:var(--brand);overflow:hidden;
+  padding:calc(40px + env(safe-area-inset-top)) 16px calc(96px + env(safe-area-inset-bottom))}
+
+/* ── Copy ── */
+.lead{font-size:23px;font-weight:900;line-height:1.28;letter-spacing:-.4px;max-width:300px;color:#fff;
+  animation:rise .45s .1s both}
+.desc{font-size:17px;font-weight:500;line-height:1.5;margin-top:14px;max-width:300px;
+  color:rgba(255,255,255,.9);animation:rise .45s .2s both}
+
+/* ── Support block · no amount, no ₹ — the number lives on the earnings screen ── */
+.helpwrap{margin-top:28px;max-width:300px;animation:rise .45s .32s both}
+.help{font-size:28px;font-weight:900;line-height:1.26;letter-spacing:-.7px;color:#fff}
+.sub{font-size:17px;font-weight:700;color:rgba(255,255,255,.92);margin-top:10px}
+
+/* ── Highlighted pointer card ── */
+.notes{margin-top:22px;width:100%;max-width:320px;text-align:left;background:rgba(255,255,255,.14);
+  border:1px solid rgba(255,255,255,.3);border-radius:14px;padding:13px 15px;animation:rise .45s .4s both}
+.note{position:relative;padding-left:17px;font-size:14px;font-weight:600;line-height:1.5;color:#fff}
+.note::before{content:"";position:absolute;left:1px;top:7px;width:7px;height:7px;border-radius:50%;background:#FFD65A}
+.note + .note{margin-top:10px}
+
+/* ── CTA bar · white button, pink text (bleed) ── */
+.ctabar{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--brand);
+  padding:16px 16px calc(20px + env(safe-area-inset-bottom));animation:rise .45s .44s both}
+.btn{display:block;width:100%;max-width:328px;margin:0 auto;padding:14px;border-radius:16px;border:none;
+  font-size:18px;font-weight:800;text-align:center;text-decoration:none}
+.btn-primary{background:#fff;color:var(--brand)}
+.btn-primary:active{transform:scale(.98)}
+
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<section class="blocker">
+  <div class="lead">आपकी सेवा स्थिति खराब है,</div>
+  <div class="desc">सुधार के लिए Wiom सिर्फ इस बार सहायता राशि दे रहा है</div>
+
+  <div class="helpwrap">
+    <div class="help">आपको Wiom सहायता<br>राशि मिली है</div>
+    <div class="sub">नीचे देखें आपको कितनी मिली</div>
+  </div>
+
+  <div class="notes">
+    <div class="note">इस राशि का उद्देश्य आपकी सेवा स्थिति को बेहतर बनाना है।</div>
+    <div class="note">यदि आपकी सेवा स्थिति में सुधार नहीं हुआ, तो अगली बार आपको बोनस नहीं मिलेगा।</div>
+  </div>
+</section>
+
+<div class="ctabar">
+  <a class="btn btn-primary" id="cta" href="https://csp.wiom.in/assurance/earnings">बोनस चेक करें</a>
+</div>
+
+<script>
+(function(){
+/* ── सेवा स्थिति · खराब (सहायता राशि) — generic creative ────────────────────
+   Amount-free by design: the support amount is per-CSP, so this screen never
+   prints a number or a ₹ figure. It only announces that the राशि is there;
+   the exact amount is shown on the earnings screen behind the CTA.
+   No CleverTap token and no ?amount= param — nothing left to personalise.
+
+   CTA matches the other three cohorts: बोनस चेक करें → /assurance/earnings
+   (was अपनी क्वालिटी देखें → /assurance/quality).
+   ───────────────────────────────────────────────────────────────────────── */
+
+var DEEPLINK = 'https://csp.wiom.in/assurance/earnings';
+
+/* ── Deep link out of the in-app WebView ──
+   A plain <a href> only loads the web page in place, so intercept the tap.
+   Chain is exactly: openDeepLink → iOS postMessage → location.href.
+   Do NOT add triggerInAppAction — it feature-detects true, then silently
+   strands the tap so the location.href branch never runs. */
+function goDeep(e){
+  if(e && e.preventDefault) e.preventDefault();
+  try{
+    if(window.CleverTap && typeof window.CleverTap.openDeepLink === 'function'){
+      window.CleverTap.openDeepLink(DEEPLINK);
+    }else if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap){
+      window.webkit.messageHandlers.clevertap.postMessage({action:'openDeepLink', url:DEEPLINK});
+    }
+  }catch(err){}
+  /* Last resort — the branch that actually carries the CSP across when
+     openDeepLink is absent from this SDK's CTWebInterface. */
+  setTimeout(function(){ window.location.href = DEEPLINK; }, 300);
+  return false;
+}
+var cta = document.getElementById('cta');
+if(cta) cta.addEventListener('click', goDeep);
+})();
+</script>
+</body>
+</html>
