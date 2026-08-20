@@ -97,9 +97,12 @@ function inr(n){ return Number(n).toLocaleString('en-IN'); }
 /* per-CSP dynamic: two-tier install pay + pro-rata floor (from csp-meta overlay) */
 function settle(d){
   var installs=+d.installs||0, denom=+d.denom||0;
-  /* install pay — two-tier when the CSP had a rate change (₹300 → rate_after on `switch`) */
+  /* Install pay for MG = ₹300 FLAT for every CSP, including the ₹750 / ₹1000
+     opt-in CSPs (ruling 11-Aug-2026). The two-tier branch below is kept ONLY for
+     months before Aug-2026 — i.e. frozen July, which was disbursed on the
+     two-tier rate and must keep settling exactly as it was paid. */
   var installpay, rateNote=null;
-  if(d.rate_after!==undefined && d.switch){
+  if(MO.ym < '2026-08' && d.rate_after!==undefined && d.switch){
     var swYm=d.switch.slice(0,7);
     if(MO.ym<swYm){ installpay=PAY*installs; }                    /* month before the switch: all at ₹300 */
     else if(MO.ym===swYm){                                         /* switch month: blended split */

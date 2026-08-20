@@ -53,7 +53,12 @@ for everyone** — it auto-applies each CSP's numbers:
 - **Pro-rata floor** — if the CSP has a `joined` date in the displayed month, floor =
   `round(₹10,000 × active_days/days_in_month)` (to the rupee, per `docs/MG-payout-logic.md` §6), and the दिनों-का-हिसाब card shows.
   (118 CSPs enrolled mid-July.)
-- **Two-tier install pay** — if the CSP has `rate_after`+`switch`, earned =
+- **Two-tier install pay** — ⚠️ **JULY ONLY as of the 11-Aug-2026 ruling.** MG now computes at
+  **₹300 flat for every CSP, including the ₹750/₹1000 opt-ins**, so from the August month the
+  screens ignore `rate_after`/`switch`/`inst_before`/`inst_after` and pay `300 × installs`.
+  The fields stay in `csp-meta.json` because frozen July must keep rendering as it was disbursed
+  (`settle.html?cspId=X&month=july`). Only `joined` (pro-rata floor) is still read for Aug+.
+  The July behaviour was — if the CSP has `rate_after`+`switch`, earned =
   `300 × inst_before + rate_after × inst_after` (19 CSPs: 12 → ₹750 on 27 Jul, 7 → ₹1000 on
   28/30 Jul). The earned breakdown shows e.g. `10×₹300 + 6×₹750`. Other months: before the
   switch month → all ₹300; after → all at `rate_after`.
@@ -80,15 +85,15 @@ feed) is untouched.
 | `sql/mg-metric.sql` | **SOURCE OF TRUTH** (v3.0, 11-Aug): installs ÷ tech-assigned. `metrics.sql` must reproduce it per-CSP. |
 | `sql/ontime-m1.sql` | **SUPERSEDED** (v2.0 on-time/M1 definition, 10-Aug). Kept for history + the reference `*_m1` fields. |
 | `sql/metrics.sql` | The Snowflake query (Metabase db 113). **Denom gate = `reached_slot=1`** (customer-confirmed-slot, payout-logic §3, Aug-2026) — the S4 hybrid slot/tech gate is retired. Aug denom ~2× vs S4 (auto-slot-confirm flow). **July was disbursed under S4 and is frozen — `refresh.py` BLOCKS `--month july`.** Banner "connections to 60%" uses §7b `ceil((0.6·denom−installs)/0.4)`. |
-| `csp-meta.json` | **Per-CSP overlay** (static): `joined` (pro-rata) + two-tier rate split. Merged into settle.html by cspId. See DONE section above. |
-| `v750/`, `v1000/` | Superseded flat-rate what-ifs (real per-CSP rate now lives in settle.html via csp-meta.json). |
+| `csp-meta.json` | **Per-CSP overlay** (static): `joined` (pro-rata, still live) + the two-tier rate split (**July only** — MG is flat ₹300 from Aug per the 11-Aug ruling). Merged into settle.html by cspId. |
+| `v750/`, `v1000/` | Superseded flat-rate what-ifs. ⚠️ Now actively **contradict policy** — MG is flat ₹300 for everyone from Aug-2026. Don't share these links; candidates for deletion. |
 | `analytics-dashboard/` | Separate internal dashboard (`data.js`, own `refresh.py`, own workflow). Not the CSP-facing screen. |
 | `quality.html` + `quality-data.json` | **क्वालिटी बोनस — one shareable link for all four cohorts.** `quality.html?cspId=X` looks the CSP up in `quality-data.json` and renders that cohort's screen: `verygood` (बहुत अच्छी · ₹2,000) · `good` (अच्छी · ₹1,500) · `basic` (बेसिक · ₹1,000, + "बेहतर करें" nudge) · `none` (खराब · ₹2,000 **Wiom सहायता राशि**, no celebration, 2 warning bullets). First three CTA → `/assurance/earnings`; `none` → `/assurance/quality`. Amount defaults per cohort; a per-CSP `amount` in the JSON overrides it — **all four cohorts are loaded: 945 CSPs, total ₹43.33L.** खराब 711 (सहायता = `0.8 × July earning`, floor ₹1,000, ₹1,000–₹38,000, ₹36.93L) · बेसिक 122 (₹320–₹16,320, ₹4.81L) · अच्छी 6 (₹600–₹8,200, ₹13,000) · बहुत अच्छी 106 (₹120–₹15,720, ₹1.45L). The ₹ block auto-steps down (66→38px) so five-figure amounts stay on one line on a 360px phone. Unknown/missing cspId → "अभी तैयार नहीं". Preview: `?tier=verygood\|good\|basic\|none` · `?amount=` · `?demo=1`. Optional month files via `?month=aug` → `quality-aug.json` (falls back to `quality-data.json`). Same CleverTap deeplink chain as the creatives (`openDeepLink` → iOS `postMessage` → `location.href`; **never** add `triggerInAppAction`). |
 | `banner-dashboard.html` + `banner-data.json` | **Banner-engagement dashboard** (team-shareable). Reads `banner-data.json` (306/477 opened, opens, by payout outcome, daily trend), auto-re-checks every 5 min. `banner/fetch_banner.py` queries CleverTap `banner_opened` for the 477 (via `banner/banner-groups.json`); **`.github/workflows/refresh-banner.yml`** refreshes it hourly (`:27 UTC`). CleverTap `EVENTS_DATA.TIMESTAMP` is IST (no +330). |
 
 ## Rules / config (in the JS of each page)
 ```
-PAY   = 300      # ₹ per install  (ALL installs — on-time AND late)
+PAY   = 300      # ₹ per install — FLAT for every CSP incl. ₹750/₹1000 opt-ins (11-Aug ruling)
 GATE  = 0.60     # INCLUSIVE: secured = ontime/leads >= 0.60   (v2.0, Aug-2026)
 FLOOR = 10000    # ₹ guarantee floor
 DEEP  = 5000     # top-up above this = "बड़ी कमी" (deep shortfall) case

@@ -134,10 +134,13 @@ function computeMBG(d){
   var im1 = ist.getUTCMonth()+1;                                              // 1-based IST month
   var dim = new Date(Date.UTC(ist.getUTCFullYear(), im1, 0)).getUTCDate();    // days in this IST month
 
-  // per-CSP install rate (csp-meta overlay): from the month AFTER the switch,
-  // every install pays the CSP's new rate (₹750/₹1000). Default ₹300.
-  var ymNow = ist.getUTCFullYear()+'-'+(im1<10?'0'+im1:''+im1);
-  var PAY = (d.rate_after && d.switch && ymNow > d.switch.slice(0,7)) ? (+d.rate_after) : 300;
+  // Install rate for the MG calculation = ₹300 FLAT for every CSP, including the
+  // ₹750 / ₹1000 opt-in CSPs (ruling 11-Aug-2026). The csp-meta overlay's
+  // rate_after / switch / inst_before / inst_after fields are no longer read here;
+  // only `joined` (pro-rata floor) still is. The banner always shows the CURRENT
+  // month (Aug-2026 onward), so there is no pre-ruling month to fall back to —
+  // frozen July keeps its two-tier numbers in prevMonthTotal() below.
+  var PAY = 300;
 
   return {
     rate       : PAY,                                                         // per-install rate this month
@@ -173,10 +176,13 @@ function computeMBG(d){
 <!-- ===== RENDER + EVENT TRACKING ===== -->
 <script>
 // ── previous-month settlement row ("🗓️ पिछले महीने का हिसाब · <month>") ──
-// mirrors settle.html: two-tier install pay + pro-rata floor + ≤2-leads/≥60% floor gate.
+// mirrors settle.html: install pay + pro-rata floor + ≤2-leads/≥60% floor gate.
+// MG pays ₹300 flat from Aug-2026 (ruling 11-Aug) — the two-tier ₹750/₹1000
+// branch survives ONLY for months before that, i.e. frozen July, which was
+// disbursed on the two-tier rate and must keep rendering as it was paid.
 function prevMonthTotal(rec, ov, MO){
   var installs=+rec.installs||0, denom=+rec.denom||0, im;
-  if(ov && ov.rate_after && ov.switch){
+  if(MO.ym < '2026-08' && ov && ov.rate_after && ov.switch){
     var sw=ov.switch.slice(0,7);
     im = (MO.ym<sw) ? 300*installs
        : (MO.ym===sw) ? 300*(+ov.inst_before||0)+(+ov.rate_after)*(+ov.inst_after||0)

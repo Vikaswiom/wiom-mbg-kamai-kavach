@@ -149,7 +149,21 @@ with its terminal date on/after enrollment (same window rule as §3).
 
 ---
 
-## 5. Per-install rate — ₹300 / ₹750 / ₹1000
+## 5. Per-install rate — ₹300 flat (₹750 / ₹1000 no longer feed MG)
+
+> ### ⚠️ RULING 11-Aug-2026 — MG computes at **₹300 for every CSP**
+> The MG calculation uses **₹300 per install for all CSPs, including the ₹750 and ₹1000
+> opt-in CSPs.** So `installation money = 300 × installs` and
+> `top-up = max(0, floor − 300 × installs)` for everyone, and the two-tier split below
+> **no longer applies from the August month onward**.
+> **July is unaffected** — it was disbursed on the two-tier rate and is frozen; the settle
+> screens keep rendering July's blended numbers (`?month=july`) exactly as paid.
+> The 19 CSPs' `rate_after` / `switch` / `inst_before` / `inst_after` fields stay in
+> `csp-meta.json` for that July rendering; only `joined` (pro-rata) is still read for Aug+.
+> *(Whether those CSPs still receive ₹750/₹1000 through the separate Dominance
+> arrangement is outside this document — MG's own math is flat ₹300.)*
+
+**The rest of this section describes the pre-ruling (July) rate and is retained for that month.**
 
 - **Default = ₹300 per install.**
 - **Selected CSPs** (from *Project Dominance - CSPs*, column `Cluster Plan` = 750 or 1000, with a filled `Dates for MG`) are paid **₹750 or ₹1000 per install** for **every install completed on/after their effective date — this is permanent, for all future installs (not just July).**
