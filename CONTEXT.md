@@ -18,8 +18,6 @@ context (files, rules, deploy, gotchas) as of **3 Aug 2026** — **July is close
 | Banner (during-month) | https://vikaswiom.github.io/wiom-mbg-kamai-kavach/ |
 | **Settlement (month-end) — the ONE dynamic screen** | https://vikaswiom.github.io/wiom-mbg-kamai-kavach/settle.html?cspId=`<id>` |
 | Pro-rata settlement (same logic, joiner-forward header) | https://vikaswiom.github.io/wiom-mbg-kamai-kavach/settle-prorata.html?cspId=`<id>` |
-| ₹750/install version | …/v750/  and  …/v750/settle.html?cspId=`<id>` |
-| ₹1000/install version | …/v1000/  and  …/v1000/settle.html?cspId=`<id>` |
 | Live data (current month = Aug) | …/data.json |
 | **Frozen July payout data** | …/data-july.json |
 | Live August snapshot | …/data-aug.json  (settle via `?month=aug`) |
@@ -30,7 +28,7 @@ context (files, rules, deploy, gotchas) as of **3 Aug 2026** — **July is close
 `settle.html?case=above|topup|deep|noleads|below` or `?demo=1`.
 
 ### Month switching (Jul → Aug → Sep) — `?month=`
-Every settle screen (settle, settle-prorata, v750/settle, v1000/settle) is **month-aware**:
+Every settle screen (settle, settle-prorata) is **month-aware**:
 `&month=july` (default) · `&month=aug` · `&month=sep`. It picks the month's frozen data file
 (`data-july.json` / `data-aug.json` / `data-sep.json`), the month name in all copy, and the
 days-in-month for pro-rata. So **August payout = the same URLs + `&month=aug`**, e.g.
@@ -72,8 +70,8 @@ install definition as metrics.sql so counts reconcile).
 reconcile with `data-july.json`'s final `installs` (before+after == installs). Individual late-install
 fixes landed as commits (a0b9r3 2+3→2+4, a0b7i2 zeroed — installs predated enrolment, a0b8o1 added).
 The one non-match, a0b9j1, has 0 installs and is absent from the data — consistent. Enrolment dates
-are static. (`v750/`, `v1000/` are superseded flat-rate what-ifs — the real per-CSP rate lives in
-`settle.html`.)
+are static. (The old `v750/` + `v1000/` flat-rate what-if copies were DELETED on the 11-Aug ruling —
+MG is ₹300 for everyone, so a ₹750/₹1000 screen would have contradicted policy.)
 
 **Retro re-run** (if a month's snapshot ever needs a rebuild on final data): `python refresh.py
 --month july` rewrites ONLY `data-july.json` using July's window (the `{MS}`/`{ME}` DATE literals in
@@ -86,7 +84,6 @@ feed) is untouched.
 | `sql/ontime-m1.sql` | **SUPERSEDED** (v2.0 on-time/M1 definition, 10-Aug). Kept for history + the reference `*_m1` fields. |
 | `sql/metrics.sql` | The Snowflake query (Metabase db 113). **Denom gate = `reached_slot=1`** (customer-confirmed-slot, payout-logic §3, Aug-2026) — the S4 hybrid slot/tech gate is retired. Aug denom ~2× vs S4 (auto-slot-confirm flow). **July was disbursed under S4 and is frozen — `refresh.py` BLOCKS `--month july`.** Banner "connections to 60%" uses §7b `ceil((0.6·denom−installs)/0.4)`. |
 | `csp-meta.json` | **Per-CSP overlay** (static): `joined` (pro-rata, still live) + the two-tier rate split (**July only** — MG is flat ₹300 from Aug per the 11-Aug ruling). Merged into settle.html by cspId. |
-| `v750/`, `v1000/` | Superseded flat-rate what-ifs. ⚠️ Now actively **contradict policy** — MG is flat ₹300 for everyone from Aug-2026. Don't share these links; candidates for deletion. |
 | `analytics-dashboard/` | Separate internal dashboard (`data.js`, own `refresh.py`, own workflow). Not the CSP-facing screen. |
 | `quality.html` + `quality-data.json` | **क्वालिटी बोनस — one shareable link for all four cohorts.** `quality.html?cspId=X` looks the CSP up in `quality-data.json` and renders that cohort's screen: `verygood` (बहुत अच्छी · ₹2,000) · `good` (अच्छी · ₹1,500) · `basic` (बेसिक · ₹1,000, + "बेहतर करें" nudge) · `none` (खराब · ₹2,000 **Wiom सहायता राशि**, no celebration, 2 warning bullets). First three CTA → `/assurance/earnings`; `none` → `/assurance/quality`. Amount defaults per cohort; a per-CSP `amount` in the JSON overrides it — **all four cohorts are loaded: 945 CSPs, total ₹43.33L.** खराब 711 (सहायता = `0.8 × July earning`, floor ₹1,000, ₹1,000–₹38,000, ₹36.93L) · बेसिक 122 (₹320–₹16,320, ₹4.81L) · अच्छी 6 (₹600–₹8,200, ₹13,000) · बहुत अच्छी 106 (₹120–₹15,720, ₹1.45L). The ₹ block auto-steps down (66→38px) so five-figure amounts stay on one line on a 360px phone. Unknown/missing cspId → "अभी तैयार नहीं". Preview: `?tier=verygood\|good\|basic\|none` · `?amount=` · `?demo=1`. Optional month files via `?month=aug` → `quality-aug.json` (falls back to `quality-data.json`). Same CleverTap deeplink chain as the creatives (`openDeepLink` → iOS `postMessage` → `location.href`; **never** add `triggerInAppAction`). |
 | `banner-dashboard.html` + `banner-data.json` | **Banner-engagement dashboard** (team-shareable). Reads `banner-data.json` (306/477 opened, opens, by payout outcome, daily trend), auto-re-checks every 5 min. `banner/fetch_banner.py` queries CleverTap `banner_opened` for the 477 (via `banner/banner-groups.json`); **`.github/workflows/refresh-banner.yml`** refreshes it hourly (`:27 UTC`). CleverTap `EVENTS_DATA.TIMESTAMP` is IST (no +330). |
@@ -129,7 +126,6 @@ pipeline runs; a per-CSP diff of the two is the regression test.
 
 - **Gate is inclusive `>= 60%`** (v3.0: on `installs/denom`, denom = tech-assigned) (ruling 1-Aug-2026, supersedes the 31-Jul strict ruling). A CSP at **exactly 60%** (e.g. 3/5, 6/10) **DOES** get the guarantee. Screen says "60% या अधिक चाहिए".
 - **≤ 2 leads → floor-protected** (`docs/MG-payout-logic.md` §7, replaced the old 0-leads-only rule): `denom <= 2` is floor-eligible regardless of rate — top-up = `max(0, floor − install money)`. `denom === 0` keeps the `noleads` copy; `denom` 1–2 shows the new `fewleads` case.
-- FLOOR and GATE are **unchanged** in the v750/v1000 versions; only PAY differs.
 
 ## The 5 settlement cases (settle.html)
 | # | Case (kase) | Title |
@@ -146,7 +142,7 @@ On 1 Aug the poller/query rolls to August, so live `data.json` would show August
 To keep the settle links showing **July's final settlement**:
 - `refresh.py build()` writes a **per-month snapshot** `data-<month>.json` for the CURRENT IST month (July→`data-july.json`, Aug→`data-aug.json`, Sep→`data-sep.json`). When the month rolls over it stops writing the old file → that month's **last write stays frozen**.
 - `git_push()` commits `data.json` + every `data-*.json` (frozen months rewrite identically → no diff → not re-committed; only the current month changes).
-- **`settle.html` + v750/v1000 read `data-july.json`, not `data.json`.**
+- **`settle.html` reads `data-july.json`** (via `?month=july`), not the live `data.json`.
 - Timing-proof: the IST month boundary in `refresh.py` matches `metrics.sql`'s own, so `data-july.json` only ever holds July data. No midnight action needed.
 
 *After July payout, to make settle show the current month again, point its `DATA_URL` + local fetch back to `data.json` (and rename the freeze month in `build()`).*
