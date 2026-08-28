@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carry Fee — Push &amp; Banner Brief (1 September)</title>
+<style>
+  :root {
+    --green:#0b6b3a; --green-bg:#e9f5ee; --red:#b91c1c; --red-bg:#fee2e2;
+    --amber:#92400e; --amber-bg:#fef3c7; --blue:#1e40af; --blue-bg:#eff6ff;
+    --pink:#db2777; --pink-bg:#fdf2f8;
+    --ink:#111827; --muted:#6b7280; --border:#e5e7eb; --bg:#f9fafb; --white:#fff;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif; font-size:14px; line-height:1.6; color:var(--ink); background:var(--bg); }
+  .page { max-width:880px; margin:0 auto; padding:32px 24px 60px; }
+
+  .doc-header { border-bottom:3px solid var(--ink); padding-bottom:16px; margin-bottom:22px; }
+  .doc-header .eyebrow { font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); margin-bottom:4px; }
+  .doc-header h1 { font-size:26px; font-weight:800; }
+  .doc-header .subtitle { color:var(--muted); font-size:13px; margin-top:4px; }
+
+  .tabs { display:flex; gap:6px; flex-wrap:wrap; border-bottom:2px solid var(--border); margin:22px 0; }
+  .tab { font:inherit; font-size:12.5px; font-weight:700; padding:10px 18px; border:1px solid var(--border); border-bottom:none; border-top:3px solid transparent; background:var(--bg); color:var(--muted); border-radius:8px 8px 0 0; cursor:pointer; margin-bottom:-2px; }
+  .tab:hover { background:#fff; color:var(--ink); }
+  .tab.active { background:var(--white); color:var(--ink); border-top-color:var(--pink); }
+  .tab i { font-style:normal; color:var(--pink); margin-right:7px; }
+  .tabpanel { display:none; }
+  .tabpanel.on { display:block; }
+
+  .section { margin-bottom:28px; }
+  .section-title { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); border-bottom:1px solid var(--border); padding-bottom:6px; margin-bottom:14px; }
+  .section p { font-size:13.5px; color:#374151; margin-bottom:10px; }
+
+  table { width:100%; border-collapse:collapse; font-size:13px; margin:8px 0 4px; }
+  th { background:var(--bg); font-weight:700; text-align:left; padding:8px 10px; border:1px solid var(--border); font-size:11.5px; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); }
+  td { padding:8px 10px; border:1px solid var(--border); vertical-align:top; }
+  tr:nth-child(even) td { background:#f9fafb; }
+
+  .callout { border-radius:6px; padding:10px 14px; font-size:13px; margin:10px 0; }
+  .callout.green { background:var(--green-bg); border-left:3px solid var(--green); color:#065f46; }
+  .callout.red { background:var(--red-bg); border-left:3px solid var(--red); color:#7f1d1d; }
+  .callout.amber { background:var(--amber-bg); border-left:3px solid #d97706; color:var(--amber); }
+  .callout.blue { background:var(--blue-bg); border-left:3px solid var(--blue); color:var(--blue); }
+
+  .copybox { border:1px solid var(--border); border-radius:8px; background:var(--white); overflow:hidden; margin-bottom:14px; }
+  .copybox .ch { background:var(--bg); border-bottom:1px solid var(--border); padding:8px 14px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--muted); display:flex; justify-content:space-between; }
+  .copybox .cb { padding:14px; }
+  .copyline { display:flex; align-items:baseline; gap:10px; padding:8px 0; border-bottom:1px dashed var(--border); }
+  .copyline:last-child { border-bottom:0; }
+  .copyline .k { flex:0 0 92px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); }
+  .copyline .v { font-size:16px; font-weight:700; }
+  .copyline .v.sub { font-size:14px; font-weight:400; color:#4b5563; }
+  .copyline .n { margin-left:auto; font-size:11px; color:var(--muted); white-space:nowrap; }
+  .var { background:#fef08a; border-bottom:1px dashed #a16207; padding:0 4px; border-radius:2px; font-weight:700; color:#713f12; }
+  a { color:#1e40af; font-weight:700; word-break:break-all; }
+  a:hover { text-decoration:none; }
+  code { background:#f3f4f6; padding:2px 6px; border-radius:3px; font-family:ui-monospace,Consolas,"Courier New",monospace; font-size:12.5px; color:#111827; word-break:break-all; }
+
+  .refwrap { display:grid; grid-template-columns:260px 1fr; gap:24px; align-items:start; }
+  .refwrap .screen-img { display:block; width:100%; height:auto; border-radius:10px; border:1px solid var(--border); box-shadow:0 4px 14px rgba(0,0,0,0.13); }
+
+  ul { margin:6px 0 10px 18px; font-size:13.5px; color:#374151; }
+  li { margin-bottom:4px; }
+
+  @media (max-width:660px) { .refwrap { grid-template-columns:1fr; } }
+  @media print { .tabs { display:none; } .tabpanel { display:block; } }
+  footer { margin-top:40px; padding-top:16px; border-top:1px solid var(--border); font-size:11px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="doc-header">
+    <div class="eyebrow">Wiom Internal · Design &amp; Comms Brief · 28 August 2026</div>
+    <h1>Carry Fee — Push &amp; Banner, 1 September Batch</h1>
+    <div class="subtitle">What to schedule, when, to whom, and the exact copy. Scope: the 1 September cadence only.</div>
+  </div>
+
+  <div class="callout blue" style="margin-top:0"><strong>Both surfaces carry exactly the same two lines.</strong> A CSP who sees the notification and then opens the app must read an identical message — that repetition is the point, so please do not reword one of them. Both open the same link, and neither runs on or after 1 September.</div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" type="button" data-t="1"><i>1</i>Push Notification</button>
+    <button class="tab" type="button" data-t="2"><i>2</i>Home Banner</button>
+  </div>
+
+
+  <!-- ================= PUSH ================= -->
+  <div class="tabpanel on" data-p="1">
+
+    <div class="section">
+      <div class="section-title">Schedule — 3 sends</div>
+      <table>
+        <tr><th style="width:20%">Date</th><th style="width:16%">Time</th><th>What goes out</th></tr>
+        <tr><td><strong>29 Aug</strong> · Friday</td><td>10:00 IST</td><td>Announcement — the copy below</td></tr>
+        <tr><td><strong>30 Aug</strong> · Saturday</td><td>10:00 IST</td><td>Same copy, unchanged</td></tr>
+        <tr><td><strong>31 Aug</strong> · Sunday</td><td>10:00 IST</td><td>Same copy, unchanged — last send</td></tr>
+        <tr><td><strong>1 Sep</strong> · Monday</td><td>—</td><td><strong>No send.</strong> Charging run goes at ~09:00 IST</td></tr>
+      </table>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Copy</div>
+      <div class="copybox">
+        <div class="ch"><span>Push notification</span><span>Hindi · Devanagari</span></div>
+        <div class="cb">
+          <div class="copyline"><span class="k">Title</span><span class="v">1 सितंबर से कैरी फीस लगने वाली है</span><span class="n">33 chars</span></div>
+          <div class="copyline"><span class="k">Body</span><span class="v sub">नेटबॉक्स देखें — लगाएं या वापस करें</span><span class="n">35 chars</span></div>
+          <div class="copyline"><span class="k">On tap</span><span class="v sub">Opens the carry fee list, "about to be charged" tab<br><code>https://csp.wiom.in/carry_fee_detail/PENDING</code></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Who gets it</div>
+      <p>CSPs with <strong>at least one netbox scheduled to start charging on 1 September</strong> — nobody else. A CSP already being charged, or whose cadence date is 16 September, must not receive this.</p>
+      <ul>
+        <li><strong>The list to send to</strong> is here: <a href="https://docs.google.com/spreadsheets/d/1Uj3NcvAmQVXTDlcslWVZF5XDnl-4e-9Ci_TMEMAvppo/edit?gid=0#gid=0" target="_blank" rel="noopener">CSP communication list (Google Sheet)</a> — this is the audience for all three sends.</li>
+        <li>The device-level view behind it — which netboxes each CSP has starting on 1 September — is on <strong>WiomHub</strong> (internal portal).</li>
+        <li>Pull it <strong>fresh on each send day</strong>. CSPs drop out daily as they install or return netboxes — a stale list annoys people who have already acted.</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Reference</div>
+      <div class="refwrap">
+        <div><svg class="screen-img" viewBox="0 0 324 97" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Carry fee notification (vector mockup)">
+              <rect x="0" y="0" width="324" height="97" rx="10" fill="#FAF9FC"/>
+              <rect x="0.5" y="0.5" width="323" height="96" rx="10" fill="none" stroke="#E5E0EC"/>
+              <circle cx="34" cy="30" r="14" fill="#EDE7F6"/>
+              <text x="34" y="35" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" fill="#6D17CE">W</text>
+              <text x="58" y="26" font-family="Arial,sans-serif" font-size="10" fill="#797186">Wiom Partner &#183; now</text>
+              <text x="23" y="58" font-family="'Nirmala UI','Noto Sans Devanagari','Mangal',sans-serif" font-size="13" font-weight="700" fill="#161021">1 &#2360;&#2367;&#2340;&#2306;&#2348;&#2352; &#2360;&#2375; &#2325;&#2376;&#2352;&#2368; &#2347;&#2368;&#2360; &#2354;&#2327;&#2344;&#2375; &#2357;&#2366;&#2354;&#2368; &#2361;&#2376;</text>
+              <text x="24" y="80" font-family="'Nirmala UI','Noto Sans Devanagari','Mangal',sans-serif" font-size="11" font-weight="400" fill="#797186">&#2344;&#2375;&#2335;&#2348;&#2377;&#2325;&#2381;&#2360; &#2342;&#2375;&#2326;&#2375;&#2306; &#8212; &#2354;&#2327;&#2366;&#2319;&#2306; &#2351;&#2366; &#2357;&#2366;&#2346;&#2360; &#2325;&#2352;&#2375;&#2306;</text>
+            </svg></div>
+        <div>
+          <p>Standard notification card — bold title, grey sub-line.</p>
+          <ul>
+            <li>No image, no action buttons.</li>
+            <li>No rupee amount and no netbox count. The date does the work; the numbers live in the app, where the CSP can see the working.</li>
+            <li>Both ways out — install at a customer, or return — are already on the screen the tap leads to, so the push does not need to carry them.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+
+
+  </div>
+
+
+  <!-- ================= BANNER ================= -->
+  <div class="tabpanel" data-p="2">
+
+    <div class="section">
+      <div class="section-title">Window — 29 to 31 Aug</div>
+      <table>
+        <tr><th style="width:20%">From</th><th style="width:24%">To</th><th>Behaviour</th></tr>
+        <tr><td><strong>29 Aug</strong></td><td><strong>31 Aug, 22:00 IST</strong></td><td>Sits on the app home screen every time it is opened. Cannot be dismissed.</td></tr>
+        <tr><td colspan="2"><strong>1 Sep onwards</strong></td><td>Gone — disappears on its own, no takedown needed</td></tr>
+      </table>
+      <div class="callout blue"><strong>Nothing to dispatch here.</strong> Unlike the push, the banner is not sent — it simply appears inside the app for the CSPs on the list, and clears itself on 1 September. What is needed on this tab is copy sign-off.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Copy</div>
+      <div class="copybox">
+        <div class="ch"><span>App home banner</span><span>Already built</span></div>
+        <div class="cb">
+          <div class="copyline"><span class="k">Headline</span><span class="v">1 सितंबर से कैरी फीस लगने वाली है</span><span class="n">33 chars</span></div>
+          <div class="copyline"><span class="k">Sub-line</span><span class="v sub">नेटबॉक्स देखें — लगाएं या वापस करें</span><span class="n">35 chars</span></div>
+          <div class="copyline"><span class="k">On tap</span><span class="v sub">Same destination as the push<br><code>https://csp.wiom.in/carry_fee_detail/PENDING</code></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Who sees it</div>
+      <p><strong>Same audience as the push</strong> — driven by the same list: <a href="https://docs.google.com/spreadsheets/d/1Uj3NcvAmQVXTDlcslWVZF5XDnl-4e-9Ci_TMEMAvppo/edit?gid=0#gid=0" target="_blank" rel="noopener">CSP communication list (Google Sheet)</a>. Only CSPs on that list see the banner.</p>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Reference</div>
+      <div class="refwrap">
+        <div><svg class="screen-img" viewBox="0 0 312 660" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="App Home carry fee banner (vector mockup)">
+              <rect x="0" y="0" width="312" height="660" fill="#FAF9FC"/>
+              <rect x="0" y="0" width="312" height="64" fill="#6D17CE"/>
+              <text x="20" y="38" font-family="Arial,sans-serif" font-size="15" font-weight="700" fill="#FFFFFF">Wiom Partner</text>
+              <rect x="16" y="84" width="136" height="120" rx="10" fill="#FFFFFF" stroke="#E5E0EC"/>
+              <rect x="160" y="84" width="136" height="120" rx="10" fill="#FFFFFF" stroke="#E5E0EC"/>
+              <text x="30" y="112" font-family="Arial,sans-serif" font-size="10" fill="#797186">Earnings tile</text>
+              <text x="174" y="112" font-family="Arial,sans-serif" font-size="10" fill="#797186">Earnings tile</text>
+              <rect x="30" y="128" width="80" height="14" rx="4" fill="#EFEAF6"/>
+              <rect x="174" y="128" width="80" height="14" rx="4" fill="#EFEAF6"/>
+              <rect x="30" y="152" width="104" height="10" rx="4" fill="#F3F0F8"/>
+              <rect x="174" y="152" width="104" height="10" rx="4" fill="#F3F0F8"/>
+              <rect x="16" y="224" width="280" height="112" rx="12" fill="#F1E5FE" stroke="#DCC8F7"/>
+              <text x="30" y="289" font-family="'Nirmala UI','Noto Sans Devanagari','Mangal',sans-serif" font-size="15" font-weight="700" fill="#6D17CE">1 &#2360;&#2367;&#2340;&#2306;&#2348;&#2352; &#2360;&#2375; &#2325;&#2376;&#2352;&#2368; &#2347;&#2368;&#2360; &#2354;&#2327;&#2344;&#2375; &#2357;&#2366;&#2354;&#2368; &#2361;&#2376;</text>
+              <text x="30" y="308" font-family="'Nirmala UI','Noto Sans Devanagari','Mangal',sans-serif" font-size="11" font-weight="400" fill="#7D30D4">&#2344;&#2375;&#2335;&#2348;&#2377;&#2325;&#2381;&#2360; &#2342;&#2375;&#2326;&#2375;&#2306; &#8212; &#2354;&#2327;&#2366;&#2319;&#2306; &#2351;&#2366; &#2357;&#2366;&#2346;&#2360; &#2325;&#2352;&#2375;&#2306;</text>
+              <path d="M278 272 l8 8 -8 8" fill="none" stroke="#6D17CE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="16" y="356" width="280" height="90" rx="10" fill="#FFFFFF" stroke="#E5E0EC"/>
+              <rect x="16" y="462" width="280" height="90" rx="10" fill="#FFFFFF" stroke="#E5E0EC"/>
+              <rect x="0" y="608" width="312" height="52" fill="#FFFFFF" stroke="#E5E0EC"/>
+              <circle cx="52" cy="634" r="8" fill="#EFEAF6"/>
+              <circle cx="156" cy="634" r="8" fill="#EFEAF6"/>
+              <circle cx="260" cy="634" r="8" fill="#EFEAF6"/>
+            </svg></div>
+        <div>
+          <p>Sits below the earnings tiles on the home screen.</p>
+          <ul>
+            <li>Warning treatment, chevron on the right.</li>
+            <li><strong>No dismiss control.</strong> It is deliberately persistent for these three days — please don't add one.</li>
+            <li>Headline carries the date; sub-line carries the count.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+
+
+  </div>
+
+  <footer>
+    Wiom Internal · Design &amp; Comms brief · 28 August 2026 · Carry fee batch with cadence date 1 September 2026.<br>
+    Screens shown are real app captures with this batch's date applied. Ops-facing background note: <em>CarryFee_Education.html</em>.
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var tabs = document.querySelectorAll('#tabs .tab');
+  var panels = document.querySelectorAll('.tabpanel');
+  if (!tabs.length) { return; }
+  function show(n) {
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].className = 'tab' + (tabs[i].getAttribute('data-t') === n ? ' active' : '');
+    }
+    for (var j = 0; j < panels.length; j++) {
+      panels[j].className = 'tabpanel' + (panels[j].getAttribute('data-p') === n ? ' on' : '');
+    }
+    window.scrollTo(0, 0);
+  }
+  for (var k = 0; k < tabs.length; k++) {
+    (function (b) { b.addEventListener('click', function () { show(b.getAttribute('data-t')); }); })(tabs[k]);
+  }
+})();
+</script>
+</body>
+</html>
