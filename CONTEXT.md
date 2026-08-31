@@ -29,7 +29,10 @@ context (files, rules, deploy, gotchas) as of **3 Aug 2026** — **July is close
 
 ### Month switching (Jul → Aug → Sep) — `?month=`
 Every settle screen (settle, settle-prorata) is **month-aware**:
-`&month=july` (default) · `&month=aug` · `&month=sep`. It picks the month's frozen data file
+`&month=july` · `&month=aug` · `&month=sep`. **Default (no `?month=`) = the LAST COMPLETED
+program month** (`lastDoneMonth()` in each page): during Aug bare links show July's payout,
+from 1-Sep they show August's, from 1-Oct September's — no manual flip needed at month end.
+The param picks the month's frozen data file
 (`data-july.json` / `data-aug.json` / `data-sep.json`), the month name in all copy, and the
 days-in-month for pro-rata. So **August payout = the same URLs + `&month=aug`**, e.g.
 `settle.html?cspId=X&month=aug`, `settle-prorata.html?cspId=X&joined=YYYY-MM-DD&month=aug`.
@@ -145,7 +148,7 @@ To keep the settle links showing **July's final settlement**:
 - **`settle.html` reads `data-july.json`** (via `?month=july`), not the live `data.json`.
 - Timing-proof: the IST month boundary in `refresh.py` matches `metrics.sql`'s own, so `data-july.json` only ever holds July data. No midnight action needed.
 
-*After July payout, to make settle show the current month again, point its `DATA_URL` + local fetch back to `data.json` (and rename the freeze month in `build()`).*
+*No month-end action needed on the settle screens: the bare-link default rolls to the just-frozen month automatically (see Month switching above). What DOES need doing each month: add new enrollees' dates to the `enrol` CTE in `sql/metrics.sql` + `joined` in `csp-meta.json`, add any new rate switches to `csp-meta.json`, and after the freeze re-run the split builder for switch-month CSPs (retro rebuild: dispatch refresh-data with `month=<m>`).*
 
 ## Data pipeline / automation
 - **GitHub Action** `.github/workflows/refresh-data.yml` runs `refresh.py --push` on a cron (Metabase secret `METABASE_API_KEY`). Green & healthy.
