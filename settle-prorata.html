@@ -83,7 +83,15 @@ html,body{background:var(--screen);overflow-x:hidden;}
    change lives in the poller; this screen just consumes installs/denom.          */
 var PROXY_URL = "";
 var MONTHS={july:{name:'जुलाई',days:31,file:'data-july.json',ym:'2026-07'},aug:{name:'अगस्त',days:31,file:'data-aug.json',ym:'2026-08'},sep:{name:'सितंबर',days:30,file:'data-sep.json',ym:'2026-09'}};
-var MO=MONTHS[(new URLSearchParams(location.search).get('month')||'july').toLowerCase()]||MONTHS.july;
+/* default month = the LAST COMPLETED program month — settlement is a month-END
+   screen, so during Aug the bare link shows July's payout, from 1-Sep it shows
+   August's, from 1-Oct September's. ?month=july|aug|sep still overrides. */
+function lastDoneMonth(){
+  var ist=new Date(Date.now()+330*60000);
+  var idx=(ist.getUTCFullYear()-2026)*12+ist.getUTCMonth();   /* Aug'26→7, Sep→8, Oct→9 */
+  return idx<=7?'july':idx===8?'aug':'sep';
+}
+var MO=MONTHS[(new URLSearchParams(location.search).get('month')||lastDoneMonth()).toLowerCase()]||MONTHS[lastDoneMonth()];
 var DATA_URL  = "https://vikaswiom.github.io/wiom-mbg-kamai-kavach/"+MO.file;  /* month snapshot; ?month=july|aug|sep */
 var PAY=300, GATE=0.60, FLOOR=10000;   /* per-CSP overlay (csp-meta.json) adds pro-rata floor + two-tier rate */
 var OVERLAY={};   /* cspId -> {joined?, rate_before?, rate_after?, switch?, inst_before?, inst_after?} */
