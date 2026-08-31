@@ -68,6 +68,10 @@ html,body{background:var(--screen);overflow-x:hidden;}
 .demo button[aria-pressed="true"]{background:var(--maroon);border-color:var(--maroon);color:#fff;}
 .demo .note{width:100%;font-size:11px;color:var(--t3);padding-top:2px;}
 .skel{color:var(--t3);font-size:12.5px;font-weight:600;text-align:center;padding:34px 14px;line-height:1.7;}
+/* bottom CTA → current running cycle's live हिसाब */
+.cta-cycle{display:block;text-align:center;background:var(--purple);color:#fff;border-radius:14px;
+  padding:13px 15px;font-size:14px;font-weight:800;text-decoration:none;letter-spacing:.2px;}
+.cta-cycle small{display:block;font-weight:600;font-size:11px;color:#e9dcfb;margin-top:2px;}
 </style></head>
 <body>
 <div class="demo" id="demo" hidden></div>
@@ -93,6 +97,13 @@ function lastDoneMonth(){
   var ist=new Date(Date.now()+330*60000);
   var idx=(ist.getUTCFullYear()-2026)*12+ist.getUTCMonth();   /* Aug'26→7, Sep→8, Oct→9 */
   return idx<=7?'july':idx===8?'aug':'sep';
+}
+/* the program month currently RUNNING (null once the program is over) — used by the
+   bottom CTA that jumps from a settled month to the live current-cycle हिसाब */
+function runningMonth(){
+  var ist=new Date(Date.now()+330*60000);
+  var idx=(ist.getUTCFullYear()-2026)*12+ist.getUTCMonth()+1;
+  return idx===7?'july':idx===8?'aug':idx===9?'sep':null;
 }
 var MO=MONTHS[(new URLSearchParams(location.search).get('month')||lastDoneMonth()).toLowerCase()]||MONTHS[lastDoneMonth()];
 var DATA_URL  = "https://vikaswiom.github.io/wiom-mbg-kamai-kavach/"+MO.file;  /* month snapshot; ?month=july|aug|sep */
@@ -230,6 +241,18 @@ function render(d){
       '<div class="days-next">अगले महीने से — गिनती 1 तारीख़ से, 60% रखने पर पूरे ₹10,000।</div></div>';
   }
 
+  /* bottom CTA — jump from a settled month to the RUNNING cycle's live हिसाब
+     (e.g. from Aug's settlement to Sep's month-to-date). Real CSPs only, only
+     while a program month is running and it isn't the month already shown.
+     cspId stays the last URL param. */
+  var ctaHTML='';
+  var runk=runningMonth(), cid=cspIdFromUrl();
+  if(cid && runk && MONTHS[runk].ym!==MO.ym){
+    ctaHTML='<a class="cta-cycle" href="'+location.pathname+'?month='+runk+'&cspId='+encodeURIComponent(cid)+'">'+
+      'इस साइकिल का हिसाब — '+MONTHS[runk].name+' →'+
+      '<small>चालू महीने की अब तक की गिनती</small></a>';
+  }
+
   document.getElementById('body').innerHTML =
     '<div class="card"><div class="k">'+earnLabel+'</div>'+
       '<div class="earn-amt">'+earnHero+'</div>'+
@@ -238,7 +261,7 @@ function render(d){
     '<div class="settle '+s.tone+'"><div class="ph">'+s.ph+'</div>'+
       '<div class="title">'+s.title+'</div><div class="body">'+s.body+'</div>'+rowsHTML(s.rows)+'</div>'+
     prorataHTML+
-    '';
+    ctaHTML;
 }
 
 /* ── data ── */
@@ -282,7 +305,8 @@ function mountDemo(){
 
 (async function(){
   var q=new URLSearchParams(location.search);
-  document.getElementById('subhdr').textContent=MO.name+' का हिसाब';
+  var isRunning=runningMonth() && MONTHS[runningMonth()].ym===MO.ym;
+  document.getElementById('subhdr').textContent=MO.name+' का हिसाब'+(isRunning?' · चालू (महीने के अंत में फाइनल)':'');
   var id=cspIdFromUrl();
   if(q.get('case') && DEMO[q.get('case')]){ render(DEMO[q.get('case')]); return; }
   if(!id || q.get('demo')==='1'){ mountDemo(); return; }
