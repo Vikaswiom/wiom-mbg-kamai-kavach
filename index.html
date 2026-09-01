@@ -207,7 +207,7 @@ async function renderPrev(cspId){
     var el=document.getElementById('prevrow');
     el.innerHTML='<span class="pr-ic">🗓️</span><div class="pr-t">पिछले महीने का हिसाब <b>· '+PREV.label+'</b></div>'+
                  '<div class="pr-sum">कुल ₹'+total.toLocaleString('en-IN')+'</div><span class="pr-arr">›</span>';
-    el.href='settle.html?cspId='+encodeURIComponent(cspId)+'&month='+PREV.key;
+    el.href='settle.html?month='+PREV.key+'&cspId='+encodeURIComponent(cspId);   /* cspId last, by convention */
     el.hidden=false;
   }catch(e){}
 }
