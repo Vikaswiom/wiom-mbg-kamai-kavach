@@ -251,7 +251,7 @@ function render(d){
   var ctaHTML='';
   var runk=runningMonth(), cid=cspIdFromUrl();
   if(cid && runk && MONTHS[runk].ym!==MO.ym){
-    ctaHTML='<a class="cta-cycle" href="'+location.pathname+'?month='+runk+'&cspId='+encodeURIComponent(cid)+'">'+
+    ctaHTML='<a class="cta-cycle" href="./?cspId='+encodeURIComponent(cid)+'">'+   /* → live during-month banner */
       'इस साइकिल का हिसाब — '+MONTHS[runk].name+' →'+
       '<small>चालू महीने की अब तक की गिनती</small></a>';
   }
