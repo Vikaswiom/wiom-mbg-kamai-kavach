@@ -310,6 +310,23 @@ function mountDemo(){
   var id=cspIdFromUrl();
   if(q.get('case') && DEMO[q.get('case')]){ render(DEMO[q.get('case')]); return; }
   if(!id || q.get('demo')==='1'){ mountDemo(); return; }
+  /* month adjudication overrides (settle-overrides-<month>.json) — CSPs whose
+     payment for the displayed month is withheld (removed) or under review
+     (hold) must never see settlement money on this screen */
+  var hold=null;
+  try{ var hr=await fetch('settle-overrides-'+MO.file.slice(5,-5)+'.json',{cache:'no-store'});
+       if(hr.ok){ hold=((await hr.json()).holds||{})[id]||null; } }catch(e){}
+  if(hold){
+    var ht = hold==='removed' ? MO.name+' का भुगतान जारी नहीं हुआ' : MO.name+' का भुगतान अभी रोका गया है';
+    var hb = hold==='removed'
+      ? 'समीक्षा के बाद '+MO.name+' का भुगतान जारी नहीं किया गया और प्रोग्राम सदस्यता रोक दी गई है। कोई सवाल हो तो helpline पर संपर्क करें।'
+      : MO.name+' का भुगतान समीक्षा में है — टीम जल्द आपसे संपर्क करेगी। कोई सवाल हो तो helpline पर संपर्क करें।';
+    document.getElementById('body').innerHTML =
+      '<div class="settle na"><div class="ph">🛡 '+MO.name+' का हिसाब</div>'+
+      '<div class="title">'+ht+'</div><div class="body">'+hb+'</div>'+
+      rowsHTML([['कुल — वॉलेट में','₹0',' total']])+'</div>';
+    return;
+  }
   await loadOverlay();
   var d=await getCsp();
   if(!d){ document.getElementById('body').innerHTML='<div class="skel">इस महीने का हिसाब अभी तैयार नहीं है.<br>App में दोबारा खोलें, या helpline पर call करें.</div>'; return; }
