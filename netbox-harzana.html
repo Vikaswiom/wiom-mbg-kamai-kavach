@@ -2,7 +2,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>नेटबॉक्स हर्जाना</title>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL@24,400,1" rel="stylesheet">
 <style>
   :root{
     --brand:#D9008D; --brand-light:#FFB2E4; --brand-bg:#FFF0F8;
@@ -15,6 +14,7 @@
   html,body{ height:100%; overflow:hidden; }
   body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans","Noto Sans Devanagari",sans-serif;
     -webkit-font-smoothing:antialiased; }
+  svg{ display:block; }
 
   .app{ position:fixed; top:0; right:0; bottom:0; left:0; max-width:420px; margin:0 auto; overflow:hidden; }
 
@@ -22,7 +22,7 @@
   .clang{ position:absolute; top:14px; right:14px; z-index:100;
     border:1px solid rgba(255,255,255,.4); background:rgba(255,255,255,.15); color:var(--white);
     border-radius:999px; font-family:inherit; font-size:12px; font-weight:600;
-    padding:5px 12px; cursor:pointer; backdrop-filter:blur(8px); }
+    padding:5px 12px; cursor:pointer; }
   .page-3 .clang{ border-color:#ddd; background:var(--white); color:var(--text); }
 
   /* ── Slides Container ── */
@@ -47,8 +47,7 @@
     padding-bottom:calc(28px + env(safe-area-inset-bottom, 0px)); }
   .btn-next{ background:var(--white); color:var(--brand-sec); border:0; border-radius:14px;
     font-family:inherit; font-size:15px; font-weight:700; padding:14px 32px;
-    cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; width:100%; }
-  .btn-next .material-symbols-outlined{ font-size:18px; }
+    cursor:pointer; width:100%; }
   .btn-cta{ background:var(--brand); color:var(--white); border:0; border-radius:14px;
     font-family:inherit; font-size:15px; font-weight:700; padding:14px 32px;
     cursor:pointer; width:100%; }
@@ -63,17 +62,16 @@
     border:2px dashed rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center;
     animation:pulse 3s ease-in-out infinite; }
   .s1 .gfx-inner{ width:88px; height:88px; border-radius:50%; background:rgba(255,255,255,.08);
-    display:flex; align-items:center; justify-content:center; }
-  .s1 .gfx-inner .material-symbols-outlined{ font-size:44px; color:var(--brand-light); }
+    display:flex; align-items:center; justify-content:center; color:var(--brand-light); }
   .s1 .gfx-badge{ position:absolute; bottom:4px; right:4px; width:36px; height:36px;
     border-radius:50%; background:var(--brand); display:flex; align-items:center; justify-content:center;
-    box-shadow:0 4px 12px rgba(217,0,141,.4); }
-  .s1 .gfx-badge .material-symbols-outlined{ font-size:20px; color:var(--white); }
-  .s1 .floating{ position:absolute; opacity:.08; pointer-events:none; }
-  .s1 .f1{ top:12%; left:8%; font-size:60px; transform:rotate(-15deg); }
-  .s1 .f2{ top:8%; right:10%; font-size:40px; transform:rotate(10deg); }
-  .s1 .f3{ bottom:18%; left:12%; font-size:50px; transform:rotate(5deg); }
-  .s1 .f4{ bottom:22%; right:8%; font-size:45px; transform:rotate(-8deg); }
+    box-shadow:0 4px 12px rgba(217,0,141,.4); color:var(--white);
+    font-size:20px; font-weight:800; line-height:1; }
+  .s1 .floating{ position:absolute; opacity:.08; pointer-events:none; color:var(--white); }
+  .s1 .f1{ top:12%; left:8%; transform:rotate(-15deg); }
+  .s1 .f2{ top:8%; right:10%; transform:rotate(10deg); }
+  .s1 .f3{ bottom:18%; left:12%; font-size:50px; font-weight:700; transform:rotate(5deg); }
+  .s1 .f4{ bottom:22%; right:8%; transform:rotate(-8deg); }
   .s1-title{ font-size:28px; line-height:38px; font-weight:800; margin-bottom:6px; }
   .s1-title .accent{ color:var(--brand-light); }
   .s1-desc{ font-size:14px; line-height:22px; color:rgba(255,255,255,.75); max-width:32ch; margin:12px auto 0;
@@ -95,15 +93,9 @@
   .s2-card.amber{ background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.25); }
   .s2-card-icon{ flex-shrink:0; width:44px; height:44px; border-radius:12px;
     display:flex; align-items:center; justify-content:center; }
-  .s2-card.red .s2-card-icon{ background:rgba(239,68,68,.15); }
-  .s2-card.red .s2-card-icon .material-symbols-outlined{ font-size:24px; color:#fca5a5; }
-  .s2-card.amber .s2-card-icon{ background:rgba(245,158,11,.15); }
-  .s2-card.amber .s2-card-icon .material-symbols-outlined{ font-size:24px; color:#fde68a; }
+  .s2-card.red .s2-card-icon{ background:rgba(239,68,68,.15); color:#fca5a5; }
+  .s2-card.amber .s2-card-icon{ background:rgba(245,158,11,.15); color:#fde68a; }
   .s2-card-body{ flex:1; }
-  .s2-card-tag{ display:inline-block; font-size:11px; font-weight:700; padding:3px 10px;
-    border-radius:999px; margin-bottom:6px; letter-spacing:.3px; }
-  .s2-card.red .s2-card-tag{ background:rgba(239,68,68,.2); color:#fca5a5; }
-  .s2-card.amber .s2-card-tag{ background:rgba(245,158,11,.2); color:#fde68a; }
   .s2-card-heading{ font-size:15px; font-weight:700; margin-bottom:4px; }
   .s2-card-desc{ font-size:13px; line-height:20px; color:rgba(255,255,255,.7); }
   .s2-card-desc strong{ color:var(--white); font-weight:700; }
@@ -111,8 +103,8 @@
   /* ── Deduction Tables (collapsible) ── */
   .ded-toggle{ display:flex; align-items:center; gap:6px; margin-top:10px; background:none; border:0;
     color:var(--brand-light); font-family:inherit; font-size:13px; font-weight:700; cursor:pointer; padding:0; }
-  .ded-toggle .material-symbols-outlined{ font-size:18px; transition:transform .3s; }
-  .ded-toggle.open .material-symbols-outlined{ transform:rotate(180deg); }
+  .ded-toggle svg{ transition:transform .3s; }
+  .ded-toggle.open svg{ transform:rotate(180deg); }
   .ded-tables{ margin-top:10px; display:none; flex-direction:column; gap:10px; }
   .ded-tables.open{ display:flex; }
   .ded-table-label{ font-size:11px; font-weight:700; color:var(--brand-light); margin-bottom:4px; }
@@ -131,13 +123,12 @@
   .s3 .gfx{ position:relative; margin-bottom:24px; }
   .s3 .gfx-circle{ width:110px; height:110px; border-radius:50%;
     background:rgba(14,122,58,.08); border:2px solid rgba(14,122,58,.15);
-    display:flex; align-items:center; justify-content:center; }
-  .s3 .gfx-circle .material-symbols-outlined{ font-size:54px; color:var(--green); }
+    display:flex; align-items:center; justify-content:center;
+    font-size:54px; font-weight:800; color:var(--green); line-height:1; }
   .s3 .gfx-check{ position:absolute; bottom:2px; right:2px; width:34px; height:34px;
     border-radius:50%; background:var(--green); display:flex; align-items:center; justify-content:center;
-    box-shadow:0 4px 12px rgba(14,122,58,.3); }
-  .s3 .gfx-check .material-symbols-outlined{ font-size:20px; color:var(--white); }
-  .s3 .gfx-sparkle{ position:absolute; pointer-events:none; }
+    box-shadow:0 4px 12px rgba(14,122,58,.3); color:var(--white); }
+  .s3 .gfx-sparkle{ position:absolute; pointer-events:none; line-height:1; }
   .s3 .sp1{ top:-6px; left:-10px; font-size:20px; color:#86efac; animation:sparkle 1.5s ease-in-out infinite; }
   .s3 .sp2{ top:10px; right:-14px; font-size:16px; color:#4ade80; animation:sparkle 1.5s ease-in-out infinite .3s; }
   .s3 .sp3{ bottom:20px; left:-16px; font-size:14px; color:#a7f3d0; animation:sparkle 1.5s ease-in-out infinite .6s; }
@@ -156,7 +147,6 @@
   @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important; } }
 </style>
 
-<span id="cid" style="display:none">{{ Profile.cspid | default:"" }}</span>
 <div class="app" id="app">
   <button class="clang" id="langToggle" aria-label="Switch language">English</button>
 
@@ -164,20 +154,30 @@
 
     <!-- ══ SLIDE 1: Intro ══ -->
     <div class="slide s1">
-      <span class="material-symbols-outlined floating f1">router</span>
-      <span class="material-symbols-outlined floating f2">warning</span>
-      <span class="material-symbols-outlined floating f3">currency_rupee</span>
-      <span class="material-symbols-outlined floating f4">shield</span>
+      <span class="floating f1" aria-hidden="true">
+        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="13" width="20" height="7" rx="2"/><path d="M6.5 16.5h.01M10 16.5h.01"/><path d="M16 13V7"/><path d="M13 5a5 5 0 0 1 6 0"/></svg>
+      </span>
+      <span class="floating f2" aria-hidden="true">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </span>
+      <span class="floating f3" aria-hidden="true">₹</span>
+      <span class="floating f4" aria-hidden="true">
+        <svg width="45" height="45" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </span>
       <div class="gfx">
         <div class="gfx-ring">
           <div class="gfx-inner">
-            <span class="material-symbols-outlined">router</span>
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="13" width="20" height="7" rx="2"/><path d="M6.5 16.5h.01M10 16.5h.01"/><path d="M16 13V7"/><path d="M13 5a5 5 0 0 1 6 0"/></svg>
           </div>
         </div>
-        <span class="gfx-badge"><span class="material-symbols-outlined">priority_high</span></span>
+        <span class="gfx-badge" aria-hidden="true">!</span>
       </div>
-      <p class="s1-title" data-i18n="s1Title">16 सितंबर से नेटबॉक्स<br><span class="accent">गुम होने पर कटेंगे पैसे</span></p>
-      <ul class="s1-desc" data-i18n="s1Desc"><li>नेटबॉक्स Wiom की प्रॉपर्टी है और इसे सुरक्षित रखना आपकी ज़िम्मेदारी है।</li><li>नेटबॉक्स गुम हो जाने पर आपको उसके पैसे Wiom को चुकाने होंगे।</li><li>नेटबॉक्स कस्टमर से वापस नहीं लाने पर भी पैसे काटे जाएँगे।</li></ul>
+      <p class="s1-title"><span data-i18n="s1TitleA">16 सितंबर से नेटबॉक्स</span><br><span class="accent" data-i18n="s1TitleB">गुम होने पर कटेंगे पैसे</span></p>
+      <ul class="s1-desc">
+        <li data-i18n="s1b1">नेटबॉक्स Wiom की प्रॉपर्टी है और इसे सुरक्षित रखना आपकी ज़िम्मेदारी है।</li>
+        <li data-i18n="s1b2">नेटबॉक्स गुम हो जाने पर आपको उसके पैसे Wiom को चुकाने होंगे।</li>
+        <li data-i18n="s1b3">नेटबॉक्स कस्टमर से वापस नहीं लाने पर भी पैसे काटे जाएँगे।</li>
+      </ul>
     </div>
 
     <!-- ══ SLIDE 2: Deductions (merged) ══ -->
@@ -185,43 +185,47 @@
       <p class="s2-title" data-i18n="s2Title">कब और कितने पैसे कटेंगे?</p>
       <div class="s2-cards">
         <div class="s2-card red">
-          <div class="s2-card-icon"><span class="material-symbols-outlined">search_off</span></div>
+          <div class="s2-card-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8.5" y1="8.5" x2="13.5" y2="13.5"/><line x1="13.5" y1="8.5" x2="8.5" y2="13.5"/></svg>
+          </div>
           <div class="s2-card-body">
             <p class="s2-card-heading" data-i18n="s2Head1">नेटबॉक्स गुम हो गया?</p>
-            <p class="s2-card-desc" data-i18n="s2Desc1">आपने खुद नेटबॉक्स को <strong>गुम</strong> मार्क किया हो या Wiom को वापस नहीं मिला हो—दोनों ही मामलों में नेटबॉक्स की उम्र के हिसाब से तय रकम काटी जाएगी।</p>
+            <p class="s2-card-desc"><span data-i18n="s2Desc1a">आपने खुद नेटबॉक्स को </span><strong data-i18n="s2Desc1b">गुम</strong><span data-i18n="s2Desc1c"> मार्क किया हो या Wiom को वापस नहीं मिला हो—दोनों ही मामलों में नेटबॉक्स की उम्र के हिसाब से तय रकम काटी जाएगी।</span></p>
             <button class="ded-toggle" id="dedToggle">
               <span data-i18n="dedBtn">पैसे कितने कटेंगे?</span>
-              <span class="material-symbols-outlined">expand_more</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="ded-tables" id="dedTables">
               <div>
                 <p class="ded-table-label" data-i18n="ontLabel">ONT (MRP ₹1,888)</p>
                 <table class="ded-table">
                   <tr><th data-i18n="thAge">उम्र</th><th data-i18n="thDed">कटौती</th></tr>
-                  <tr><td data-i18n="ont1Age">0–1 साल</td><td>₹1,888</td></tr>
-                  <tr><td data-i18n="ont2Age">1–2 साल</td><td>₹1,416</td></tr>
-                  <tr><td data-i18n="ont3Age">2–3 साल</td><td>₹944</td></tr>
-                  <tr><td data-i18n="ont4Age">3+ साल</td><td>₹472</td></tr>
+                  <tr><td data-i18n="age1a">0–1 साल</td><td>₹1,888</td></tr>
+                  <tr><td data-i18n="age2a">1–2 साल</td><td>₹1,416</td></tr>
+                  <tr><td data-i18n="age3a">2–3 साल</td><td>₹944</td></tr>
+                  <tr><td data-i18n="age4a">3+ साल</td><td>₹472</td></tr>
                 </table>
               </div>
               <div>
                 <p class="ded-table-label" data-i18n="routerLabel">Router (MRP ₹1,062)</p>
                 <table class="ded-table">
                   <tr><th data-i18n="thAge">उम्र</th><th data-i18n="thDed">कटौती</th></tr>
-                  <tr><td data-i18n="ont1Age">0–1 साल</td><td>₹1,062</td></tr>
-                  <tr><td data-i18n="ont2Age">1–2 साल</td><td>₹796</td></tr>
-                  <tr><td data-i18n="ont3Age">2–3 साल</td><td>₹531</td></tr>
-                  <tr><td data-i18n="ont4Age">3+ साल</td><td>₹265</td></tr>
+                  <tr><td data-i18n="age1b">0–1 साल</td><td>₹1,062</td></tr>
+                  <tr><td data-i18n="age2b">1–2 साल</td><td>₹796</td></tr>
+                  <tr><td data-i18n="age3b">2–3 साल</td><td>₹531</td></tr>
+                  <tr><td data-i18n="age4b">3+ साल</td><td>₹265</td></tr>
                 </table>
               </div>
             </div>
           </div>
         </div>
         <div class="s2-card amber">
-          <div class="s2-card-icon"><span class="material-symbols-outlined">local_shipping</span></div>
+          <div class="s2-card-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="5" width="14" height="11" rx="1"/><path d="M15 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2"/><circle cx="18.5" cy="18.5" r="2"/></svg>
+          </div>
           <div class="s2-card-body">
             <p class="s2-card-heading" data-i18n="s2Head2">पिकअप पूरा नहीं हुआ?</p>
-            <p class="s2-card-desc" data-i18n="s2Desc2">कस्टमर से नेटबॉक्स का पिकअप पूरा नहीं कर पाए, तो हर ऐसे नेटबॉक्स पर <strong>₹200 की कटौती</strong> होगी।</p>
+            <p class="s2-card-desc"><span data-i18n="s2Desc2a">कस्टमर से नेटबॉक्स का पिकअप पूरा नहीं कर पाए, तो हर ऐसे नेटबॉक्स पर </span><strong data-i18n="s2Desc2b">₹200 की कटौती</strong><span data-i18n="s2Desc2c"> होगी।</span></p>
           </div>
         </div>
       </div>
@@ -230,17 +234,20 @@
     <!-- ══ SLIDE 3: Refund ══ -->
     <div class="slide s3">
       <div class="gfx">
-        <div class="gfx-circle">
-          <span class="material-symbols-outlined">currency_rupee</span>
-        </div>
-        <span class="gfx-check"><span class="material-symbols-outlined">check</span></span>
-        <span class="material-symbols-outlined gfx-sparkle sp1">auto_awesome</span>
-        <span class="material-symbols-outlined gfx-sparkle sp2">auto_awesome</span>
-        <span class="material-symbols-outlined gfx-sparkle sp3">auto_awesome</span>
+        <div class="gfx-circle" aria-hidden="true">₹</div>
+        <span class="gfx-check" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </span>
+        <span class="gfx-sparkle sp1" aria-hidden="true">✦</span>
+        <span class="gfx-sparkle sp2" aria-hidden="true">✦</span>
+        <span class="gfx-sparkle sp3" aria-hidden="true">✦</span>
       </div>
       <span class="s3-tag" data-i18n="s3Tag">रिफ़ंड</span>
-      <p class="s3-title" data-i18n="s3Title">नेटबॉक्स वापस करने पर<br>पैसे वापस!</p>
-      <ul class="s3-desc" data-i18n="s3Desc"><li>गुम हुआ नेटबॉक्स Wiom को वापस करने पर काटे गए पैसे वापस क्रेडिट कर दिए जाएँगे।</li><li>अभी अपने सारे गुम नेटबॉक्स की लिस्ट देखें और Wiom को वापस करके पैसे कटने से बचाएँ।</li></ul>
+      <p class="s3-title"><span data-i18n="s3TitleA">नेटबॉक्स वापस करने पर</span><br><span data-i18n="s3TitleB">पैसे वापस!</span></p>
+      <ul class="s3-desc">
+        <li data-i18n="s3b1">गुम हुआ नेटबॉक्स Wiom को वापस करने पर काटे गए पैसे वापस क्रेडिट कर दिए जाएँगे।</li>
+        <li data-i18n="s3b2">अभी अपने सारे गुम नेटबॉक्स की लिस्ट देखें और Wiom को वापस करके पैसे कटने से बचाएँ।</li>
+      </ul>
     </div>
   </div>
 
@@ -251,59 +258,72 @@
 
   <!-- Bottom Nav -->
   <div class="bottom-nav" id="bottomNav">
-    <button class="btn-next" id="btnNext">
-      <span data-i18n="next1">कितने पैसे कटेंगे? →</span>
-    </button>
+    <button class="btn-next" id="btnNext">कितने पैसे कटेंगे? →</button>
   </div>
 </div>
 
 <script>
+  /* ═══════════════════════════════════════════════════════════════
+     CSP ID: injected by CleverTap Liquid personalization
+     ═══════════════════════════════════════════════════════════════ */
+  var CSP_ID = '{{ Profile.cspId | default: "default" }}';
+  if(CSP_ID.indexOf('{') > -1) CSP_ID = 'default';       /* unresolved token (local test) */
+  if(CSP_ID === 'default'){
+    try{ var qm = location.search.match(/[?&]cspid=([^&]*)/i); if(qm) CSP_ID = decodeURIComponent(qm[1]); }catch(e){}
+  }
+
   var STR = {
     hi:{
       toggle:'English',
-      s1Title:'16 सितंबर से नेटबॉक्स<br><span class="accent">गुम होने पर कटेंगे पैसे</span>',
-      s1Desc:'<li>नेटबॉक्स Wiom की प्रॉपर्टी है और इसे सुरक्षित रखना आपकी ज़िम्मेदारी है।</li><li>नेटबॉक्स गुम हो जाने पर आपको उसके पैसे Wiom को चुकाने होंगे।</li><li>नेटबॉक्स कस्टमर से वापस नहीं लाने पर भी पैसे काटे जाएँगे।</li>',
+      s1TitleA:'16 सितंबर से नेटबॉक्स', s1TitleB:'गुम होने पर कटेंगे पैसे',
+      s1b1:'नेटबॉक्स Wiom की प्रॉपर्टी है और इसे सुरक्षित रखना आपकी ज़िम्मेदारी है।',
+      s1b2:'नेटबॉक्स गुम हो जाने पर आपको उसके पैसे Wiom को चुकाने होंगे।',
+      s1b3:'नेटबॉक्स कस्टमर से वापस नहीं लाने पर भी पैसे काटे जाएँगे।',
       s2Title:'कब और कितने पैसे कटेंगे?',
       s2Head1:'नेटबॉक्स गुम हो गया?',
-      s2Desc1:'आपने खुद नेटबॉक्स को <strong>गुम</strong> मार्क किया हो या Wiom को वापस नहीं मिला हो—दोनों ही मामलों में नेटबॉक्स की उम्र के हिसाब से तय रकम काटी जाएगी।',
+      s2Desc1a:'आपने खुद नेटबॉक्स को ', s2Desc1b:'गुम',
+      s2Desc1c:' मार्क किया हो या Wiom को वापस नहीं मिला हो—दोनों ही मामलों में नेटबॉक्स की उम्र के हिसाब से तय रकम काटी जाएगी।',
       dedBtn:'पैसे कितने कटेंगे?',
       ontLabel:'ONT (MRP ₹1,888)', routerLabel:'Router (MRP ₹1,062)',
       thAge:'उम्र', thDed:'कटौती',
-      ont1Age:'0–1 साल', ont2Age:'1–2 साल', ont3Age:'2–3 साल', ont4Age:'3+ साल',
+      age1a:'0–1 साल', age2a:'1–2 साल', age3a:'2–3 साल', age4a:'3+ साल',
+      age1b:'0–1 साल', age2b:'1–2 साल', age3b:'2–3 साल', age4b:'3+ साल',
       s2Head2:'पिकअप पूरा नहीं हुआ?',
-      s2Desc2:'कस्टमर से नेटबॉक्स का पिकअप पूरा नहीं कर पाए, तो हर ऐसे नेटबॉक्स पर <strong>₹200 की कटौती</strong> होगी।',
-      s3Tag:'रिफ़ंड', s3Title:'नेटबॉक्स वापस करने पर\nपैसे वापस!',
-      s3Desc:'<li>गुम हुआ नेटबॉक्स Wiom को वापस करने पर काटे गए पैसे वापस क्रेडिट कर दिए जाएँगे।</li><li>अभी अपने सारे गुम नेटबॉक्स की लिस्ट देखें और Wiom को वापस करके पैसे कटने से बचाएँ।</li>',
+      s2Desc2a:'कस्टमर से नेटबॉक्स का पिकअप पूरा नहीं कर पाए, तो हर ऐसे नेटबॉक्स पर ',
+      s2Desc2b:'₹200 की कटौती', s2Desc2c:' होगी।',
+      s3Tag:'रिफ़ंड', s3TitleA:'नेटबॉक्स वापस करने पर', s3TitleB:'पैसे वापस!',
+      s3b1:'गुम हुआ नेटबॉक्स Wiom को वापस करने पर काटे गए पैसे वापस क्रेडिट कर दिए जाएँगे।',
+      s3b2:'अभी अपने सारे गुम नेटबॉक्स की लिस्ट देखें और Wiom को वापस करके पैसे कटने से बचाएँ।',
       next1:'कितने पैसे कटेंगे? →', next2:'पैसे वापस कैसे पाएँ? →',
       cta:'गुम नेटबॉक्स देखें', doc:'नेटबॉक्स हर्जाना'
     },
     en:{
       toggle:'हिंदी',
-      s1Title:'From 16 September, Netbox<br><span class="accent">lost? You will pay for it</span>',
-      s1Desc:'<li>Netbox is Wiom\'s property and keeping it safe is your responsibility.</li><li>If a Netbox is lost, you will have to pay Wiom for it.</li><li>If you don\'t collect the Netbox back from the customer, money will be deducted too.</li>',
+      s1TitleA:'From 16 September, Netbox', s1TitleB:'lost? You will pay for it',
+      s1b1:'Netbox is Wiom\'s property and keeping it safe is your responsibility.',
+      s1b2:'If a Netbox is lost, you will have to pay Wiom for it.',
+      s1b3:'If you don\'t collect the Netbox back from the customer, money will be deducted too.',
       s2Title:'When and how much will be deducted?',
       s2Head1:'Netbox lost?',
-      s2Desc1:'Whether you marked the Netbox as <strong>Lost</strong> yourself or Wiom didn\'t receive it back—in both cases, the amount will be deducted based on Netbox age.',
+      s2Desc1a:'Whether you marked the Netbox as ', s2Desc1b:'Lost',
+      s2Desc1c:' yourself or Wiom didn\'t receive it back—in both cases, the amount will be deducted based on Netbox age.',
       dedBtn:'How much will be deducted?',
       ontLabel:'ONT (MRP ₹1,888)', routerLabel:'Router (MRP ₹1,062)',
       thAge:'Age', thDed:'Deduction',
-      ont1Age:'0–1 year', ont2Age:'1–2 years', ont3Age:'2–3 years', ont4Age:'3+ years',
+      age1a:'0–1 year', age2a:'1–2 years', age3a:'2–3 years', age4a:'3+ years',
+      age1b:'0–1 year', age2b:'1–2 years', age3b:'2–3 years', age4b:'3+ years',
       s2Head2:'Pickup not completed?',
-      s2Desc2:'If you couldn\'t complete Netbox pickup from the customer, a <strong>₹200 deduction</strong> will apply per Netbox.',
-      s3Tag:'Refund', s3Title:'Return the Netbox\nGet your money back!',
-      s3Desc:'<li>Return a lost Netbox to Wiom and the deducted amount will be credited back.</li><li>Check your list of lost Netboxes now and return them to Wiom to avoid deductions.</li>',
+      s2Desc2a:'If you couldn\'t complete Netbox pickup from the customer, a ',
+      s2Desc2b:'₹200 deduction', s2Desc2c:' will apply per Netbox.',
+      s3Tag:'Refund', s3TitleA:'Return the Netbox', s3TitleB:'Get your money back!',
+      s3b1:'Return a lost Netbox to Wiom and the deducted amount will be credited back.',
+      s3b2:'Check your list of lost Netboxes now and return them to Wiom to avoid deductions.',
       next1:'How much will be deducted? →', next2:'How to get money back? →',
       cta:'View lost Netboxes', doc:'Netbox Penalty'
     }
   };
 
-  var CSP_ID = (function(){
-    var id = '';
-    try{ id = (document.getElementById('cid').textContent || '').trim(); }catch(e){}
-    if(id.indexOf('{') > -1) id = '';                    /* unresolved Liquid token */
-    if(!id){ try{ var m = location.search.match(/[?&]cspid=([^&]*)/i); if(m) id = decodeURIComponent(m[1]); }catch(e){} }
-    return id;
-  })();
+  /* ── tracking ── */
   var IN_FRAME = (function(){ try{ return window.parent && window.parent !== window; }catch(e){ return false; } })();
   var EV_PREFIX = 'LostDevicePenalty_', sent = {}, DEBUG = (location.protocol === 'file:');
   function ctPush(ev, p){
@@ -325,7 +345,6 @@
   var dots = document.getElementById('dots').children;
   var btnNext = document.getElementById('btnNext');
   var app = document.getElementById('app');
-  var htmlKeys = ['s1Title','s1Desc','s2Desc1','s2Desc2','s3Desc'];
 
   function render(){
     var s = STR[lang];
@@ -333,12 +352,8 @@
     document.title = s.doc;
     var els = document.querySelectorAll('[data-i18n]');
     for(var i = 0; i < els.length; i++){
-      var el = els[i], k = el.getAttribute('data-i18n'), v = s[k];
-      if(v !== undefined){
-        if(htmlKeys.indexOf(k) !== -1) el.innerHTML = v;
-        else if(k === 's3Title') el.innerHTML = v.replace(/\n/g,'<br>');
-        else el.textContent = v;
-      }
+      var v = s[els[i].getAttribute('data-i18n')];
+      if(v !== undefined) els[i].textContent = v;
     }
     document.getElementById('langToggle').textContent = s.toggle;
   }
@@ -352,11 +367,10 @@
     app.className = 'app page-' + (page + 1);
 
     if(page === total - 1){
-      btnNext.innerHTML = '<span data-i18n="cta">' + STR[lang].cta + '</span>';
+      btnNext.textContent = STR[lang].cta;
       btnNext.className = 'btn-cta';
     } else {
-      var nk = 'next' + (page + 1);
-      btnNext.innerHTML = '<span data-i18n="' + nk + '">' + STR[lang][nk] + '</span>';
+      btnNext.textContent = STR[lang]['next' + (page + 1)];
       btnNext.className = 'btn-next';
     }
     track('Page_' + (page + 1));
@@ -371,33 +385,9 @@
     try{ window.webkit.messageHandlers.clevertap.postMessage({action:'dismissInAppNotification'}); }catch(e){}
   }
 
-  /* Tap binding: some WebViews swallow the synthesized click after touch,
-     so activate on touchend directly; click stays as the mouse/desktop path. */
-  function bindTap(el, fn){
-    var tx = 0, ty = 0, moved = false, lastTouch = 0;
-    el.addEventListener('touchstart', function(e){
-      var t = e.touches[0]; tx = t.clientX; ty = t.clientY; moved = false;
-    }, {passive:true});
-    el.addEventListener('touchmove', function(e){
-      var t = e.touches[0];
-      if(Math.abs(t.clientX - tx) > 10 || Math.abs(t.clientY - ty) > 10) moved = true;
-    }, {passive:true});
-    el.addEventListener('touchend', function(e){
-      lastTouch = Date.now();
-      if(moved) return;
-      if(e.cancelable) e.preventDefault();
-      fn(e);
-    });
-    el.addEventListener('click', function(e){
-      if(Date.now() - lastTouch < 700) return;
-      fn(e);
-    });
-  }
-
-  bindTap(btnNext, function(){
+  btnNext.addEventListener('click', function(){
     if(page < total - 1){
-      var nk = 'next' + (page + 1);
-      track('Next_Clicked', { fromPage:page+1, toPage:page+2, button:STR[lang][nk], lang:lang });
+      track('Next_Clicked', { fromPage:page+1, toPage:page+2, button:STR[lang]['next' + (page + 1)], lang:lang });
       goTo(page + 1);
     } else {
       track('GumNetboxDekhe_Clicked', { action:'view_lost_netbox', button:STR[lang].cta, page:page+1, lang:lang });
@@ -405,8 +395,7 @@
     }
   });
 
-
-  bindTap(document.getElementById('langToggle'), function(){
+  document.getElementById('langToggle').addEventListener('click', function(){
     var prev = lang;
     lang = (lang === 'hi' ? 'en' : 'hi');
     track('Lang_Switched', { from:prev, to:lang, page:page+1 });
@@ -428,7 +417,7 @@
 
   /* ── Deduction table toggle ── */
   var dedToggleBtn = document.getElementById('dedToggle');
-  bindTap(dedToggleBtn, function(){
+  dedToggleBtn.addEventListener('click', function(){
     var isOpen = dedToggleBtn.classList.toggle('open');
     document.getElementById('dedTables').classList.toggle('open');
     track('DedTable_Toggled', { action: isOpen ? 'expanded' : 'collapsed', lang:lang });
