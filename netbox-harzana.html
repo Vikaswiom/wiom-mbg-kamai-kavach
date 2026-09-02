@@ -287,8 +287,13 @@ function show(n){
 }
 
 function dismiss(){
-  try{ if(window.CleverTap && typeof window.CleverTap.dismissInAppNotification === 'function'){ window.CleverTap.dismissInAppNotification(); return; } }catch(e){}
-  try{ window.webkit.messageHandlers.clevertap.postMessage({action:'dismissInAppNotification'}); }catch(e){}
+  var asked = false;
+  try{ if(window.CleverTap && typeof window.CleverTap.dismissInAppNotification === 'function'){ window.CleverTap.dismissInAppNotification(); asked = true; } }catch(e){}
+  try{ if(!asked && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap){
+    window.webkit.messageHandlers.clevertap.postMessage({action:'dismissInAppNotification'}); asked = true; } }catch(e){}
+  /* CleverTap's in-app WebView dismisses the notification on ANY navigation,
+     so this closes even on SDKs whose JS bridge lacks dismissInAppNotification. */
+  setTimeout(function(){ try{ window.location.href = 'wzrk://close'; }catch(e){} }, asked ? 400 : 0);
 }
 
 document.getElementById('next1').addEventListener('click', function(){
