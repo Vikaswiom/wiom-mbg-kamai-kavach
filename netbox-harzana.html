@@ -23,6 +23,12 @@ svg{ display:block; }
 .p2{ justify-content:flex-start; overflow-y:auto; padding-top:60px; }
 .p3{ background:linear-gradient(160deg, #e8faf0 0%, #f0fdf4 100%); color:var(--text); }
 
+/* ── Close (X) button, top-left on every page ── */
+.cx{ position:absolute; top:14px; left:14px; width:34px; height:34px;
+  border:0; border-radius:50%; background:rgba(0,0,0,.35); color:var(--white);
+  font-family:inherit; font-size:17px; line-height:34px; text-align:center; padding:0; cursor:pointer; }
+.p3 .cx{ background:rgba(0,0,0,.12); color:var(--text); }
+
 /* ── Language toggle (one per page, top-right like the working creative) ── */
 .clang{ position:absolute; top:16px; right:16px;
   border:1px solid rgba(255,255,255,.4); background:rgba(255,255,255,.08); color:var(--white);
@@ -107,6 +113,7 @@ svg{ display:block; }
 
 <!-- ══ PAGE 1: Intro ══ -->
 <div class="page p1" id="page1">
+  <button class="cx" aria-label="Close">&#10005;</button>
   <button class="clang" aria-label="Switch language">English</button>
   <div class="gfx">
     <div class="gfx-ring">
@@ -128,6 +135,7 @@ svg{ display:block; }
 
 <!-- ══ PAGE 2: Deductions ══ -->
 <div class="page p2 gone" id="page2">
+  <button class="cx" aria-label="Close">&#10005;</button>
   <button class="clang" aria-label="Switch language">English</button>
   <p class="p2-title" data-i18n="s2Title">कब और कितने पैसे कटेंगे?</p>
   <div class="cards">
@@ -182,6 +190,7 @@ svg{ display:block; }
 
 <!-- ══ PAGE 3: Refund ══ -->
 <div class="page p3 gone" id="page3">
+  <button class="cx" aria-label="Close">&#10005;</button>
   <button class="clang" aria-label="Switch language">English</button>
   <div class="g3">
     <div class="g3-circle" aria-hidden="true">₹</div>
@@ -287,13 +296,13 @@ function show(n){
 }
 
 function dismiss(){
-  var asked = false;
-  try{ if(window.CleverTap && typeof window.CleverTap.dismissInAppNotification === 'function'){ window.CleverTap.dismissInAppNotification(); asked = true; } }catch(e){}
-  try{ if(!asked && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap){
-    window.webkit.messageHandlers.clevertap.postMessage({action:'dismissInAppNotification'}); asked = true; } }catch(e){}
-  /* CleverTap's in-app WebView dismisses the notification on ANY navigation,
-     so this closes even on SDKs whose JS bridge lacks dismissInAppNotification. */
-  setTimeout(function(){ try{ window.location.href = 'wzrk://close'; }catch(e){} }, asked ? 400 : 0);
+  /* Must run synchronously inside the tap: WebViews refuse custom-scheme
+     navigations outside a user gesture, so no setTimeout anywhere here. */
+  try{ if(window.CleverTap && typeof window.CleverTap.dismissInAppNotification === 'function'){ window.CleverTap.dismissInAppNotification(); } }catch(e){}
+  try{ if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap){
+    window.webkit.messageHandlers.clevertap.postMessage({action:'dismissInAppNotification'}); } }catch(e){}
+  /* CleverTap's in-app WebView dismisses the notification on ANY navigation. */
+  try{ window.location.href = 'wzrk://close'; }catch(e){}
 }
 
 document.getElementById('next1').addEventListener('click', function(){
@@ -306,7 +315,7 @@ document.getElementById('next2').addEventListener('click', function(){
 });
 document.getElementById('cta').addEventListener('click', function(){
   track('GumNetboxDekhe_Clicked', { action:'view_lost_netbox', button:STR[lang].cta, page:3, lang:lang });
-  setTimeout(dismiss, 300);
+  dismiss();
 });
 
 document.querySelectorAll('.clang').forEach(function(el){
@@ -315,6 +324,13 @@ document.querySelectorAll('.clang').forEach(function(el){
     lang = (lang === 'hi' ? 'en' : 'hi');
     track('Lang_Switched', { from:prev, to:lang, page:page });
     render();
+  });
+});
+
+document.querySelectorAll('.cx').forEach(function(el){
+  el.addEventListener('click', function(){
+    track('Dismissed', { via:'close_button', page:page, lang:lang });
+    dismiss();
   });
 });
 
