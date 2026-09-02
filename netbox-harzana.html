@@ -24,7 +24,7 @@ svg{ display:block; }
 .p3{ background:linear-gradient(160deg, #e8faf0 0%, #f0fdf4 100%); color:var(--text); }
 
 /* ── Close (X) button, top-left on every page ── */
-.cx{ position:absolute; top:14px; left:14px; width:34px; height:34px;
+.cx{ position:absolute; top:14px; left:14px; width:34px; height:34px; display:block; text-decoration:none;
   border:0; border-radius:50%; background:rgba(0,0,0,.35); color:var(--white);
   font-family:inherit; font-size:17px; line-height:34px; text-align:center; padding:0; cursor:pointer; }
 .p3 .cx{ background:rgba(0,0,0,.12); color:var(--text); }
@@ -44,7 +44,9 @@ svg{ display:block; }
 
 /* ── Buttons (in flow, like the working creative's .ccta) ── */
 .btn{ border:0; border-radius:14px; font-family:inherit; font-size:16px; font-weight:700;
-  padding:16px 32px; cursor:pointer; width:100%; max-width:340px; }
+  padding:16px 32px; cursor:pointer; width:100%; max-width:340px;
+  display:block; text-align:center; text-decoration:none; }
+.btn,.cx,.clang,.ded-toggle{ touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
 .btn-light{ background:var(--white); color:var(--brand-sec); }
 .btn-brand{ background:var(--brand); color:var(--white); }
 .btn:focus-visible,.clang:focus-visible{ outline:3px solid var(--brand-light); outline-offset:2px; }
@@ -113,7 +115,7 @@ svg{ display:block; }
 
 <!-- ══ PAGE 1: Intro ══ -->
 <div class="page p1" id="page1">
-  <button class="cx" aria-label="Close">&#10005;</button>
+  <a class="cx" href="wzrk://close" aria-label="Close">&#10005;</a>
   <button class="clang" aria-label="Switch language">English</button>
   <div class="gfx">
     <div class="gfx-ring">
@@ -135,7 +137,7 @@ svg{ display:block; }
 
 <!-- ══ PAGE 2: Deductions ══ -->
 <div class="page p2 gone" id="page2">
-  <button class="cx" aria-label="Close">&#10005;</button>
+  <a class="cx" href="wzrk://close" aria-label="Close">&#10005;</a>
   <button class="clang" aria-label="Switch language">English</button>
   <p class="p2-title" data-i18n="s2Title">कब और कितने पैसे कटेंगे?</p>
   <div class="cards">
@@ -190,7 +192,7 @@ svg{ display:block; }
 
 <!-- ══ PAGE 3: Refund ══ -->
 <div class="page p3 gone" id="page3">
-  <button class="cx" aria-label="Close">&#10005;</button>
+  <a class="cx" href="wzrk://close" aria-label="Close">&#10005;</a>
   <button class="clang" aria-label="Switch language">English</button>
   <div class="g3">
     <div class="g3-circle" aria-hidden="true">₹</div>
@@ -205,7 +207,7 @@ svg{ display:block; }
     <li data-i18n="s3b2">अभी अपने सारे गुम नेटबॉक्स की लिस्ट देखें और Wiom को वापस करके पैसे कटने से बचाएँ।</li>
   </ul>
   <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot on"></span></div>
-  <button class="btn btn-brand" id="cta" data-i18n="cta">गुम नेटबॉक्स देखें</button>
+  <a class="btn btn-brand" href="wzrk://close" id="cta" data-i18n="cta">गुम नेटबॉक्स देखें</a>
 </div>
 
 <script>
@@ -295,14 +297,12 @@ function show(n){
   track('Page_' + n);
 }
 
-function dismiss(){
-  /* Must run synchronously inside the tap: WebViews refuse custom-scheme
-     navigations outside a user gesture, so no setTimeout anywhere here. */
+function bridgeDismiss(){
+  /* Best-effort SDK close; the anchor's native wzrk://close navigation is the
+     path that works everywhere, so this never blocks or replaces it. */
   try{ if(window.CleverTap && typeof window.CleverTap.dismissInAppNotification === 'function'){ window.CleverTap.dismissInAppNotification(); } }catch(e){}
   try{ if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap){
     window.webkit.messageHandlers.clevertap.postMessage({action:'dismissInAppNotification'}); } }catch(e){}
-  /* CleverTap's in-app WebView dismisses the notification on ANY navigation. */
-  try{ window.location.href = 'wzrk://close'; }catch(e){}
 }
 
 document.getElementById('next1').addEventListener('click', function(){
@@ -315,7 +315,8 @@ document.getElementById('next2').addEventListener('click', function(){
 });
 document.getElementById('cta').addEventListener('click', function(){
   track('GumNetboxDekhe_Clicked', { action:'view_lost_netbox', button:STR[lang].cta, page:3, lang:lang });
-  dismiss();
+  bridgeDismiss();
+  /* no preventDefault: the anchor's own wzrk://close navigation closes the in-app */
 });
 
 document.querySelectorAll('.clang').forEach(function(el){
@@ -330,7 +331,7 @@ document.querySelectorAll('.clang').forEach(function(el){
 document.querySelectorAll('.cx').forEach(function(el){
   el.addEventListener('click', function(){
     track('Dismissed', { via:'close_button', page:page, lang:lang });
-    dismiss();
+    bridgeDismiss();
   });
 });
 
