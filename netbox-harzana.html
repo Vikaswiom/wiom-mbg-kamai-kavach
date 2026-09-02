@@ -156,6 +156,7 @@
   @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important; } }
 </style>
 
+<span id="cid" style="display:none">{{ Profile.cspid | default:"" }}</span>
 <div class="app" id="app">
   <button class="clang" id="langToggle" aria-label="Switch language">English</button>
 
@@ -296,11 +297,19 @@
     }
   };
 
-  var CSP_ID = '{{ Profile.cspId | default: "" }}';
+  var CSP_ID = (function(){
+    var id = '';
+    try{ id = (document.getElementById('cid').textContent || '').trim(); }catch(e){}
+    if(id.indexOf('{') > -1) id = '';                    /* unresolved Liquid token */
+    if(!id){ try{ var m = location.search.match(/[?&]cspid=([^&]*)/i); if(m) id = decodeURIComponent(m[1]); }catch(e){} }
+    return id;
+  })();
+  var IN_FRAME = (function(){ try{ return window.parent && window.parent !== window; }catch(e){ return false; } })();
   var EV_PREFIX = 'LostDevicePenalty_', sent = {}, DEBUG = (location.protocol === 'file:');
   function ctPush(ev, p){
     try{ if(window.CleverTap && typeof window.CleverTap.pushEvent === 'function'){ p ? window.CleverTap.pushEvent(ev, JSON.stringify(p)) : window.CleverTap.pushEvent(ev); return true; } }catch(e){}
     try{ var wk = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap; if(wk){ wk.postMessage({action:'recordEventWithProps', event:ev, properties:p||{}}); return true; } }catch(e){}
+    try{ if(IN_FRAME){ window.parent.postMessage({t:'ct', ev:ev, p:p||{}}, '*'); return true; } }catch(e){}
     return false;
   }
   function track(name, p){
@@ -357,10 +366,9 @@
   // var DEEPLINK = 'https://csp.wiom.in/netbox/inventory/PROBLEM';
 
   function dismiss(){
-    try{ if(window.CleverTap && typeof window.CleverTap.closeInApp === 'function') window.CleverTap.closeInApp(); }catch(e){}
-    try{ var wk = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap;
-      if(wk) wk.postMessage({action:'closeInApp'}); }catch(e){}
-    window.location.href = 'wzrk://close';
+    try{ if(IN_FRAME){ window.parent.postMessage({t:'close'}, '*'); return; } }catch(e){}
+    try{ if(window.CleverTap && typeof window.CleverTap.dismissInAppNotification === 'function'){ window.CleverTap.dismissInAppNotification(); return; } }catch(e){}
+    try{ window.webkit.messageHandlers.clevertap.postMessage({action:'dismissInAppNotification'}); }catch(e){}
   }
 
   /* Tap binding: some WebViews swallow the synthesized click after touch,
