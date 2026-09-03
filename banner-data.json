@@ -1,197 +1,197 @@
 {
-  "generated_ist": "2026-09-03 20:08 IST",
+  "generated_ist": "2026-09-04 00:17 IST",
   "window_start": "2026-08-01 12:30:00 IST",
   "eligible": 477,
-  "csps_opened": 385,
-  "pct_opened": 81,
-  "total_opens": 7760,
-  "avg_per_opener": 20.2,
-  "first_open": "2026-08-01 12:33:27",
-  "last_open": "2026-09-03 18:06:15",
+  "csps_opened": 396,
+  "pct_opened": 83,
+  "total_opens": 7201,
+  "avg_per_opener": 18.2,
+  "first_open": "2026-08-01 12:32:52",
+  "last_open": "2026-09-03 21:08:59",
   "by_outcome": {
     "topup": {
       "label": "Got a top-up (guarantee applied)",
-      "opened": 265,
+      "opened": 272,
       "total": 334,
-      "pct": 79
+      "pct": 81
     },
     "piece": {
       "label": "No top-up — <60% & ≥3 leads",
-      "opened": 120,
+      "opened": 124,
       "total": 143,
-      "pct": 84
+      "pct": 87
     }
   },
   "daily": [
     {
       "date": "2026-08-01",
-      "csps": 60,
-      "opens": 280
+      "csps": 68,
+      "opens": 266
     },
     {
       "date": "2026-08-02",
-      "csps": 60,
-      "opens": 243
+      "csps": 87,
+      "opens": 295
     },
     {
       "date": "2026-08-03",
-      "csps": 48,
-      "opens": 152
+      "csps": 64,
+      "opens": 195
     },
     {
       "date": "2026-08-04",
-      "csps": 57,
-      "opens": 247
+      "csps": 49,
+      "opens": 206
     },
     {
       "date": "2026-08-05",
-      "csps": 60,
-      "opens": 237
+      "csps": 61,
+      "opens": 209
     },
     {
       "date": "2026-08-06",
-      "csps": 56,
-      "opens": 239
+      "csps": 47,
+      "opens": 212
     },
     {
       "date": "2026-08-07",
-      "csps": 52,
-      "opens": 217
+      "csps": 57,
+      "opens": 167
     },
     {
       "date": "2026-08-08",
-      "csps": 60,
-      "opens": 181
-    },
-    {
-      "date": "2026-08-09",
-      "csps": 63,
-      "opens": 229
-    },
-    {
-      "date": "2026-08-10",
-      "csps": 56,
-      "opens": 246
-    },
-    {
-      "date": "2026-08-11",
-      "csps": 81,
-      "opens": 300
-    },
-    {
-      "date": "2026-08-12",
-      "csps": 62,
-      "opens": 215
-    },
-    {
-      "date": "2026-08-13",
-      "csps": 52,
-      "opens": 198
-    },
-    {
-      "date": "2026-08-14",
-      "csps": 66,
-      "opens": 234
-    },
-    {
-      "date": "2026-08-15",
-      "csps": 54,
+      "csps": 50,
       "opens": 188
     },
     {
+      "date": "2026-08-09",
+      "csps": 70,
+      "opens": 249
+    },
+    {
+      "date": "2026-08-10",
+      "csps": 66,
+      "opens": 318
+    },
+    {
+      "date": "2026-08-11",
+      "csps": 63,
+      "opens": 205
+    },
+    {
+      "date": "2026-08-12",
+      "csps": 60,
+      "opens": 202
+    },
+    {
+      "date": "2026-08-13",
+      "csps": 55,
+      "opens": 208
+    },
+    {
+      "date": "2026-08-14",
+      "csps": 52,
+      "opens": 190
+    },
+    {
+      "date": "2026-08-15",
+      "csps": 53,
+      "opens": 172
+    },
+    {
       "date": "2026-08-16",
-      "csps": 72,
-      "opens": 240
+      "csps": 67,
+      "opens": 226
     },
     {
       "date": "2026-08-17",
-      "csps": 61,
-      "opens": 155
+      "csps": 62,
+      "opens": 186
     },
     {
       "date": "2026-08-18",
-      "csps": 65,
-      "opens": 191
+      "csps": 52,
+      "opens": 124
     },
     {
       "date": "2026-08-19",
-      "csps": 63,
-      "opens": 254
+      "csps": 48,
+      "opens": 180
     },
     {
       "date": "2026-08-20",
-      "csps": 56,
-      "opens": 302
+      "csps": 66,
+      "opens": 292
     },
     {
       "date": "2026-08-21",
-      "csps": 54,
-      "opens": 256
+      "csps": 51,
+      "opens": 218
     },
     {
       "date": "2026-08-22",
-      "csps": 56,
-      "opens": 240
+      "csps": 51,
+      "opens": 156
     },
     {
       "date": "2026-08-23",
-      "csps": 57,
-      "opens": 210
+      "csps": 58,
+      "opens": 180
     },
     {
       "date": "2026-08-24",
-      "csps": 51,
-      "opens": 173
+      "csps": 57,
+      "opens": 168
     },
     {
       "date": "2026-08-25",
-      "csps": 56,
-      "opens": 252
+      "csps": 66,
+      "opens": 224
     },
     {
       "date": "2026-08-26",
-      "csps": 45,
-      "opens": 131
+      "csps": 56,
+      "opens": 173
     },
     {
       "date": "2026-08-27",
-      "csps": 47,
-      "opens": 163
+      "csps": 71,
+      "opens": 291
     },
     {
       "date": "2026-08-28",
-      "csps": 52,
-      "opens": 151
+      "csps": 55,
+      "opens": 136
     },
     {
       "date": "2026-08-29",
-      "csps": 76,
-      "opens": 350
+      "csps": 61,
+      "opens": 231
     },
     {
       "date": "2026-08-30",
-      "csps": 65,
-      "opens": 372
+      "csps": 55,
+      "opens": 273
     },
     {
       "date": "2026-08-31",
-      "csps": 67,
-      "opens": 313
+      "csps": 57,
+      "opens": 293
     },
     {
       "date": "2026-09-01",
-      "csps": 40,
-      "opens": 176
+      "csps": 31,
+      "opens": 88
     },
     {
       "date": "2026-09-02",
-      "csps": 71,
-      "opens": 251
+      "csps": 74,
+      "opens": 270
     },
     {
       "date": "2026-09-03",
-      "csps": 59,
-      "opens": 174
+      "csps": 60,
+      "opens": 210
     }
   ]
 }
