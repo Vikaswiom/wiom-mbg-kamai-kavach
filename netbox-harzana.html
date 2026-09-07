@@ -207,7 +207,7 @@ svg{ display:block; }
     <li data-i18n="s3b2">अभी अपने सारे गुम नेटबॉक्स की लिस्ट देखें और Wiom को वापस करके पैसे कटने से बचाएँ।</li>
   </ul>
   <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot on"></span></div>
-  <a class="btn btn-brand" href="wzrk://close" id="cta" data-i18n="cta">गुम नेटबॉक्स देखें</a>
+  <a class="btn btn-brand" href="https://csp.wiom.in/netbox/inventory/PROBLEM" id="cta" data-i18n="cta">गुम नेटबॉक्स देखें</a>
 </div>
 
 <script>
@@ -297,12 +297,37 @@ function show(n){
   track('Page_' + n);
 }
 
+var DEEPLINK = 'https://csp.wiom.in/netbox/inventory/PROBLEM';
+
 function bridgeDismiss(){
-  /* Best-effort SDK close; the anchor's native wzrk://close navigation is the
-     path that works everywhere, so this never blocks or replaces it. */
+  /* Best-effort SDK close; the anchor's own navigation is the path that works
+     everywhere, so this never blocks or replaces it. */
   try{ if(window.CleverTap && typeof window.CleverTap.dismissInAppNotification === 'function'){ window.CleverTap.dismissInAppNotification(); } }catch(e){}
   try{ if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap){
     window.webkit.messageHandlers.clevertap.postMessage({action:'dismissInAppNotification'}); } }catch(e){}
+}
+
+/* ── Deep link out of the WebView — the proven Wiom-app chain (quality.html):
+   openDeepLink → iOS postMessage → location.href. Do NOT add triggerInAppAction —
+   it feature-detects true, then silently strands the tap. In the app's custom
+   WebView, navigating away IS the close. ── */
+function goDeep(e){
+  var handled = false;
+  try{
+    if(window.CleverTap && typeof window.CleverTap.openDeepLink === 'function'){
+      window.CleverTap.openDeepLink(DEEPLINK); handled = true;
+    }else if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap){
+      window.webkit.messageHandlers.clevertap.postMessage({action:'openDeepLink', url:DEEPLINK}); handled = true;
+    }
+  }catch(err){}
+  if(handled){
+    /* Bridge took the tap: stop the anchor's in-place load, keep the 300ms
+       last-resort nav in case the bridge silently dropped it. */
+    if(e && e.preventDefault) e.preventDefault();
+    setTimeout(function(){ try{ window.location.href = DEEPLINK; }catch(err){} }, 300);
+  }
+  /* No bridge: let the anchor navigate natively — CleverTap's standard
+     renderer dismisses the in-app on any URL tap and opens the link. */
 }
 
 document.getElementById('next1').addEventListener('click', function(){
@@ -313,10 +338,10 @@ document.getElementById('next2').addEventListener('click', function(){
   track('Next_Clicked', { fromPage:2, toPage:3, button:STR[lang].next2, lang:lang });
   show(3);
 });
-document.getElementById('cta').addEventListener('click', function(){
+document.getElementById('cta').addEventListener('click', function(e){
   track('GumNetboxDekhe_Clicked', { action:'view_lost_netbox', button:STR[lang].cta, page:3, lang:lang });
   bridgeDismiss();
-  /* no preventDefault: the anchor's own wzrk://close navigation closes the in-app */
+  goDeep(e);
 });
 
 document.querySelectorAll('.clang').forEach(function(el){
