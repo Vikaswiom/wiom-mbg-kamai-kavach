@@ -169,9 +169,9 @@
      device every value must come from Liquid. */
   var DEBUG_FORCE = false;
 
-  /* Test-run suffix. Keeps trial events out of the real names while a campaign is
-     being previewed -- set back to '' before the live push. */
-  var EVENT_SUFFIX = '_rohit';
+  /* Suffix applied to every event name. Set to '' to emit the bare names from the
+     proposal's Proof section. */
+  var EVENT_SUFFIX = '_csp';
   var DEBUG = DEBUG_FORCE || qs('debug') === '1';
   function note(name, json, how){
     var line = name + '  via ' + how + '  ' + json;
