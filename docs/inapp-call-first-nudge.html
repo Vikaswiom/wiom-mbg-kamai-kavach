@@ -160,7 +160,13 @@
   /* -------- debug overlay: add ?debug=1 ---------------------------------------
      Renders what the bridge actually is and every event as it is pushed, so a
      silent failure on a real handset is visible without a USB cable.            */
-  var DEBUG = qs('debug') === '1';
+  /* NOTE: CleverTap loads this HTML into the webview as a raw string -- there is no
+     URL, so location.search is EMPTY on a handset and qs() only ever helps in a
+     browser. To debug on device, flip DEBUG_FORCE to true and re-paste into a test
+     campaign. Same reason the qs() fallbacks above are browser-testing only: on
+     device every value must come from Liquid. */
+  var DEBUG_FORCE = false;
+  var DEBUG = DEBUG_FORCE || qs('debug') === '1';
   function note(name, json, how){
     var line = name + '  via ' + how + '  ' + json;
     if (window.console) console.log('[call-first-nudge] ' + line);
