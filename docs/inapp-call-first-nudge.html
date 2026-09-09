@@ -1,0 +1,207 @@
+<!--
+  Call-first nudge — CleverTap Custom HTML in-app
+  Spec: "Call-First Nudge" proposal v0.1 (9 Sep 2026), §Anatomy / §Copy / §Proof.
+
+  ONE VALUE YOU MUST FILL: DEEPLINK_BASE below (the CSP app's install-drilldown scheme).
+  Everything else resolves from Liquid, falls back to a query param for browser testing,
+  and degrades to "omit the property" rather than sending junk.
+
+  Campaign setup:
+    Trigger    : the app-raised event on install-task open (e.g. install_task_opened),
+                 so {{ Event.* }} below resolves. A profile/segment-triggered campaign
+                 leaves every Event token empty — the nudge still renders, the funnel
+                 properties just go missing.
+    Frequency  : once per user per task -> "Show only once" + campaign-level exclusion on
+                 execution_id. CT cannot express "once per task, ever" on its own.
+    Dismiss    : leave CT's own close button OFF. This HTML draws the scrim and owns
+                 all three exits.
+-->
+<style>
+  html,body{margin:0;padding:0;width:100%;height:100%;background:transparent;overflow:hidden;
+    -webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+  *{box-sizing:border-box}
+
+  /* scrim — WiomTokens scrim #161021 @ 48% */
+  #scrim{position:fixed;inset:0;background:rgba(22,16,33,.48);display:flex;
+    align-items:center;justify-content:center;padding:16px;
+    opacity:0;transition:opacity 200ms cubic-bezier(.2,0,0,1)}
+  #scrim.in{opacity:1}
+
+  /* container — WiomRadius.dialog / bgSurface, 312 dp, padding WiomSpacing.xxl */
+  #card{width:312px;max-width:calc(100vw - 32px);max-height:calc(100vh - 32px);overflow:auto;
+    background:#FFFFFF;border-radius:24px;padding:24px;
+    box-shadow:0 8px 26px rgba(0,0,0,.28);
+    font-family:"Noto Sans Devanagari","Noto Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    color:#161021;transform:scale(.97);transition:transform 200ms cubic-bezier(.2,0,0,1)}
+  #scrim.in #card{transform:none}
+
+  /* icon badge — bgBrandTint + brandPrimary. Opportunity, not alert: never bgNegative. */
+  .ic{width:48px;height:48px;border-radius:999px;background:#FFE5F6;color:#D9008D;
+    display:flex;align-items:center;justify-content:center;margin:0 0 16px}
+  .ic svg{width:24px;height:24px;display:block}
+
+  /* headingLg — T3_20_Bold, 20/28/700, textPrimary, left-aligned, wraps to 3 */
+  h1{margin:0;font-size:20px;line-height:28px;font-weight:700;color:#161021;letter-spacing:0}
+  /* bodyMd — B2_14_Regular, 14/20, textSecondary. WiomSpacing.sm above. */
+  p{margin:8px 0 0;font-size:14px;line-height:20px;font-weight:400;color:#5C5570}
+
+  /* WiomSpacing.sheetContentToCta — 48 dp */
+  .btns{margin-top:48px;display:flex;flex-direction:column;gap:4px}
+  button{font-family:inherit;width:100%;height:48px;border:0;border-radius:24px;
+    font-size:16px;cursor:pointer;padding:0;display:block}
+  #cta{background:#D9008D;color:#fff;font-weight:600}
+  #cta:active{background:#A30070}
+  #later{background:transparent;color:#D9008D;font-weight:700}
+  #later:active{background:#FFE5F6}
+  button[disabled]{opacity:.6}
+
+  @media (prefers-reduced-motion:reduce){#scrim,#card{transition-duration:1ms}}
+</style>
+
+<!-- Liquid slots. Values land as text; the guard in JS drops any token CT left unresolved. -->
+<span id="v_exec"    style="display:none">{{ Event.execution_id | default:"" }}</span>
+<span id="v_mins"    style="display:none">{{ Event.minutes_since_assigned | default:"" }}</span>
+<span id="v_atype"   style="display:none">{{ Event.assignee_type | default:"" }}</span>
+<span id="v_state"   style="display:none">{{ Event.install_state | default:"" }}</span>
+<span id="v_entry"   style="display:none">{{ Event.entry_source | default:"" }}</span>
+<span id="v_link"    style="display:none">{{ Event.task_deeplink | default:"" }}</span>
+<span id="v_cspid"   style="display:none">{{ Profile.cspid | default:"" }}</span>
+
+<div id="scrim">
+  <div id="card" role="dialog" aria-modal="true" aria-labelledby="t">
+    <div class="ic">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>
+    </div>
+    <h1 id="t">कस्टमर से बात करने वालों के कनेक्शन कम कैंसिल होते हैं</h1>
+    <p>पता और समय कस्टमर से कन्फ़र्म कर लें।</p>
+    <div class="btns">
+      <button id="cta" type="button">अभी कॉल करें</button>
+      <button id="later" type="button">बाद में</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  /* ---- FILL THIS IN: the CSP app's install-drilldown deep link ------------------
+     The Liquid slot {{ Event.task_deeplink }} wins when the campaign supplies a
+     full URL. This base is the fallback, with execution_id appended.              */
+  var DEEPLINK_BASE = 'wiom://task/install/';
+
+  var fired = false, acted = false;
+
+  /* -------- value plumbing ---------------------------------------------------- */
+  function liquid(id){
+    var el = document.getElementById(id);
+    var v = el ? (el.textContent || '').trim() : '';
+    if (v.indexOf('{') > -1 || v.indexOf('}') > -1) return '';   /* unresolved token */
+    return v;
+  }
+  function qs(name){
+    try { return (new URLSearchParams(location.search).get(name) || '').trim(); }
+    catch(e){ return ''; }
+  }
+  function val(slotId, qsName){ return liquid(slotId) || qs(qsName); }
+
+  var executionId = val('v_exec',  'execution_id');
+  var minsRaw     = val('v_mins',  'minutes_since_assigned');
+  var assigneeTyp = val('v_atype', 'assignee_type');
+  var installState= val('v_state', 'install_state');
+  var entrySource = val('v_entry', 'entry_source');
+  var deeplink    = val('v_link',  'deeplink');
+  var cspId       = val('v_cspid', 'cspId');
+
+  if (!deeplink && executionId) deeplink = DEEPLINK_BASE + encodeURIComponent(executionId);
+
+  /* Common properties on all three events, per §Proof. Empty values are dropped so
+     a mis-wired campaign shows up as a missing property, not as "". */
+  function props(extra){
+    var p = {
+      nudge_variant : 'clevertap_html',   /* separates CT delivery from the native build */
+      surface       : 'home_inapp'        /* CT in-apps are allowlisted to Home only */
+    };
+    if (executionId)  p.execution_id  = executionId;
+    if (assigneeTyp)  p.assignee_type = assigneeTyp;
+    if (installState) p.install_state = installState;
+    if (entrySource)  p.entry_source  = entrySource;
+    if (cspId)        p.csp_id        = cspId;
+    if (minsRaw !== '' && !isNaN(parseInt(minsRaw, 10))) {
+      p.minutes_since_assigned = parseInt(minsRaw, 10);
+    }
+    if (extra) for (var k in extra) if (extra.hasOwnProperty(k)) p[k] = extra[k];
+    return p;
+  }
+
+  /* -------- CleverTap bridge -------------------------------------------------- */
+  function bridge(){ return window.CleverTap || null; }
+
+  function track(name, p){
+    var c = bridge();
+    if (c && typeof c.pushEvent === 'function') {
+      try { c.pushEvent(name, p); return true; } catch(e){}
+      try { c.pushEvent(name, JSON.stringify(p)); return true; } catch(e){}
+      try { c.pushEvent(name); return true; } catch(e){}
+    }
+    try {
+      window.webkit.messageHandlers.clevertap.postMessage(
+        {action:'pushEvent', event:name, props:p}); return true;
+    } catch(e){}
+    if (window.console) console.log('[call-first-nudge] ' + name, p);  /* browser preview */
+    return false;
+  }
+
+  function dismiss(){
+    var c = bridge();
+    try { if (c && c.dismissInAppNotification){ c.dismissInAppNotification(); return; } } catch(e){}
+    try { if (c && c.closeInAppNotification){  c.closeInAppNotification();  return; } } catch(e){}
+    try { window.webkit.messageHandlers.clevertap.postMessage(
+            {action:'dismissInAppNotification'}); return; } catch(e){}
+  }
+
+  function fadeOut(then){
+    document.getElementById('scrim').classList.remove('in');
+    setTimeout(then, 200);   /* motion.micro — matches the dialog's 200 ms exit */
+  }
+
+  /* -------- the three events -------------------------------------------------- */
+  function shown(){
+    if (fired) return;                       /* a webview reload must not double-count */
+    fired = true;
+    track('call_nudge_shown', props());
+  }
+
+  function accepted(){
+    if (acted) return; acted = true;
+    document.getElementById('cta').disabled = true;
+    track('call_nudge_accepted', props({ has_deeplink: !!deeplink }));
+    fadeOut(function(){
+      if (deeplink) {
+        /* CT's webview client intercepts this and dismisses the in-app itself.
+           wzrk_c2a labels the tap inside CT's own Notification Clicked event. */
+        var sep = deeplink.indexOf('?') > -1 ? '&' : '?';
+        location.href = deeplink + sep + 'wzrk_c2a=call_now';
+        setTimeout(dismiss, 400);            /* nothing intercepted it -> close anyway */
+      } else {
+        dismiss();
+      }
+    });
+  }
+
+  function dismissed(how){
+    if (acted) return; acted = true;
+    track('call_nudge_dismissed', props({ dismiss_method: how }));
+    fadeOut(dismiss);
+  }
+
+  document.getElementById('cta').addEventListener('click', accepted);
+  document.getElementById('later').addEventListener('click', function(){ dismissed('later_cta'); });
+  document.getElementById('scrim').addEventListener('click', function(e){
+    if (e.target === this) dismissed('outside_tap');   /* nudge, not a blocker */
+  });
+
+  requestAnimationFrame(function(){
+    document.getElementById('scrim').classList.add('in');
+    shown();
+  });
+})();
+</script>
