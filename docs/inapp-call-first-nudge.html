@@ -144,6 +144,8 @@
     var json = '{}';
     try { json = JSON.stringify(p || {}); } catch(e){}
 
+    name = name + EVENT_SUFFIX;
+
     var c = bridge();
     if (c && typeof c.pushEvent === 'function') {
       try { c.pushEvent(name, json); return note(name, json, 'CleverTap.pushEvent(name,json)'); } catch(e){}
@@ -166,6 +168,10 @@
      campaign. Same reason the qs() fallbacks above are browser-testing only: on
      device every value must come from Liquid. */
   var DEBUG_FORCE = false;
+
+  /* Test-run suffix. Keeps trial events out of the real names while a campaign is
+     being previewed -- set back to '' before the live push. */
+  var EVENT_SUFFIX = '_rohit';
   var DEBUG = DEBUG_FORCE || qs('debug') === '1';
   function note(name, json, how){
     var line = name + '  via ' + how + '  ' + json;
