@@ -99,7 +99,27 @@ FLOOR = 10000    # ₹ guarantee floor
 DEEP  = 5000     # top-up above this = "बड़ी कमी" (deep shortfall) case
 ```
 
-### ⚠️ v3.0 (11-Aug-2026) — MG metric = installs ÷ tech-assigned leads
+### ⚠️ v3.1 (09-Sep-2026) — month attribution moved off UPDATED_AT
+`UPDATED_AT` lags (the row is touched for unrelated reasons — CSP **BUG-571**), so leads drifted
+into the wrong month. Attribution is now the lead's own terminal-event timestamp:
+**installs → `INSTALLATION_COMPLETED_AT`**, **denominator → GREATEST(`INSTALLATION_COMPLETED_AT`,
+`FAILURE_REPORTED_AT`, `DISMISSED_AT`)**. Leads are also **deduped by MOBILE** (one phone = one
+lead per CSP; falls back to CONNECTION_ID for the 12 connections with no phone), and `installed`
+is now `INSTALLATION_COMPLETED_AT` alone (the `OTP_VERIFIED` / `COMPLETED_STEP>=7` arms are gone —
+6 connections all-time). Measured on September MTD: **denom 2040 → 1434 (−30 %)**, installs
+878 → 850 (−3 %); the mobile dedup changed the denominator by **0**.
+
+> **⚠️ SIDE EFFECT — a lead with NO terminal timestamp now counts in NO month.** 542 tech-assigned
+> September leads dropped out of the denominator: 325 still `TECHNICIAN_ASSIGNED` (genuinely
+> in flight, correct), but also **148 `CANCELLED_BY_CUSTOMER` + 11 `CANCELLED_BY_UPSTREAM`** —
+> closed leads that carry none of the three timestamps, so they leave the denominator permanently.
+> Combined with the ≤2-lead floor this moved money: enrolled CSPs at `denom<=2` went **288 → 335**,
+> and **17 CSPs with ZERO installs now collect the full ₹10,000** (they previously had >2 leads and
+> failed the gate). September MTD: 48 % → 64 %, floor-eligible 373 → 426, payout ₹37.7L → ₹42.8L,
+> **53 CSPs gained the gate, none lost it.** If cancels should stay in the denominator, take their
+> timestamp from `INSTALL_STATE_TRANSITION_LOG` — there is no `CANCELLED_AT` column on IEC.
+
+### v3.0 (11-Aug-2026) — MG metric = installs ÷ tech-assigned leads
 Source of truth: **`sql/mg-metric.sql`**. `sql/metrics.sql` reproduces it exactly and is what the
 pipeline runs; a per-CSP diff of the two is the regression test.
 

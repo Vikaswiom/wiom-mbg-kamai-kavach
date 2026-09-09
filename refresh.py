@@ -224,6 +224,13 @@ if __name__ == "__main__":
             raise SystemExit("--month needs a value: july | aug | sep")
         if override not in MONTH_WINDOW:
             raise SystemExit(f"--month must be one of {sorted(MONTH_WINDOW)} (got '{override}')")
+        if override == "aug":
+            # August was adjudicated and PAID on 1-Sep (settle-overrides-aug.json
+            # carries the removed/hold states). Rebuilding it under the v3.1
+            # terminal-event attribution would restate a disbursed payout.
+            raise SystemExit("--month aug is BLOCKED: August is frozen/disbursed (adjudicated "
+                             "1-Sep); rebuilding it with the v3.1 terminal-date logic would "
+                             "restate a paid month.")
         if override == "july":
             # July was disbursed under the OLD S4 hybrid gate and data-july.json is
             # frozen; this SQL now uses the §3 reached_slot gate, which would MIS-SCORE

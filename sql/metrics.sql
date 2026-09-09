@@ -540,51 +540,84 @@ enrol AS (
     ('a0c0j1','2026-07-07'::date)
   AS e(CSP_ID, JOINED)
 ),
--- ═══ MG METRIC (v3.0, 11-Aug-2026) ═══════════════════════════════════════════
+-- ═══ MG METRIC (v3.1, 09-Sep-2026) ═══════════════════════════════════════════
 -- Reproduces `sql/mg-metric.sql` — the authoritative definition:
---   NUMERATOR   installs done          (mbg_installs)
---   DENOMINATOR leads that reached "tech assigned" — EXECUTOR_ID IS NOT NULL
--- Source is the execution service (IEC), NOT the quality ledger. This SUPERSEDES
--- the 10-Aug on-time/M1 definition (sql/ontime-m1.sql): the numerator is ALL
--- installs again, so on-time vs late no longer changes a CSP's percentage.
--- Verified 11-Aug: installs really are a subset of tech-assigned (1102 of 2794
--- MTD, ZERO installs without an executor), so pct can never exceed 100.
+--   NUMERATOR   installs done              (INSTALLATION_COMPLETED_AT is set)
+--   DENOMINATOR leads that reached "tech assigned" (EXECUTOR_ID IS NOT NULL)
+-- from the execution service (IEC).
 --
--- Deviations from mg-metric.sql, both deliberate:
+-- v3.1 changes month ATTRIBUTION only (the metric itself is unchanged):
+--  * was: bucket by UPDATED_AT. That column LAGS — it moves whenever the row is
+--    touched for any reason, so leads drifted into the wrong month (CSP BUG-571).
+--  * now: bucket by the lead's own terminal-event timestamp —
+--      installs   -> INSTALLATION_COMPLETED_AT
+--      denominator-> GREATEST(INSTALLATION_COMPLETED_AT, FAILURE_REPORTED_AT,
+--                             DISMISSED_AT), NULL when the lead has none of them
+--    A lead with no terminal event yet is simply not counted in any month.
+--  * `installed` is now INSTALLATION_COMPLETED_AT alone (the OTP_VERIFIED /
+--    COMPLETED_STEP>=7 arms are gone). Measured 09-Sep: 6 connections all-time
+--    would qualify under the old arms but not the new one.
+--  * leads are DEDUPED BY MOBILE: one phone = one lead per CSP, however many
+--    connection rows it spawned, falling back to CONNECTION_ID when the phone is
+--    unknown (12 such connections). Measured 09-Sep: this changes the September
+--    denominator by ZERO (1434 -> 1434) — it is a safety net against re-booked
+--    duplicates, not a live correction.
+-- Measured effect of v3.1 on September MTD: denom 2040 -> 1434 (-30%, the
+-- BUG-571 lag coming out), installs 878 -> 850 (-3%).
+--
+-- Deviations from mg-metric.sql, all deliberate:
 --  1. the month window is parameterised ({MS}/{ME}) and taken in IST, so
---     refresh.py can freeze each month's snapshot and retro-rebuild one month.
---     The source query has a lower bound only (DATE_TRUNC('month',CURRENT_DATE),
---     session UTC); for the live month the two agree.
---  2. `imp` — the impacted-booking rule from the payout spec is kept wired here
---     (an impacted connection drops out of the denominator UNLESS it installed).
---     It carries a dummy UUID = matches nothing, so it is a NO-OP until a real
---     list is pasted in, and mg-metric.sql's numbers are reproduced exactly.
+--     refresh.py can freeze each month and retro-rebuild one. The source query
+--     has a lower bound only (DATE_TRUNC('month',CURRENT_DATE), session UTC).
+--  2. its `[[ AND iec.CSP_ID IN ... {{csp}} ]]` Metabase template filter is
+--     dropped — the pipeline always runs the full cohort.
+--  3. `imp` — the impacted-booking rule from the payout spec stays wired (an
+--     impacted lead drops out of the denominator UNLESS it installed). It holds
+--     a dummy UUID = matches nothing, so it is a NO-OP until a real list lands,
+--     and mg-metric.sql's numbers are reproduced exactly.
 imp AS (
   SELECT column1 AS conn FROM VALUES ('00000000-0000-0000-0000-000000000000')
 ),
-mg_agg AS (   -- one row per (connection, CSP): install flag + tech-assigned flag
+mg_agg AS (   -- one row per (connection, CSP): flags + the terminal-event dates
   SELECT iec.CONNECTION_ID, iec.CSP_ID,
-    MAX(IFF(iec.OTP_VERIFIED=TRUE OR iec.INSTALLATION_COMPLETED_AT IS NOT NULL OR iec.COMPLETED_STEP>=7, 1, 0)) AS has_installed,
-    MAX(IFF(iec.EXECUTOR_ID IS NOT NULL, 1, 0)) AS tech_assigned,
-    TO_DATE(DATEADD(minute,330, MAX(iec.UPDATED_AT))) AS last_date
+    MAX(IFF(iec.EXECUTOR_ID IS NOT NULL, 1, 0))               AS tech_assigned,
+    MAX(IFF(iec.INSTALLATION_COMPLETED_AT IS NOT NULL, 1, 0)) AS installed,
+    TO_DATE(DATEADD(minute, 330, MAX(iec.INSTALLATION_COMPLETED_AT))) AS install_d,
+    IFF(MAX(iec.INSTALLATION_COMPLETED_AT) IS NULL AND MAX(iec.FAILURE_REPORTED_AT) IS NULL
+        AND MAX(iec.DISMISSED_AT) IS NULL, NULL,
+        TO_DATE(DATEADD(minute, 330, GREATEST(
+          COALESCE(MAX(iec.INSTALLATION_COMPLETED_AT), '1900-01-01'::timestamp_tz),
+          COALESCE(MAX(iec.FAILURE_REPORTED_AT),       '1900-01-01'::timestamp_tz),
+          COALESCE(MAX(iec.DISMISSED_AT),              '1900-01-01'::timestamp_tz)))) ) AS terminal_d
   FROM PROD_DB.CSP_TAS_SERVICE_CSP_TAS_SERVICE.INSTALL_EXECUTION_CANDIDATES iec
   WHERE iec._FIVETRAN_ACTIVE
   GROUP BY 1, 2
 ),
+mob AS (      -- connection -> customer phone, for the one-phone-one-lead rollup
+  SELECT CONNECTION_ID, MAX(MOBILE) AS mobile FROM (
+    SELECT CONNECTION_ID, MOBILE FROM PROD_DB.DBT.TASKVANILLA WHERE MOBILE IS NOT NULL
+    UNION ALL
+    SELECT CONNECTION_ID, MOBILE FROM PROD_DB.DBT.TASKVANILLA_AUDIT WHERE MOBILE IS NOT NULL
+  ) GROUP BY 1
+),
+lead AS (     -- one row per (CSP, phone): did that phone install / close this month
+  SELECT a.CSP_ID, COALESCE(m.mobile, a.CONNECTION_ID) AS lead_key,
+    MAX(IFF(a.tech_assigned=1 AND a.installed=1
+            AND a.install_d  >= DATE '2026-09-01' /*{MS}*/
+            AND a.install_d  <  DATE '2026-10-01' /*{ME}*/, 1, 0)) AS installed_mtd,
+    MAX(IFF(a.tech_assigned=1
+            AND a.terminal_d >= DATE '2026-09-01' /*{MS}*/
+            AND a.terminal_d <  DATE '2026-10-01' /*{ME}*/
+            AND NOT (a.installed=0 AND a.CONNECTION_ID IN (SELECT conn FROM imp)), 1, 0)) AS denom_mtd
+  FROM mg_agg a LEFT JOIN mob m ON m.CONNECTION_ID = a.CONNECTION_ID
+  GROUP BY 1, 2
+),
 mg AS (
   SELECT CSP_ID,
-    SUM(IFF(has_installed=1 AND in_month, 1, 0)) AS installs,   -- NUMERATOR (mbg_installs)
-    SUM(IFF(tech_assigned=1 AND in_month
-            AND NOT (has_installed=0 AND CONNECTION_ID IN (SELECT conn FROM imp)), 1, 0)) AS denom  -- DENOMINATOR (mbg_leads)
-  FROM (SELECT a.*, (last_date >= DATE '2026-08-01' /*{MS}*/
-                     AND last_date < DATE '2026-09-01' /*{ME}*/) AS in_month
-        FROM mg_agg a)
-  GROUP BY CSP_ID
+    SUM(installed_mtd) AS installs,   -- NUMERATOR (mbg_installs)
+    SUM(denom_mtd)     AS denom       -- DENOMINATOR (mbg_leads)
+  FROM lead GROUP BY CSP_ID
 ),
--- Reference only — the M1 on-time ledger numbers, carried in the snapshot so the
--- on-time view stays visible after v3.0 moved off it. NOTHING on the screens
--- reads these; they are for reconciliation and for answering "how many were
--- late?". Definition = sql/ontime-m1.sql (deduped to one row per CONNECTION).
 led AS (
   SELECT CSP_ID,
     SUM(IFF(TERMINAL_OUTCOME='ON_TIME_ACTIVE',1,0)) AS ontime_m1,
