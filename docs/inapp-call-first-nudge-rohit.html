@@ -1,0 +1,176 @@
+<!--
+  Call-first nudge — CleverTap Custom HTML in-app
+  Spec: "Call-First Nudge" proposal v0.1 (9 Sep 2026), §Anatomy / §Copy.
+
+  No personalization: the dialog is the same for everyone and the events carry no
+  properties. Nothing to wire on the campaign beyond the audience and the schedule.
+
+  Campaign setup:
+    Frequency : "Show only once" per user.
+    Dismiss   : leave CT's own close button OFF — this HTML draws the scrim and
+                owns all three exits.
+-->
+<style>
+  html,body{margin:0;padding:0;width:100%;height:100%;background:transparent;overflow:hidden;
+    -webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+  *{box-sizing:border-box}
+
+  /* scrim — WiomTokens scrim #161021 @ 48% */
+  #scrim{position:fixed;inset:0;background:rgba(22,16,33,.48);display:flex;
+    align-items:center;justify-content:center;padding:16px;
+    opacity:0;transition:opacity 200ms cubic-bezier(.2,0,0,1)}
+  #scrim.in{opacity:1}
+
+  /* container — WiomRadius.dialog / bgSurface, 312 dp, padding WiomSpacing.xxl */
+  #card{width:312px;max-width:calc(100vw - 32px);max-height:calc(100vh - 32px);overflow:auto;
+    background:#FFFFFF;border-radius:24px;padding:24px;
+    box-shadow:0 8px 26px rgba(0,0,0,.28);
+    font-family:"Noto Sans Devanagari","Noto Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    color:#161021;transform:scale(.97);transition:transform 200ms cubic-bezier(.2,0,0,1)}
+  #scrim.in #card{transform:none}
+
+  /* icon badge — bgBrandTint + brandPrimary. Opportunity, not alert: never bgNegative. */
+  .ic{width:48px;height:48px;border-radius:999px;background:#FFE5F6;color:#D9008D;
+    display:flex;align-items:center;justify-content:center;margin:0 0 16px}
+  .ic svg{width:24px;height:24px;display:block}
+
+  /* headingLg — T3_20_Bold, 20/28/700, textPrimary, left-aligned, wraps to 3 */
+  h1{margin:0;font-size:20px;line-height:28px;font-weight:700;color:#161021;letter-spacing:0}
+  /* bodyMd — B2_14_Regular, 14/20, textSecondary. WiomSpacing.sm above. */
+  p{margin:8px 0 0;font-size:14px;line-height:20px;font-weight:400;color:#5C5570}
+
+  /* WiomSpacing.sheetContentToCta — 48 dp */
+  .btns{margin-top:48px;display:flex;flex-direction:column;gap:4px}
+  button{font-family:inherit;width:100%;height:48px;border:0;border-radius:24px;
+    font-size:16px;cursor:pointer;padding:0;display:block}
+  #cta{background:#D9008D;color:#fff;font-weight:600}
+  #cta:active{background:#A30070}
+  #later{background:transparent;color:#D9008D;font-weight:700}
+  #later:active{background:#FFE5F6}
+  button[disabled]{opacity:.6}
+
+  @media (prefers-reduced-motion:reduce){#scrim,#card{transition-duration:1ms}}
+</style>
+
+<div id="scrim">
+  <div id="card" role="dialog" aria-modal="true" aria-labelledby="t">
+    <div class="ic">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>
+    </div>
+    <h1 id="t">कस्टमर से बात करने वालों के कनेक्शन कम कैंसिल होते हैं</h1>
+    <p>पता और समय कस्टमर से कन्फ़र्म कर लें।</p>
+    <div class="btns">
+      <button id="cta" type="button">अभी कॉल करें</button>
+      <button id="later" type="button">बाद में</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  /* Suffix on every event name. Set to '' for the bare names from the proposal. */
+  var EVENT_SUFFIX = '_rohit';
+
+  /* Optional destination for the primary CTA. Empty = the CTA just closes the
+     dialog. Set it to the app's deep link to send the partner somewhere. */
+  var DEEPLINK = '';
+
+  /* On-screen diagnostics. CleverTap loads this HTML as a raw string, so there is
+     no URL and no query string on a handset — flip this to true and re-paste. */
+  var DEBUG = false;
+
+  var fired = false, acted = false;
+
+  /* -------- CleverTap bridge -------------------------------------------------- */
+  function bridge(){ return window.CleverTap || null; }
+
+  function track(name){
+    name = name + EVENT_SUFFIX;
+    var c = bridge();
+    if (c && typeof c.pushEvent === 'function') {
+      try { c.pushEvent(name); return note(name, 'CleverTap.pushEvent'); } catch(e){}
+    }
+    try {
+      window.webkit.messageHandlers.clevertap.postMessage({action:'pushEvent', event:name});
+      return note(name, 'webkit.messageHandlers.clevertap');
+    } catch(e){}
+    return note(name, 'NO BRIDGE -- nothing sent');
+  }
+
+  function dismiss(){
+    var c = bridge();
+    try { if (c && c.dismissInAppNotification){ c.dismissInAppNotification(); return; } } catch(e){}
+    try { if (c && c.closeInAppNotification){  c.closeInAppNotification();  return; } } catch(e){}
+    try { window.webkit.messageHandlers.clevertap.postMessage(
+            {action:'dismissInAppNotification'}); } catch(e){}
+  }
+
+  function note(name, how){
+    var line = name + '  via ' + how;
+    if (window.console) console.log('[call-first-nudge] ' + line);
+    var box = document.getElementById('dbg');
+    if (box){ var d = document.createElement('div'); d.textContent = line; box.appendChild(d); }
+    return how.indexOf('NO BRIDGE') === -1;
+  }
+
+  function fadeOut(then){
+    document.getElementById('scrim').classList.remove('in');
+    setTimeout(then, 200);   /* motion.micro — matches the dialog's 200 ms exit */
+  }
+
+  /* -------- the three events -------------------------------------------------- */
+  function accepted(){
+    if (acted) return; acted = true;
+    document.getElementById('cta').disabled = true;
+    track('call_nudge_accepted');
+    fadeOut(function(){
+      if (DEEPLINK) {
+        /* CT's webview client intercepts this and dismisses the in-app itself.
+           wzrk_c2a labels the tap inside CT's own Notification Clicked event. */
+        var sep = DEEPLINK.indexOf('?') > -1 ? '&' : '?';
+        location.href = DEEPLINK + sep + 'wzrk_c2a=call_now';
+        setTimeout(dismiss, 400);   /* nothing intercepted it -> close anyway */
+      } else {
+        dismiss();
+      }
+    });
+  }
+
+  function dismissed(){
+    if (acted) return; acted = true;
+    track('call_nudge_dismissed');
+    fadeOut(dismiss);
+  }
+
+  document.getElementById('cta').addEventListener('click', accepted);
+  document.getElementById('later').addEventListener('click', dismissed);
+  document.getElementById('scrim').addEventListener('click', function(e){
+    if (e.target === this) dismissed();   /* nudge, not a blocker */
+  });
+
+  if (DEBUG){
+    var c0 = window.CleverTap, wk = false;
+    try { wk = !!(window.webkit && window.webkit.messageHandlers &&
+                  window.webkit.messageHandlers.clevertap); } catch(e){}
+    var box = document.createElement('div');
+    box.id = 'dbg';
+    box.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99;max-height:45vh;'
+      + 'overflow:auto;background:#161021;color:#7CFFB2;font:10px/1.45 monospace;'
+      + 'padding:8px;white-space:pre-wrap;word-break:break-all';
+    var head = document.createElement('div');
+    head.style.color = '#FFB2E4';
+    head.textContent = 'window.CleverTap: ' + (c0 ? 'PRESENT' : 'MISSING')
+      + '\npushEvent: ' + (c0 && typeof c0.pushEvent === 'function' ? 'yes' : 'no')
+      + '\ndismissInAppNotification: ' + (c0 && typeof c0.dismissInAppNotification === 'function' ? 'yes' : 'no')
+      + '\nwebkit.messageHandlers.clevertap: ' + (wk ? 'yes' : 'no')
+      + '\n----';
+    box.appendChild(head);
+    document.body.appendChild(box);
+  }
+
+  requestAnimationFrame(function(){
+    document.getElementById('scrim').classList.add('in');
+    if (!fired){ fired = true; track('call_nudge_shown'); }   /* reload must not double-count */
+  });
+})();
+</script>
