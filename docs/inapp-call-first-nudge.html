@@ -1,20 +1,14 @@
 <!--
   Call-first nudge — CleverTap Custom HTML in-app
-  Spec: "Call-First Nudge" proposal v0.1 (9 Sep 2026), §Anatomy / §Copy / §Proof.
+  Spec: "Call-First Nudge" proposal v0.1 (9 Sep 2026), §Anatomy / §Copy.
 
-  ONE VALUE YOU MUST FILL: DEEPLINK_BASE below (the CSP app's install-drilldown scheme).
-  Everything else resolves from Liquid, falls back to a query param for browser testing,
-  and degrades to "omit the property" rather than sending junk.
+  No personalization: the dialog is the same for everyone and the events carry no
+  properties. Nothing to wire on the campaign beyond the audience and the schedule.
 
   Campaign setup:
-    Trigger    : the app-raised event on install-task open (e.g. install_task_opened),
-                 so {{ Event.* }} below resolves. A profile/segment-triggered campaign
-                 leaves every Event token empty — the nudge still renders, the funnel
-                 properties just go missing.
-    Frequency  : once per user per task -> "Show only once" + campaign-level exclusion on
-                 execution_id. CT cannot express "once per task, ever" on its own.
-    Dismiss    : leave CT's own close button OFF. This HTML draws the scrim and owns
-                 all three exits.
+    Frequency : "Show only once" per user.
+    Dismiss   : leave CT's own close button OFF — this HTML draws the scrim and
+                owns all three exits.
 -->
 <style>
   html,body{margin:0;padding:0;width:100%;height:100%;background:transparent;overflow:hidden;
@@ -58,15 +52,6 @@
   @media (prefers-reduced-motion:reduce){#scrim,#card{transition-duration:1ms}}
 </style>
 
-<!-- Liquid slots. Values land as text; the guard in JS drops any token CT left unresolved. -->
-<span id="v_exec"    style="display:none">{{ Event.execution_id | default:"" }}</span>
-<span id="v_mins"    style="display:none">{{ Event.minutes_since_assigned | default:"" }}</span>
-<span id="v_atype"   style="display:none">{{ Event.assignee_type | default:"" }}</span>
-<span id="v_state"   style="display:none">{{ Event.install_state | default:"" }}</span>
-<span id="v_entry"   style="display:none">{{ Event.entry_source | default:"" }}</span>
-<span id="v_link"    style="display:none">{{ Event.task_deeplink | default:"" }}</span>
-<span id="v_cspid"   style="display:none">{{ Profile.cspid | default:"" }}</span>
-
 <div id="scrim">
   <div id="card" role="dialog" aria-modal="true" aria-labelledby="t">
     <div class="ic">
@@ -83,105 +68,86 @@
 
 <script>
 (function(){
-  /* ---- FILL THIS IN: the CSP app's install-drilldown deep link ------------------
-     The Liquid slot {{ Event.task_deeplink }} wins when the campaign supplies a
-     full URL. This base is the fallback, with execution_id appended.              */
-  var DEEPLINK_BASE = 'wiom://task/install/';
+  /* Suffix on every event name. Set to '' for the bare names from the proposal. */
+  var EVENT_SUFFIX = '_csp';
+
+  /* Optional destination for the primary CTA. Empty = the CTA just closes the
+     dialog. Set it to the app's deep link to send the partner somewhere. */
+  var DEEPLINK = '';
+
+  /* On-screen diagnostics. CleverTap loads this HTML as a raw string, so there is
+     no URL and no query string on a handset — flip this to true and re-paste. */
+  var DEBUG = false;
 
   var fired = false, acted = false;
-
-  /* -------- value plumbing ---------------------------------------------------- */
-  function liquid(id){
-    var el = document.getElementById(id);
-    var v = el ? (el.textContent || '').trim() : '';
-    if (v.indexOf('{') > -1 || v.indexOf('}') > -1) return '';   /* unresolved token */
-    return v;
-  }
-  function qs(name){
-    try { return (new URLSearchParams(location.search).get(name) || '').trim(); }
-    catch(e){ return ''; }
-  }
-  function val(slotId, qsName){ return liquid(slotId) || qs(qsName); }
-
-  var executionId = val('v_exec',  'execution_id');
-  var minsRaw     = val('v_mins',  'minutes_since_assigned');
-  var assigneeTyp = val('v_atype', 'assignee_type');
-  var installState= val('v_state', 'install_state');
-  var entrySource = val('v_entry', 'entry_source');
-  var deeplink    = val('v_link',  'deeplink');
-  var cspId       = val('v_cspid', 'cspId');
-
-  if (!deeplink && executionId) deeplink = DEEPLINK_BASE + encodeURIComponent(executionId);
-
-  /* Common properties on all three events, per §Proof. Empty values are dropped so
-     a mis-wired campaign shows up as a missing property, not as "". */
-  function props(extra){
-    var p = {
-      nudge_variant : 'clevertap_html',   /* separates CT delivery from the native build */
-      surface       : 'home_inapp'        /* CT in-apps are allowlisted to Home only */
-    };
-    if (executionId)  p.execution_id  = executionId;
-    if (assigneeTyp)  p.assignee_type = assigneeTyp;
-    if (installState) p.install_state = installState;
-    if (entrySource)  p.entry_source  = entrySource;
-    if (cspId)        p.csp_id        = cspId;
-    if (minsRaw !== '' && !isNaN(parseInt(minsRaw, 10))) {
-      p.minutes_since_assigned = parseInt(minsRaw, 10);
-    }
-    if (extra) for (var k in extra) if (extra.hasOwnProperty(k)) p[k] = extra[k];
-    return p;
-  }
 
   /* -------- CleverTap bridge -------------------------------------------------- */
   function bridge(){ return window.CleverTap || null; }
 
-  function track(name, p){
-    /* The Android @JavascriptInterface overload is pushEvent(String, String) and the
-       second argument must be a JSON *string*. Handing it a JS object does not throw --
-       the WebView bridge matches on arity and coerces it to "[object Object]", the SDK
-       then fails to parse the properties and drops the event. So: stringify first.
-       inapp-settle-wrapper.html only ever passes the 1-arg form, which is why it works. */
-    var json = '{}';
-    try { json = JSON.stringify(p || {}); } catch(e){}
-
+  function track(name){
     name = name + EVENT_SUFFIX;
-
     var c = bridge();
     if (c && typeof c.pushEvent === 'function') {
-      try { c.pushEvent(name, json); return note(name, json, 'CleverTap.pushEvent(name,json)'); } catch(e){}
-      try { c.pushEvent(name);       return note(name, json, 'CleverTap.pushEvent(name)'); } catch(e){}
+      try { c.pushEvent(name); return note(name, 'CleverTap.pushEvent'); } catch(e){}
     }
     try {
-      window.webkit.messageHandlers.clevertap.postMessage(
-        {action:'pushEvent', event:name, props:p});
-      return note(name, json, 'webkit.messageHandlers.clevertap');
+      window.webkit.messageHandlers.clevertap.postMessage({action:'pushEvent', event:name});
+      return note(name, 'webkit.messageHandlers.clevertap');
     } catch(e){}
-    return note(name, json, 'NO BRIDGE -- nothing sent');
+    return note(name, 'NO BRIDGE -- nothing sent');
   }
 
-  /* -------- debug overlay: add ?debug=1 ---------------------------------------
-     Renders what the bridge actually is and every event as it is pushed, so a
-     silent failure on a real handset is visible without a USB cable.            */
-  /* NOTE: CleverTap loads this HTML into the webview as a raw string -- there is no
-     URL, so location.search is EMPTY on a handset and qs() only ever helps in a
-     browser. To debug on device, flip DEBUG_FORCE to true and re-paste into a test
-     campaign. Same reason the qs() fallbacks above are browser-testing only: on
-     device every value must come from Liquid. */
-  var DEBUG_FORCE = false;
+  function dismiss(){
+    var c = bridge();
+    try { if (c && c.dismissInAppNotification){ c.dismissInAppNotification(); return; } } catch(e){}
+    try { if (c && c.closeInAppNotification){  c.closeInAppNotification();  return; } } catch(e){}
+    try { window.webkit.messageHandlers.clevertap.postMessage(
+            {action:'dismissInAppNotification'}); } catch(e){}
+  }
 
-  /* Suffix applied to every event name. Set to '' to emit the bare names from the
-     proposal's Proof section. */
-  var EVENT_SUFFIX = '_csp';
-  var DEBUG = DEBUG_FORCE || qs('debug') === '1';
-  function note(name, json, how){
-    var line = name + '  via ' + how + '  ' + json;
+  function note(name, how){
+    var line = name + '  via ' + how;
     if (window.console) console.log('[call-first-nudge] ' + line);
-    if (DEBUG){
-      var box = document.getElementById('dbg');
-      if (box){ var d = document.createElement('div'); d.textContent = line; box.appendChild(d); }
-    }
+    var box = document.getElementById('dbg');
+    if (box){ var d = document.createElement('div'); d.textContent = line; box.appendChild(d); }
     return how.indexOf('NO BRIDGE') === -1;
   }
+
+  function fadeOut(then){
+    document.getElementById('scrim').classList.remove('in');
+    setTimeout(then, 200);   /* motion.micro — matches the dialog's 200 ms exit */
+  }
+
+  /* -------- the three events -------------------------------------------------- */
+  function accepted(){
+    if (acted) return; acted = true;
+    document.getElementById('cta').disabled = true;
+    track('call_nudge_accepted');
+    fadeOut(function(){
+      if (DEEPLINK) {
+        /* CT's webview client intercepts this and dismisses the in-app itself.
+           wzrk_c2a labels the tap inside CT's own Notification Clicked event. */
+        var sep = DEEPLINK.indexOf('?') > -1 ? '&' : '?';
+        location.href = DEEPLINK + sep + 'wzrk_c2a=call_now';
+        setTimeout(dismiss, 400);   /* nothing intercepted it -> close anyway */
+      } else {
+        dismiss();
+      }
+    });
+  }
+
+  function dismissed(){
+    if (acted) return; acted = true;
+    track('call_nudge_dismissed');
+    fadeOut(dismiss);
+  }
+
+  document.getElementById('cta').addEventListener('click', accepted);
+  document.getElementById('later').addEventListener('click', dismissed);
+  document.getElementById('scrim').addEventListener('click', function(e){
+    if (e.target === this) dismissed();   /* nudge, not a blocker */
+  });
+
   if (DEBUG){
     var c0 = window.CleverTap, wk = false;
     try { wk = !!(window.webkit && window.webkit.messageHandlers &&
@@ -193,70 +159,18 @@
       + 'padding:8px;white-space:pre-wrap;word-break:break-all';
     var head = document.createElement('div');
     head.style.color = '#FFB2E4';
-    head.textContent =
-      'window.CleverTap: ' + (c0 ? 'PRESENT' : 'MISSING')
+    head.textContent = 'window.CleverTap: ' + (c0 ? 'PRESENT' : 'MISSING')
       + '\npushEvent: ' + (c0 && typeof c0.pushEvent === 'function' ? 'yes' : 'no')
       + '\ndismissInAppNotification: ' + (c0 && typeof c0.dismissInAppNotification === 'function' ? 'yes' : 'no')
       + '\nwebkit.messageHandlers.clevertap: ' + (wk ? 'yes' : 'no')
-      + '\nCleverTap keys: ' + (c0 ? Object.keys(c0).join(',') || '(none enumerable)' : '-')
-      + '\ndeeplink: ' + (deeplink || '(none)')
       + '\n----';
     box.appendChild(head);
     document.body.appendChild(box);
   }
 
-  function dismiss(){
-    var c = bridge();
-    try { if (c && c.dismissInAppNotification){ c.dismissInAppNotification(); return; } } catch(e){}
-    try { if (c && c.closeInAppNotification){  c.closeInAppNotification();  return; } } catch(e){}
-    try { window.webkit.messageHandlers.clevertap.postMessage(
-            {action:'dismissInAppNotification'}); return; } catch(e){}
-  }
-
-  function fadeOut(then){
-    document.getElementById('scrim').classList.remove('in');
-    setTimeout(then, 200);   /* motion.micro — matches the dialog's 200 ms exit */
-  }
-
-  /* -------- the three events -------------------------------------------------- */
-  function shown(){
-    if (fired) return;                       /* a webview reload must not double-count */
-    fired = true;
-    track('call_nudge_shown', props());
-  }
-
-  function accepted(){
-    if (acted) return; acted = true;
-    document.getElementById('cta').disabled = true;
-    track('call_nudge_accepted', props({ has_deeplink: !!deeplink }));
-    fadeOut(function(){
-      if (deeplink) {
-        /* CT's webview client intercepts this and dismisses the in-app itself.
-           wzrk_c2a labels the tap inside CT's own Notification Clicked event. */
-        var sep = deeplink.indexOf('?') > -1 ? '&' : '?';
-        location.href = deeplink + sep + 'wzrk_c2a=call_now';
-        setTimeout(dismiss, 400);            /* nothing intercepted it -> close anyway */
-      } else {
-        dismiss();
-      }
-    });
-  }
-
-  function dismissed(how){
-    if (acted) return; acted = true;
-    track('call_nudge_dismissed', props({ dismiss_method: how }));
-    fadeOut(dismiss);
-  }
-
-  document.getElementById('cta').addEventListener('click', accepted);
-  document.getElementById('later').addEventListener('click', function(){ dismissed('later_cta'); });
-  document.getElementById('scrim').addEventListener('click', function(e){
-    if (e.target === this) dismissed('outside_tap');   /* nudge, not a blocker */
-  });
-
   requestAnimationFrame(function(){
     document.getElementById('scrim').classList.add('in');
-    shown();
+    if (!fired){ fired = true; track('call_nudge_shown'); }   /* reload must not double-count */
   });
 })();
 </script>
