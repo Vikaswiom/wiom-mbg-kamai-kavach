@@ -179,7 +179,16 @@
 <span id="ctExecSnake" hidden>{{ Profile.executor_id | default:"" }}</span>
 
 <div class="app" id="app">
-  <button class="close-btn" id="closeBtn" aria-label="Close"><span class="material-symbols-outlined">close</span></button>
+  <!-- Bound inline as well as by addEventListener below. A function
+       DECLARATION is hoisted, so dismiss() exists the moment the
+       script starts running and survives a throw further down, while
+       an addEventListener at the end of that script never runs at all.
+       Both are wired; dismiss() is idempotent so a double-fire is a
+       no-op. ontouchend covers WebViews that swallow synthetic
+       clicks. -->
+  <button class="close-btn" id="closeBtn" aria-label="Close"
+          onclick="try{dismiss()}catch(e){}"
+          ontouchend="try{dismiss()}catch(e){}"><span class="material-symbols-outlined">close</span></button>
   <button class="clang" id="langToggle" aria-label="Switch language">English</button>
 
   <div class="top">
@@ -198,6 +207,34 @@
 </div>
 
 <script>
+  /* ═══════════════════════════════════════════════════════════
+     0. FAIL LOUDLY
+
+     If this script throws anywhere below, every listener after the
+     throw is never attached and the ✕ becomes a dead control that
+     reports nothing — which is indistinguishable from a wrong
+     CleverTap transport, and is why this took several rounds to
+     localise. Paint the error instead of swallowing it.
+
+     This is the FIRST statement in the file on purpose: it has to be
+     installed before anything that can fail.
+     ═══════════════════════════════════════════════════════════ */
+  window.onerror = function(msg, src, line, col){
+    try{
+      var d = document.getElementById('jsErr');
+      if(!d){
+        d = document.createElement('div');
+        d.id = 'jsErr';
+        d.setAttribute('style',
+          'position:fixed;left:0;right:0;bottom:0;z-index:2147483647;background:#900;' +
+          'color:#fff;font:11px/1.4 monospace;padding:9px;max-height:45%;overflow:auto');
+        (document.body || document.documentElement).appendChild(d);
+      }
+      d.appendChild(document.createTextNode('JS error @' + line + ':' + col + ' — ' + msg + ' '));
+    }catch(e){}
+    return false;
+  };
+
   /* ═══════════════════════════════════════════════════════════
      1. CONFIG — the only block you edit
      ═══════════════════════════════════════════════════════════ */
@@ -232,6 +269,12 @@
        records that the technician was reached. Set false to show the
        empty state instead. */
     CLOSE_IF_EMPTY : true,
+
+    /* Shows a one-line status strip along the bottom proving the
+       script ran and naming the CleverTap bridge it found. It needs
+       no URL parameter, which matters because a pasted creative has
+       no URL. Tap the strip for the full readout. Set false for GA. */
+    DIAG : true,
 
     TIMEOUT_MS : 9000,
     RETRIES    : 2,
@@ -357,8 +400,11 @@
      always hits the live API. ?live=1 forces the live call from disk. */
   var FORCE_LIVE = (qparam('live') === '1');
 
-  /* ?dbg=1 paints the dismiss capability readout over the screen. */
-  var DBG = (qparam('dbg') === '1');
+  /* A creative pasted straight into CleverTap runs at about:blank —
+     there is NO URL, so ?dbg=1 can never be set in that deployment.
+     CFG.DIAG is the switch that works there. Set CFG.DIAG false for
+     GA once the ✕ is confirmed working on a handset. */
+  var DBG = CFG.DIAG || (qparam('dbg') === '1');
 
   /* Set only by the wrapper's own hello message — never inferred from
      window.parent. CleverTap may itself render a creative inside a
@@ -1120,7 +1166,9 @@
     var caps = dismissCaps();
     caps.fired = fired.join(',') || 'NOTHING';
     track('Dismiss_Attempted', caps, false);
-    if(DBG) showDbg(caps, false);
+    /* If the popup is still here a moment later, this line is the
+       answer: it says whether a transport was even called. */
+    diagBar('fired: ' + caps.fired);
 
     /* Nothing took. Try the remaining unverified routes quietly, then
        — critically — SAY SO ON SCREEN. A ✕ that silently does nothing
@@ -1152,6 +1200,37 @@
       setTimeout(function(){ try{ f.parentNode.removeChild(f); }catch(e){} }, 1500);
       return true;
     }catch(e){ return false; }
+  }
+
+  /* One-line proof-of-life along the bottom: the script ran, this is
+     the bridge it found, this is the id it resolved. Tap to expand.
+     No URL parameter involved, because a pasted creative has no URL.
+     Updated after a close attempt with what actually fired. */
+  function diagBar(extra){
+    if(!DBG) return;
+    try{
+      var b = document.getElementById('diagBar');
+      if(!b){
+        b = document.createElement('div');
+        b.id = 'diagBar';
+        b.setAttribute('style',
+          'position:fixed;left:0;right:0;bottom:0;z-index:2147483646;background:#111;' +
+          'color:#6f6;font:10px/1.5 monospace;padding:6px 8px;text-align:center');
+        b.onclick = function(){ showDbg(dismissCaps(), false); };
+        (document.body || document.documentElement).appendChild(b);
+      }
+      var ct  = probe(0, function(){ return !!window.CleverTap; });
+      var trg = probe(0, function(){ return typeof window.CleverTap.triggerInAppAction; });
+      var dsm = probe(0, function(){ return typeof window.CleverTap.dismissInAppNotification; });
+      b.textContent =
+        'JS ok · CT ' + (ct ? 'yes' : 'NO') +
+        ' · trigger ' + (trg === 'function' ? 'fn' : '-') +
+        ' · dismiss '  + (dsm === 'function' ? 'fn' : '-') +
+        ' · id ' + (TECH_ID || 'none') +
+        ' · ' + view +
+        (extra ? ' · ' + extra : '') +
+        '  (tap for detail)';
+    }catch(e){}
   }
 
   /* On-screen capability readout. One CT preview on a real phone with
@@ -1369,4 +1448,5 @@
      ═══════════════════════════════════════════════════════════ */
   track('Opened', { hasTechnicianId: !!TECH_ID, embedded: (window.parent !== window) });
   loadData();
+  diagBar();
 </script>
