@@ -143,7 +143,7 @@
      A. HOSTED (recommended, and what docs/inapp-daily-installation-
         wrapper.html uses). The page sits on GitHub Pages and the CT
         creative is a thin iframe wrapper that passes the id down:
-            daily-installation.html?technicianId=10374
+            daily-installation.html?technicianId=<the CT value>
         Identity arrives as a URL PARAM. This is the same split that
         settle.html / quality.html already use in production — the
         wrapper owns the Liquid token, the page owns the rendering.
@@ -785,28 +785,42 @@
     }
   }
 
-  /* Desk-preview sample — the REAL production shape (executorId
-     10374), with service_address as a JSON-encoded string. Row 3
-     carries the number under a NESTED customer{} object purely to
-     exercise the pass-2 walk; rows 1-2 use the flat customer_mobile
-     key. Preview with ?nophone=1 to see the no-number state.       */
+  /* DESK PREVIEW ONLY — never reachable from a handset. It is gated
+     on DEBUG, which requires a file:/data: protocol; the in-app
+     WebView is about: and the hosted page is https:, so on a device
+     the list is ALWAYS fetched live from TAS for the id CleverTap
+     supplied.
+
+     It carries no executor_id: the screen must never have an id baked
+     into it, and leaving it out also exercises the branch where TAS
+     does not echo one back. Dated today so the preview never looks
+     stale. Shape mirrors the real response, service_address included
+     as a JSON-encoded string. Rows 1-2 put the number under the flat
+     customer_mobile key; row 3 nests it under customer{} to exercise
+     the pass-2 walk. ?nophone=1 previews the no-number state.      */
+  function todayISO(){
+    var d = new Date();
+    return d.getFullYear() + '-' +
+           ('0' + (d.getMonth() + 1)).slice(-2) + '-' +
+           ('0' + d.getDate()).slice(-2);
+  }
   var DEMO = {
-    executor_id:'10374', install_date:'2026-09-11', installation_count:3,
+    install_date: todayISO(), installation_count:3,
     items:[
       { execution_candidate_id:'1f0dde60-c821', connection_id:'d702146c-875d',
-        current_state:'TECHNICIAN_ASSIGNED', task_status:'OPEN', confirmed_slot_date:'2026-09-11',
+        current_state:'TECHNICIAN_ASSIGNED', task_status:'OPEN', confirmed_slot_date:todayISO(),
         confirmed_slot_time_range_start:'00:00:00', confirmed_slot_time_range_end:'23:59:59',
         customer_name:'Dev Yadav', customer_mobile:'9876543210',
         service_address:"{\"home\": \"Pg Tirmula Room 501\", \"streetNumber\": \"Yadav Partha\", \"locality\": \"Rasoolpur Nawada, Industrial Area, Sector 62, 201309\", \"street\": \"Yadav Partha\", \"landMarkType\": \"OTHER\", \"address\": \"12, Rasoolpur Nawada, Industrial Area, Sector 62\", \"pincode\": \"201309\", \"city\": \"Noida\"}",
         locality:'476', zone_id:'476', latest_attention_version:4, unseen_attention_count:1 },
       { execution_candidate_id:'ad321293-a575', connection_id:'7b70133d-00d0',
-        current_state:'TECHNICIAN_ASSIGNED', task_status:'OPEN', confirmed_slot_date:'2026-09-11',
+        current_state:'TECHNICIAN_ASSIGNED', task_status:'OPEN', confirmed_slot_date:todayISO(),
         confirmed_slot_time_range_start:'10:00:00', confirmed_slot_time_range_end:'13:00:00',
         customer_name:'Manish  Kumar', customer_mobile:'+91 98765 43211',
         service_address:"{\"home\": \"House No 44\", \"streetNumber\": \"Gali No 1 Ashram Near Shiv Mandir\", \"locality\": \"Sector 63, Chhajarsi Colony, 201309\", \"street\": \"Shakshi Public School\", \"landMarkType\": \"SCHOOL\", \"address\": \"Sector 63 Rd A Block, Chotpur Colony, Sector 63\", \"pincode\": \"201309\", \"city\": \"Noida\"}",
         locality:'297', zone_id:'297', latest_attention_version:4, unseen_attention_count:1 },
       { execution_candidate_id:'ae444591-1045', connection_id:'8eeb313b-b5f2',
-        current_state:'TECHNICIAN_ASSIGNED', task_status:'OPEN', confirmed_slot_date:'2026-09-11',
+        current_state:'TECHNICIAN_ASSIGNED', task_status:'OPEN', confirmed_slot_date:todayISO(),
         confirmed_slot_time_range_start:'00:00:00', confirmed_slot_time_range_end:'23:59:59',
         customer_name:'Anil Kumar', customer:{ name:'Anil Kumar', mobile:'09876543212' },
         service_address:"{\"home\": \"F-9 Chhajarsi Colony\", \"streetNumber\": \"01 Opposite Rahul Stationary\", \"locality\": \"Goutam Buddh Nagar, Chhajarsi Colony, Sector 63, 201309\", \"street\": \"Shakshi Public School\", \"landMarkType\": \"SCHOOL\", \"address\": \"18, Goutam Buddh Nagar, Chhajarsi Colony, Sector 63\", \"pincode\": \"201309\", \"city\": \"Noida\"}",
