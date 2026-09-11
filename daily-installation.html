@@ -990,18 +990,33 @@
       var ci = parseInt(card.getAttribute('data-card'), 10);
       var cc = items[ci];
       if(!cc) return;
+      /* Same ticket shape as Call_Clicked so the two are comparable
+         side by side in CT — minus the full number, which only the
+         tap that actually dials should carry. */
       track('Card_Tapped', {
-        candidateId  : cc.id,
-        connectionId : cc.connId,
         customerName : cc.name,
         phoneMasked  : maskPhone(cc.phone),
         hasPhone     : !!cc.phone,
+
         address      : cc.address,
+        landmark     : cc.landmark,
         area         : cc.area,
         city         : cc.city,
         pincode      : cc.pincode,
+
         slot         : slotLabel(cc),
+        slotDate     : cc.slotDate,
+
+        candidateId  : cc.id,
+        connectionId : cc.connId,
+        /* cspId comes from the API row, not the CT profile — one
+           technician can serve more than one CSP in a day. */
+        cspId        : cc.cspId,
         state        : cc.state,
+        taskStatus   : cc.task,
+        zone         : cc.zone,
+        isNew        : (cc.unseen > 0),
+
         position     : ci + 1,
         installCount : items.length,
         alreadyCalled: !!called[cc.id],
