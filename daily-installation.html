@@ -126,6 +126,14 @@
     font-family:inherit; font-size:15px; font-weight:800; padding:13px 26px; cursor:pointer; }
   .retry-btn .material-symbols-outlined{ font-size:19px; color:var(--brand); margin:0; }
 
+  .diag{ margin-top:16px; text-align:left; background:rgba(0,0,0,.28);
+    border:1px solid rgba(255,255,255,.18); border-radius:12px; padding:12px 14px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:11.5px; line-height:18px; color:rgba(255,255,255,.9); word-break:break-all; }
+  .diag b{ color:#FFB2E4; font-weight:700; }
+  .diag .hint{ display:block; margin-top:8px; color:rgba(255,255,255,.65);
+    font-family:inherit; font-size:11px; }
+
   /* ── icon font guard ──────────────────────────────────────────
      Material Symbols renders its icons as LIGATURES, so the element
      text is the literal word "person" / "call" / "location_on". If the
@@ -401,9 +409,25 @@
                 unless somebody types it. */
   var FORCE_LIVE = (qparam('live') === '1');
   var FORCE_DEMO = (qparam('demo') === '1');
+
+  /* ?debug=1 prints WHY the call failed on the error screen. The reason
+     already rides the Api_Failed event, but a plain browser link has no
+     CleverTap to receive it, so the failure is otherwise invisible to
+     anyone testing the URL. Diagnostic only — a technician never types
+     it, and it changes no behaviour. */
+  var DEBUG_UI = (qparam('debug') === '1');
+
+  /* ?proxy=<url> points this load at a relay without editing CFG, so a
+     freshly deployed relay can be validated in one tap. Restricted to
+     script.google.com: a free-form value here would let a crafted link
+     feed a technician someone else's data. */
+  var PROXY_OVERRIDE = qparam('proxy');
+  if(PROXY_OVERRIDE && PROXY_OVERRIDE.indexOf('https://script.google.com/') !== 0) PROXY_OVERRIDE = '';
+  if(PROXY_OVERRIDE) CFG.PROXY_URL = PROXY_OVERRIDE;
   var DEBUG = FORCE_DEMO ||
               (!FORCE_LIVE && (location.protocol === 'file:' || location.protocol === 'data:'));
 
+  var lastFail = null;
   var lang    = 'hi';
   var items   = [];
   var meta    = {};
@@ -536,8 +560,18 @@
 
     function fail(reason){
       if(done) return; done = true;
+      /* Read the status BEFORE abort(), which resets it to 0 and would
+         otherwise make every failure look like a network error. */
+      var st0 = 0; try{ st0 = xhr.status; }catch(e){}
       try{ xhr.abort(); }catch(e){}
       if(attempt < CFG.RETRIES){ attempt++; setTimeout(loadData, 700 * attempt); return; }
+      lastFail = {
+        reason  : reason,
+        status  : st0,
+        attempts: attempt + 1,
+        url     : buildUrl().replace(/&_t=\d+$/, ''),
+        viaProxy: !!CFG.PROXY_URL
+      };
       track('Api_Failed', {
         reason   : reason,
         attempts : attempt + 1,
@@ -565,6 +599,13 @@
       if(xhr.readyState !== 4 || done) return;
       var st = xhr.status;
       if(st === 204){ done = true; applyPayload({ items:[] }); return; }
+      /* status 0 at readyState 4 is NOT an HTTP 0 — there is no such
+         code. It means the response was never handed to the page: a CORS
+         block, a dropped connection, or an abort. Reporting it as http_0
+         mislabels the single most likely production failure, and sends
+         whoever reads Api_Failed in CleverTap looking at TAS instead of
+         at the missing Access-Control-Allow-Origin header. */
+      if(st === 0){ fail('network_or_cors'); return; }
       if(st < 200 || st >= 300){ fail('http_' + st); return; }
 
       var json;
@@ -907,6 +948,35 @@
   /* 98765 43210 — easier to read back over a noisy line than 10 run-on digits. */
   function prettyPhone(n){ return n ? (n.substring(0,5) + ' ' + n.substring(5)) : ''; }
 
+  /* Only ever rendered under ?debug=1. reason=network_or_cors with
+     status 0 is the CORS signature: the request left, the response came
+     back, and the browser refused to hand it over because the header was
+     missing. An http_NNN means TAS answered and the header is not the
+     problem. */
+  function diagHtml(){
+    if(!DEBUG_UI || !lastFail) return '';
+    var f = lastFail, hint = '';
+    if(f.reason === 'network_or_cors'){
+      hint = 'CORS: TAS did not return Access-Control-Allow-Origin for this origin, ' +
+             'so the browser blocked the response. The API itself is probably fine — ' +
+             'opening the URL directly in a tab is not a cross-origin request and will still work.';
+    }else if(String(f.reason).indexOf('http_') === 0){
+      hint = 'TAS answered with HTTP ' + String(f.reason).replace('http_', '') +
+             '. This is not CORS — the response arrived, so the header is not the problem.';
+    }else if(f.reason === 'timeout'){
+      hint = 'No response within ' + CFG.TIMEOUT_MS + 'ms.';
+    }else if(f.reason === 'bad_json'){
+      hint = 'TAS answered, but the body was not JSON.';
+    }
+    return '<div class="diag">' +
+      '<b>reason</b> ' + escHtml(f.reason) + '<br>' +
+      '<b>status</b> ' + escHtml(String(f.status)) + '<br>' +
+      '<b>tries</b> ' + escHtml(String(f.attempts)) + ('  <b>viaProxy</b> ' + (f.viaProxy ? 'yes' : 'no')) + '<br>' +
+      '<b>url</b> ' + escHtml(f.url) +
+      (hint ? '<span class="hint">' + escHtml(hint) + '</span>' : '') +
+      '</div>';
+  }
+
   function renderBody(){
     var area = document.getElementById('cardArea'), s = STR[lang], html = '', i;
 
@@ -926,7 +996,7 @@
           '<p class="state-text">' + s.errDesc + '</p>' +
           '<button class="retry-btn" id="retryBtn">' +
             '<span class="material-symbols-outlined">refresh</span>' + s.retry +
-          '</button></div>';
+          '</button>' + diagHtml() + '</div>';
       var rb = document.getElementById('retryBtn');
       if(rb) rb.addEventListener('click', function(){
         track('Retry_Clicked', { lang:lang }, false);
