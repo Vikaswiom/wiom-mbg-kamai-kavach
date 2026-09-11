@@ -1126,6 +1126,23 @@
       if(wk){ wk.postMessage({ action:'dismissInAppNotification' }); fired.push('webkit'); }
     }catch(e){}
 
+    /* 5b. CleverTap may wrap the creative in its own frame, putting
+           the bridge one level up. Same-origin access throws
+           harmlessly when it is not. */
+    try{
+      var pc = window.parent && window.parent !== window ? window.parent.CleverTap : null;
+      if(pc){
+        if(typeof pc.triggerInAppAction === 'function'){
+          try{ pc.triggerInAppAction(JSON.stringify({ type:'close' }), 'close', 'close'); }
+          catch(e1){ try{ pc.triggerInAppAction(); }catch(e2){} }
+          fired.push('parent.triggerInAppAction');
+        }
+        if(typeof pc.dismissInAppNotification === 'function'){
+          pc.dismissInAppNotification(); fired.push('parent.dismissInAppNotification');
+        }
+      }
+    }catch(e){}
+
     /* 6. triggerInAppAction — the one transport with actual evidence
           behind it on this app's SDK, and the one the first draft
           deliberately excluded by misreading why.
@@ -1178,12 +1195,26 @@
        the handset exposed, so one tap answers it. */
     if(!fired.length){
       try{ if(typeof window.close === 'function'){ window.close(); } }catch(e){}
+
+      /* Hidden-iframe first: harmless when nothing handles the scheme. */
       quietScheme('clevertap://closeInApp');
       quietScheme('wzrk://close');
 
-      setTimeout(function(){
-        showDbg(caps, true);
-      }, 600);
+      /* With NO bridge of any kind, URL interception is the only
+         channel left — and a WebView host usually only inspects
+         MAIN-FRAME navigations, which a hidden iframe is not. So when
+         window.CleverTap is genuinely absent, escalate to a top-level
+         navigation. The error-page risk that argued against this is
+         the lesser evil once the alternative is a popup that can
+         never be closed. */
+      var noBridge = probe(0, function(){ return !window.CleverTap; });
+      if(noBridge){
+        setTimeout(function(){
+          try{ window.location.href = 'wzrk://close'; }catch(e){}
+        }, 900);
+      }
+
+      setTimeout(function(){ showDbg(caps, true); }, 600);
     }
   }
 
@@ -1222,10 +1253,18 @@
       var ct  = probe(0, function(){ return !!window.CleverTap; });
       var trg = probe(0, function(){ return typeof window.CleverTap.triggerInAppAction; });
       var dsm = probe(0, function(){ return typeof window.CleverTap.dismissInAppNotification; });
+      var framed = probe(0, function(){ return window.parent !== window; });
+      var pct    = probe(0, function(){ return !!(window.parent.CleverTap); });
       b.textContent =
         'JS ok · CT ' + (ct ? 'yes' : 'NO') +
         ' · trigger ' + (trg === 'function' ? 'fn' : '-') +
         ' · dismiss '  + (dsm === 'function' ? 'fn' : '-') +
+        /* framed + a bridge in the PARENT means CleverTap wrapped the
+           creative itself and the bridge is one frame up. framed with
+           no parent bridge, or not framed at all with CT NO, means
+           there is no SDK in this context — a preview, not a delivery. */
+        ' · frame ' + (framed ? ('child' + (pct ? '+CT' : '')) : 'top') +
+        ' · ' + (location.protocol || '?') +
         ' · id ' + (TECH_ID || 'none') +
         ' · ' + view +
         (extra ? ' · ' + extra : '') +
