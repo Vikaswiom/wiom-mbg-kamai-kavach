@@ -137,8 +137,8 @@
      is keyed on, and every event carries it under both names. No
      cspId anywhere — not from the CT profile, not off the API row.
 
-     This page runs in TWO deployment modes and needs no edit between
-     them:
+     This page runs in THREE deployment modes and needs no edit
+     between them:
 
      A. HOSTED (recommended, and what docs/inapp-daily-installation-
         wrapper.html uses). The page sits on GitHub Pages and the CT
@@ -151,6 +151,20 @@
      B. PASTED (whole file dropped into a CT custom-HTML in-app). Then
         no wrapper exists, so CT substitutes the token in the span
         below and the page reads it from there.
+
+     C. LINK (a plain public URL opened from a CT campaign — push,
+        SMS or WhatsApp — where CT substitutes the id into the URL
+        itself):
+            daily-installation.html?technicianId=<the CT value>
+        Identity arrives as a URL param exactly as in A, but there is
+        no in-app popup wrapped around the page and no CT bridge in
+        the WebView. So the two behaviours that exist to get a popup
+        off the screen must NOT run here: there is nothing to dismiss,
+        and 'clevertap://closeInApp' is an unknown scheme in a browser
+        — it strands the technician on an error page instead of
+        closing anything. LINK_MODE below turns both off, which is
+        why a zero-install day shows the empty state on a link but
+        still auto-closes in A and B.
 
      The spans below use the Liquid token form with the pipe-default
      filter — the form this CT account already substitutes in a live
@@ -342,9 +356,18 @@
 
   /* URL param first: in the hosted deployment the wrapper has already
      resolved the token and passed it down, and that value is the more
-     trustworthy of the two. */
-  _v = qparam('technicianId') || qparam('technicianid') ||
-       qparam('executorId')   || qparam('executorid');
+     trustworthy of the two.
+
+     Through cleanToken() as well, because mode C has no wrapper to
+     vet it. When CT cannot substitute a token it leaves the token
+     TEXT in place, so a campaign URL built as ?technicianId=<token>
+     arrives here literally — and without this the page would send
+     that raw token on to TAS as the executorId, then report
+     idSource=url_param as though an id had been found. Stripping it
+     here turns a wrong/missing profile property back into the honest
+     no-id path: No_Technician_Id, and no API call. */
+  _v = cleanToken(qparam('technicianId')) || cleanToken(qparam('technicianid')) ||
+       cleanToken(qparam('executorId'))   || cleanToken(qparam('executorid'));
   if(_v){ TECH_ID = _v; ID_SRC = 'url_param'; }
 
   for(_i = 0; !TECH_ID && _i < PROFILE_SPANS.length; _i++){
@@ -356,6 +379,22 @@
      always hits the live API. ?live=1 forces the live call from disk. */
   var FORCE_LIVE = (qparam('live') === '1');
   var DEBUG = !FORCE_LIVE && (location.protocol === 'file:' || location.protocol === 'data:');
+
+  /* WHICH DEPLOYMENT ARE WE IN (see the modes block at the top).
+     EMBEDDED is mode A: the wrapper owns the in-app and the bridge.
+     LINK_MODE is mode C: a real http(s) origin with no wrapper around
+     it, i.e. the page was opened as a plain campaign link. Anything
+     else is a creative running at about: (mode B) or a desk preview
+     at file:/data:.
+
+     Declared here rather than beside the listeners because the empty
+     day auto-close and closeInApp() both consult them, and both can
+     run before that point in the file. */
+  var EMBEDDED  = !!(window.parent && window.parent !== window);
+  var LINK_MODE = !EMBEDDED && (location.protocol === 'http:' || location.protocol === 'https:');
+  var MODE      = EMBEDDED  ? 'inapp_wrapper'
+                : LINK_MODE ? 'link'
+                : (location.protocol === 'about:' ? 'inapp_pasted' : 'preview');
 
   var lang    = 'hi';
   var items   = [];
@@ -402,9 +441,15 @@
                         timeout / bad_json).
        No_Technician_Id the CT profile had no technicianId.
        Id_Echo_Mismatch TAS returned a different executor's list.
+       Auto_Closed_Empty a zero-install day closed itself rather than
+                        interrupt the technician (in-app modes only —
+                        a plain campaign link shows the empty state).
 
      Every event also carries technicianId, executorId (same value),
-     idSource and installDate.
+     idSource, installDate and mode — the deployment that raised it
+     (inapp_wrapper / inapp_pasted / link / preview), so opens from a
+     campaign LINK are separable from popup opens with no second
+     event name.
 
      THREE transports, tried in order. The third is what makes the
      hosted deployment work: inside an iframe the CTWebInterface
@@ -445,6 +490,10 @@
     p.executorId   = TECH_ID;
     p.idSource     = ID_SRC;
     p.installDate  = meta.installDate || '';
+    /* Which deployment raised this — inapp_wrapper / inapp_pasted /
+       link / preview. Lets the campaign separate popup opens from
+       link opens without a second event name. */
+    p.mode         = MODE;
 
     var ev = EV_PREFIX + name;
     if(once !== false){
@@ -789,8 +838,13 @@
 
     /* Nothing to call = nothing worth interrupting the technician for.
        Viewed is already away, so a zero-install day is still counted
-       in the campaign; the technician just never sees the popup. */
-    if(!items.length && CFG.CLOSE_IF_EMPTY){
+       in the campaign; the technician just never sees the popup.
+
+       Only in the two in-app modes. On a plain campaign link the
+       technician tapped through on purpose and there is no popup to
+       close, so closing would just blank the page they asked for —
+       they get the empty state instead. */
+    if(!items.length && CFG.CLOSE_IF_EMPTY && !LINK_MODE){
       track('Auto_Closed_Empty', {});
       setTimeout(closeInApp, 400);
     }
@@ -1029,9 +1083,13 @@
     }catch(e){}
     /* 4. Still alive a beat later => nothing above took. Escalate to
           the URL scheme. Skipped when embedded: the wrapper runs this
-          same escalation in the top frame, where it actually works. */
+          same escalation in the top frame, where it actually works.
+          Skipped on a plain link too — there is no in-app to close
+          there, and the scheme is unknown to a browser, so navigating
+          to it replaces the technician's list with an error page. */
     setTimeout(function(){
       try{
+        if(LINK_MODE) return;
         if(window.parent && window.parent !== window) return;
         window.location.href = 'clevertap://closeInApp';
       }catch(e){}
@@ -1071,9 +1129,14 @@
   /* The wrapper draws its own ✕ in the embedded deployment. Showing
      this one too puts two close buttons on the screen, one of them in
      the frame that is worse at closing — so hide it and let the
-     wrapper's button drive, via requestDismiss below. */
-  var EMBEDDED = !!(window.parent && window.parent !== window);
-  if(EMBEDDED){
+     wrapper's button drive, via requestDismiss below.
+
+     On a plain campaign link it is hidden for the opposite reason:
+     nothing wraps the page, so there is no in-app for a ✕ to close
+     and the button could only ever dead-end. Mode B — the pasted
+     creative — is the one deployment where this page owns the popup,
+     and the only one that still draws it. */
+  if(EMBEDDED || LINK_MODE){
     document.getElementById('closeBtn').style.display = 'none';
   }
   document.getElementById('closeBtn').addEventListener('click', dismiss);
@@ -1209,6 +1272,6 @@
   /* ═══════════════════════════════════════════════════════════
      11. Init
      ═══════════════════════════════════════════════════════════ */
-  track('Opened', { hasTechnicianId: !!TECH_ID, embedded: (window.parent !== window) });
+  track('Opened', { hasTechnicianId: !!TECH_ID, embedded: EMBEDDED });
   loadData();
 </script>
