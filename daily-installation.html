@@ -355,6 +355,15 @@
   /* Desk preview only. A real device is on https, never file:, so it
      always hits the live API. ?live=1 forces the live call from disk. */
   var FORCE_LIVE = (qparam('live') === '1');
+
+  /* ?dbg=1 paints the dismiss capability readout over the screen. */
+  var DBG = (qparam('dbg') === '1');
+
+  /* Set only by the wrapper's own hello message — never inferred from
+     window.parent. CleverTap may itself render a creative inside a
+     frame, so "I am framed" does NOT mean "the wrapper is there", and
+     guessing it wrong hides the ✕ with nothing to replace it. */
+  var WRAPPER_PRESENT = false;
   var DEBUG = !FORCE_LIVE && (location.protocol === 'file:' || location.protocol === 'data:');
 
   var lang    = 'hi';
@@ -996,46 +1005,118 @@
   /* ═══════════════════════════════════════════════════════════
      9. Dismiss — carries the session summary
      ═══════════════════════════════════════════════════════════ */
-  /* EVERY transport fires and NONE of them returns early.
-     Feature-detection is not proof of success: on Android the
-     CTWebInterface object is injected into sub-frames too, so inside
-     the wrapper's iframe window.CleverTap.dismissInAppNotification
-     EXISTS and is callable, but the frame often cannot resolve which
-     in-app to dismiss — so it silently does nothing. An early return
-     there strands the tap and the ✕ appears dead. This is the same
-     trap the repo already documents for triggerInAppAction.
+  /* ─── Dismissing the in-app ──────────────────────────────────
+     NOTHING here can be verified from a laptop, and two earlier
+     attempts at "the correct transport" were wrong, so this version
+     stops guessing. It fires EVERY known mechanism, records which
+     ones the device actually exposes, and reports that both as a CT
+     event and — with ?dbg=1 — on the screen itself, so one preview on
+     a real handset answers the question instead of another guess.
 
-     Dismissing an in-app that is already gone is a harmless no-op.
-     Dismissing none of them leaves the technician stuck behind a
-     popup they cannot close, so redundancy is the right trade. */
+     What is NOT established: whether this SDK's CTWebInterface even
+     has a dismiss method (it varies by version), and whether the
+     clevertap:// scheme below is real at all — it came from the
+     original draft and appears nowhere else in this repo, so it is
+     kept only as a harmless last resort, never relied on. */
+  function probe(o, fn){ try{ return fn(); }catch(e){ return 'ERR'; } }
+
+  function dismissCaps(){
+    var c = {};
+    c.embedded  = probe(0, function(){ return window.parent !== window; });
+    c.wrapper   = WRAPPER_PRESENT;
+    c.cleverTap = probe(0, function(){ return !!window.CleverTap; });
+    c.m_dismissInAppNotification = probe(0, function(){ return typeof window.CleverTap.dismissInAppNotification; });
+    c.m_closeInAppNotification   = probe(0, function(){ return typeof window.CleverTap.closeInAppNotification; });
+    c.m_dismissInApp             = probe(0, function(){ return typeof window.CleverTap.dismissInApp; });
+    c.m_pushEvent                = probe(0, function(){ return typeof window.CleverTap.pushEvent; });
+    /* Android's injected objects usually do not enumerate; an empty
+       list here is normal and not itself a problem. */
+    c.ctKeys    = probe(0, function(){ var a=[],k; for(k in window.CleverTap){a.push(k);} return a.join('|'); });
+    c.webkitCT  = probe(0, function(){ return !!(window.webkit && window.webkit.messageHandlers &&
+                                                 window.webkit.messageHandlers.clevertap); });
+    c.webkitKeys= probe(0, function(){ var a=[],k; for(k in window.webkit.messageHandlers){a.push(k);} return a.join('|'); });
+    return c;
+  }
+
+  /* Fires everything. Feature-detection is not proof of success, and
+     dismissing an in-app that has already gone is a harmless no-op —
+     whereas dismissing none of them leaves the technician stuck
+     behind a popup they cannot close. */
   function closeInApp(){
-    /* 1. The TOP frame owns the in-app, so in the hosted deployment
-          the wrapper is the transport most likely to work. First. */
+    var fired = [];
+
+    /* 1. The top frame owns the in-app, so when a wrapper is there it
+          is the most likely closer. */
     try{
       if(window.parent && window.parent !== window){
         window.parent.postMessage({ __ct:1, action:'dismiss' }, '*');
+        fired.push('parent');
       }
     }catch(e){}
-    /* 2. Android CTWebInterface, if this frame has it. */
+
+    /* 2-4. Whatever this SDK's CTWebInterface actually exposes. */
     try{
       if(window.CleverTap && typeof window.CleverTap.dismissInAppNotification === 'function'){
-        window.CleverTap.dismissInAppNotification();
+        window.CleverTap.dismissInAppNotification(); fired.push('dismissInAppNotification');
       }
     }catch(e){}
-    /* 3. iOS message handler. */
+    try{
+      if(window.CleverTap && typeof window.CleverTap.closeInAppNotification === 'function'){
+        window.CleverTap.closeInAppNotification(); fired.push('closeInAppNotification');
+      }
+    }catch(e){}
+    try{
+      if(window.CleverTap && typeof window.CleverTap.dismissInApp === 'function'){
+        window.CleverTap.dismissInApp(); fired.push('dismissInApp');
+      }
+    }catch(e){}
+
+    /* 5. iOS message handler. */
     try{
       var wk = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap;
-      if(wk){ wk.postMessage({ action:'dismissInAppNotification' }); }
+      if(wk){ wk.postMessage({ action:'dismissInAppNotification' }); fired.push('webkit'); }
     }catch(e){}
-    /* 4. Still alive a beat later => nothing above took. Escalate to
-          the URL scheme. Skipped when embedded: the wrapper runs this
-          same escalation in the top frame, where it actually works. */
+
+    /* Report what this device had and what actually fired. This is the
+       event to read in CT when the button misbehaves. */
+    var caps = dismissCaps();
+    caps.fired = fired.join(',') || 'NOTHING';
+    track('Dismiss_Attempted', caps, false);
+    if(DBG) showDbg(caps);
+
+    /* 6. Unverified last resort, and only when no bridge existed at
+          all — navigating to an unknown scheme can paint an error
+          page over the popup, which is worse than a stuck ✕. Skipped
+          when embedded: the wrapper owns escalation in the top frame. */
     setTimeout(function(){
       try{
         if(window.parent && window.parent !== window) return;
+        if(fired.length) return;
         window.location.href = 'clevertap://closeInApp';
       }catch(e){}
     }, 700);
+  }
+
+  /* On-screen capability readout. One CT preview on a real phone with
+     ?dbg=1 tells us which transport exists, with no round trip
+     through the dashboard. */
+  function showDbg(caps){
+    try{
+      var d = document.getElementById('dbgPanel');
+      if(!d){
+        d = document.createElement('div');
+        d.id = 'dbgPanel';
+        d.setAttribute('style',
+          'position:fixed;left:0;right:0;bottom:0;z-index:2147483647;max-height:52%;' +
+          'overflow:auto;background:#000;color:#0f0;font:11px/1.45 monospace;padding:10px;');
+        document.body.appendChild(d);
+      }
+      var html = '<b>dismiss diagnostics</b><br>', k;
+      for(k in caps){ if(Object.prototype.hasOwnProperty.call(caps,k)){
+        html += k + ' = ' + escHtml(String(caps[k])) + '<br>';
+      } }
+      d.innerHTML = html;
+    }catch(e){}
   }
 
   function calledCount(){
@@ -1068,23 +1149,30 @@
      10. Listeners — ONE delegated handler covers every CTA, so the
          listener count stays at 1 whether there are 1 or 12 tickets.
      ═══════════════════════════════════════════════════════════ */
-  /* The wrapper draws its own ✕ in the embedded deployment. Showing
-     this one too puts two close buttons on the screen, one of them in
-     the frame that is worse at closing — so hide it and let the
-     wrapper's button drive, via requestDismiss below. */
-  var EMBEDDED = !!(window.parent && window.parent !== window);
-  if(EMBEDDED){
-    document.getElementById('closeBtn').style.display = 'none';
-  }
   document.getElementById('closeBtn').addEventListener('click', dismiss);
 
-  /* The wrapper's ✕ asks here first, so the Dismissed event still
-     carries the session summary (how many of the day's customers were
-     actually called) before the WebView is torn down. */
   try{
     window.addEventListener('message', function(e){
       var d = e && e.data;
-      if(d && d.__ct === 1 && d.action === 'requestDismiss') dismiss();
+      if(!d || d.__ct !== 1) return;
+
+      /* The wrapper says hello on load. ONLY then do we hide our own
+         ✕, because only then is there another one on screen. Without
+         the handshake this page always keeps a visible close button —
+         a duplicate button is a cosmetic problem, no button at all is
+         a trapped technician. */
+      if(d.action === 'wrapperHello'){
+        WRAPPER_PRESENT = true;
+        if(d.hasCloseButton){
+          try{ document.getElementById('closeBtn').style.display = 'none'; }catch(err){}
+        }
+        return;
+      }
+
+      /* The wrapper's ✕ asks here first, so Dismissed still carries
+         the session summary (how many of the day's customers were
+         actually called) before the WebView is torn down. */
+      if(d.action === 'requestDismiss') dismiss();
     }, false);
   }catch(e){}
 
