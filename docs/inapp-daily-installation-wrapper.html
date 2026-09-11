@@ -18,16 +18,21 @@
         only. This wrapper owns the bridge and relays for the iframe,
         queueing anything raised before the bridge exists.
 
-     TOKEN SYNTAX — this Liquid form is the one this CT account
-     already substitutes in a live creative, so it is the form with
-     evidence behind it. If your account is on the bare CT style
-     instead, change the span to {{Profile.technicianId|NONE}} — the
-     JS treats NONE as missing, so nothing else changes.
+     TOKEN SYNTAX — the spans below use the Liquid form with the
+     pipe-default filter, which this CT account already substitutes in
+     a live creative.
 
-     Liquid is CASE-SENSITIVE: {{ Profile.technicianId }} and
-     {{ Profile.TechnicianId }} are different properties, and the
-     wrong casing yields an empty string rather than an error. Four
-     spellings are tried below to cover that, but if your account uses
+     DO NOT write a Liquid token anywhere else in this file. CleverTap
+     parses the WHOLE creative for tokens, HTML comments and script
+     bodies included, so a token sitting in a comment is still parsed
+     and can refuse to save. The bare pipe-sentinel style in
+     particular is a SYNTAX ERROR in this account's editor — confirmed
+     on 11 Sep 2026 — so no example of it appears here.
+
+     Liquid is CASE-SENSITIVE: Profile.technicianId and
+     Profile.TechnicianId are different properties, and the wrong
+     casing yields an empty string rather than an error. Four
+     spellings are tried below to cover that. If your account uses
      something else entirely, confirm it in CleverTap under
      Segments > any profile > Custom attributes and add it as another
      span — the id then rides into the page as ?technicianId= and the

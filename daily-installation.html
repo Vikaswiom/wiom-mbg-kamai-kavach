@@ -152,21 +152,25 @@
         no wrapper exists, so CT substitutes the token in the span
         below and the page reads it from there.
 
-     The spans below use the Liquid token form this CT account
-     already substitutes in a live creative, so it is the form with
-     evidence behind it rather than the safer-looking guess. Token
-     text lives in element TEXT, never inside a script block.
+     The spans below use the Liquid token form with the pipe-default
+     filter — the form this CT account already substitutes in a live
+     creative.
 
-     If your account is on the bare CT style instead, swap the span
-     contents to {{Profile.technicianId|NONE}} — cleanToken() already
-     treats NONE as missing, so nothing else changes.
+     DO NOT write a Liquid token anywhere else in this file. CleverTap
+     parses the WHOLE creative for tokens, HTML comments and script
+     bodies included, so a token sitting in a comment is still parsed
+     and can refuse to save. The bare pipe-sentinel style in
+     particular is a SYNTAX ERROR in this account's editor — confirmed
+     on 11 Sep 2026 — which is why no example of it appears here, and
+     why cleanToken() below builds its brace literals by concatenation
+     rather than typing them out.
 
-     Liquid is CASE-SENSITIVE: {{ Profile.technicianId }} and
-     {{ Profile.TechnicianId }} are different properties, and the
-     wrong casing yields an empty string rather than an error — which
-     surfaces as idSource=none on every event, not as a crash. Confirm
-     the spelling in CleverTap under Segments > any profile > Custom
-     attributes before shipping.
+     Liquid is CASE-SENSITIVE: Profile.technicianId and
+     Profile.TechnicianId are different properties, and the wrong
+     casing yields an empty string rather than an error — it surfaces
+     as idSource=none on every event, not as a crash. Four spellings
+     are tried below; confirm yours in CleverTap under Segments > any
+     profile > Custom attributes before shipping.
      ═══════════════════════════════════════════════════════════════ -->
 <span id="ctTech"      hidden>{{ Profile.technicianId | default:"" }}</span>
 <span id="ctTechSnake" hidden>{{ Profile.technician_id | default:"" }}</span>
@@ -293,14 +297,21 @@
     return el ? (el.textContent || '') : '';
   }
 
-  /* An unsubstituted {{ … }} token means the property is not on the
-     profile (or the casing is wrong — Liquid is case-sensitive and CT
-     leaves the raw token in place rather than erroring). NONE is the
-     bare-CT-style sentinel. Both mean "no id". */
+  /* A span that still holds its raw token means CT did not substitute
+     it: the property is absent from the profile, the casing is wrong
+     (Liquid is case-sensitive and CT leaves the token in place rather
+     than erroring), or the page is being served from Pages, where
+     there is no CT to substitute anything. All of them mean "no id".
+
+     The brace pair is assembled at runtime rather than typed as a
+     literal: CleverTap parses script bodies too, and a bare token
+     pattern sitting in this file can stop the creative saving. */
+  var TOK_OPEN = '{' + '{', TOK_CLOSE = '}' + '}';
+
   function cleanToken(v){
     if(!v) return '';
     v = String(v).replace(/^\s+|\s+$/g, '');
-    if(v.indexOf('{{') !== -1 || v.indexOf('}}') !== -1) return '';
+    if(v.indexOf(TOK_OPEN) !== -1 || v.indexOf(TOK_CLOSE) !== -1) return '';
     var lower = v.toLowerCase();
     if(lower === 'none' || lower === 'null' || lower === 'undefined' || lower === '0') return '';
     return v;
