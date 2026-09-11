@@ -210,12 +210,13 @@
     RETRIES    : 2,
     MAX_CARDS  : 25,
 
-    /* Customer phone numbers are PII. Events carry the masked form
-       (*****3212) by default, which is enough to tell two customers
-       apart in CT without shipping a full subscriber number into the
-       analytics store. Flip to true only if CT is an approved
-       destination for full customer numbers.                        */
-    SEND_FULL_PHONE : false
+    /* Send the customer's full number on Call_Clicked. ON by request
+       — the campaign needs the dialled number in the event itself.
+       The masked form (*****3210) rides along as phoneMasked either
+       way, so dashboards that should not show a full subscriber
+       number can be built on that one instead. Set false to send only
+       the masked form.                                              */
+    SEND_FULL_PHONE : true
   };
 
   /* ═══════════════════════════════════════════════════════════
@@ -326,6 +327,38 @@
      (position / total / candidateId). 1 ticket or 12, the CT event
      catalogue and every segment built on it stay the same size.
 
+     EVERY clickable surface raises exactly one event, and no tap
+     raises two:
+
+       Call_Clicked     the Call CTA. Carries the WHOLE customer —
+                        name, phone (full + masked), address, landmark,
+                        area, city, pincode, slot, state, ids, and the
+                        position/tapIndex of the tap. Not deduped: a
+                        second call to the same customer is real signal.
+       Card_Tapped      a tap on the card BODY (reading the address
+                        rather than dialling). Same customer fields,
+                        minus the full number.
+       Dismissed        the ✕. Carries the session summary — how many
+                        of the day's customers were actually called.
+       Lang_Switched    the हिंदी/English toggle.
+       Retry_Clicked    the retry button on the error state.
+
+     Fired without a tap:
+       Opened           on load.
+       Viewed           the list rendered. One event for the whole day,
+                        with phoneKeys naming the TAS field the number
+                        came from.
+       All_Called       once, when the last uncalled card is tapped —
+                        the one event worth a campaign trigger.
+       Phone_Missing    at least one customer had no usable number.
+       Api_Failed       with reason (network_or_cors / http_NNN /
+                        timeout / bad_json).
+       No_Technician_Id the CT profile had no technicianId.
+       Id_Echo_Mismatch TAS returned a different executor's list.
+
+     Every event also carries technicianId, executorId (same value),
+     idSource and installDate.
+
      THREE transports, tried in order. The third is what makes the
      hosted deployment work: inside an iframe the CTWebInterface
      object may only be injected into the TOP frame, so the page
@@ -358,7 +391,11 @@
      once=false -> every tap is real signal and must land (call taps) */
   function track(name, p, once){
     p = p || {};
+    /* CT's technicianId IS TAS's executorId — one id, two names. Both
+       names are sent on every event so a segment can be built on
+       whichever name the team filters on, with no lookup. */
     p.technicianId = TECH_ID;
+    p.executorId   = TECH_ID;
     p.idSource     = ID_SRC;
     p.installDate  = meta.installDate || '';
 
@@ -457,6 +494,16 @@
     if(!t) return '';
     var p = String(t).split(':');
     return p.length >= 2 ? p[0] + ':' + p[1] : String(t);
+  }
+
+  /* slotText() is for the SCREEN and is translated. Events need a
+     stable value that does not change when the technician toggles
+     Hindi/English, so they carry this one instead. */
+  function slotLabel(c){
+    var a = c.sStart || '', b = c.sEnd || '';
+    if(!a && !b) return '';
+    if(a.indexOf('00:00') === 0 && b.indexOf('23:59') === 0) return 'ALL_DAY';
+    return hhmm(a) + '-' + hhmm(b);
   }
 
   function slotText(c, s){
@@ -584,9 +631,11 @@
 
   function addressOf(o){
     var a = parseAddr(o.service_address || o.serviceAddress);
-    if(!a) return { text: pick(o, ['service_address','serviceAddress','address']), landmark:'', area:'' };
+    if(!a) return { text: pick(o, ['service_address','serviceAddress','address']),
+                    landmark:'', area:'', city:'', pincode:'' };
     return {
       text     : joinUnique([a.home, a.address, a.city]),
+      city     : a.city || '',
       /* street is the landmark's name; landMarkType OTHER is noise. */
       landmark : (a.landMarkType && String(a.landMarkType).toUpperCase() !== 'OTHER') ? (a.street || '') : '',
       /* The HUMAN locality lives in here. The item's top-level
@@ -615,6 +664,8 @@
         address : ad.text,
         landmark: ad.landmark,
         area    : ad.area,
+        city    : ad.city,
+        pincode : ad.pincode,
         zone    : pick(o, ['locality','zone_id','zoneId']),
         state   : pick(o, ['current_state','currentState','state']),
         task    : pick(o, ['task_status','taskStatus']),
@@ -782,7 +833,7 @@
     for(i = 0; i < total; i++){
       var c = items[i], taps = called[c.id] || 0, slot = slotText(c, s);
 
-      html += '<div class="card' + (taps ? ' done' : '') + '">' +
+      html += '<div class="card' + (taps ? ' done' : '') + '" data-card="' + i + '">' +
         (c.unseen > 0 ? '<span class="card-new">' + s.isNew + '</span>' : '') +
         (total > 1 ? '<span class="card-index">' + (i + 1) + '/' + total + '</span>' : '') +
         '<div class="card-avatar"><span class="material-symbols-outlined">person</span></div>' +
@@ -922,12 +973,42 @@
   });
 
   document.getElementById('cardArea').addEventListener('click', function(e){
-    var el = e.target, link = null;
+    var el = e.target, link = null, card = null;
     while(el && el !== this){
-      if(el.className && String(el.className).indexOf('card-call') !== -1){ link = el; break; }
+      var cls = el.className ? String(el.className) : '';
+      if(!link && cls.indexOf('card-call') !== -1) link = el;
+      if(cls.indexOf('card') !== -1 && el.getAttribute && el.getAttribute('data-card') !== null){ card = el; break; }
       el = el.parentNode;
     }
-    if(!link) return;
+
+    /* A tap on the card BODY is still a tap — it is the technician
+       reading the address rather than dialling, and the campaign wants
+       both. Fired here so every clickable surface in the creative
+       raises exactly one event, with no double-count on the CTA. */
+    if(!link){
+      if(!card) return;
+      var ci = parseInt(card.getAttribute('data-card'), 10);
+      var cc = items[ci];
+      if(!cc) return;
+      track('Card_Tapped', {
+        candidateId  : cc.id,
+        connectionId : cc.connId,
+        customerName : cc.name,
+        phoneMasked  : maskPhone(cc.phone),
+        hasPhone     : !!cc.phone,
+        address      : cc.address,
+        area         : cc.area,
+        city         : cc.city,
+        pincode      : cc.pincode,
+        slot         : slotLabel(cc),
+        state        : cc.state,
+        position     : ci + 1,
+        installCount : items.length,
+        alreadyCalled: !!called[cc.id],
+        lang         : lang
+      }, false);
+      return;
+    }
 
     if(e.preventDefault) e.preventDefault();
 
@@ -941,21 +1022,42 @@
     /* once=false: a second tap on the same customer is real signal and
        must not be swallowed by the payload dedupe. */
     var p = {
+      /* who */
+      customerName : c.name,
+      phoneMasked  : maskPhone(c.phone),
+      /* which field of the TAS payload the number came from — read
+         this in CT to confirm the mapping against the live API */
+      phoneKey     : c.phoneKey,
+
+      /* where */
+      address      : c.address,
+      landmark     : c.landmark,
+      area         : c.area,
+      city         : c.city,
+      pincode      : c.pincode,
+
+      /* when */
+      slot         : slotLabel(c),
+      slotDate     : c.slotDate,
+      slotStart    : c.sStart,
+      slotEnd      : c.sEnd,
+
+      /* which ticket */
       candidateId  : c.id,
       connectionId : c.connId,
       cspId        : c.cspId,
-      customerName : c.name,
-      phoneMasked  : maskPhone(c.phone),
-      phoneKey     : c.phoneKey,
       state        : c.state,
+      taskStatus   : c.task,
       zone         : c.zone,
-      slotStart    : c.sStart,
-      slotEnd      : c.sEnd,
+      isNew        : (c.unseen > 0),
+
+      /* the tap itself */
       position     : i + 1,
       installCount : items.length,
       firstCall    : first,
       tapIndex     : called[c.id],
-      calledSoFar  : calledCount()
+      calledSoFar  : calledCount(),
+      lang         : lang
     };
     if(CFG.SEND_FULL_PHONE) p.phone = c.phone;
     track('Call_Clicked', p, false);
