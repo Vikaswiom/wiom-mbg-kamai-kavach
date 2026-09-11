@@ -19,12 +19,13 @@
     padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
     background:linear-gradient(160deg, #443152 0%, #2d1e3e 100%); }
 
-  .close-btn{ position:absolute; top:14px; left:14px; z-index:100;
-    width:32px; height:32px; border:1px solid rgba(255,255,255,.4);
+  .close-btn{ position:absolute; top:10px; left:10px; z-index:2147483647;
+    width:44px; height:44px; border:1px solid rgba(255,255,255,.4);
+    -webkit-tap-highlight-color:rgba(255,255,255,.3);
     background:rgba(255,255,255,.15); color:var(--white);
     border-radius:50%; display:flex; align-items:center; justify-content:center;
     cursor:pointer; -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
-  .close-btn .material-symbols-outlined{ font-size:20px; }
+  .close-btn .material-symbols-outlined{ font-size:24px; }
 
   .clang{ position:absolute; top:14px; right:14px; z-index:100;
     border:1px solid rgba(255,255,255,.4); background:rgba(255,255,255,.15); color:var(--white);
@@ -1029,6 +1030,8 @@
     c.m_closeInAppNotification   = probe(0, function(){ return typeof window.CleverTap.closeInAppNotification; });
     c.m_dismissInApp             = probe(0, function(){ return typeof window.CleverTap.dismissInApp; });
     c.m_pushEvent                = probe(0, function(){ return typeof window.CleverTap.pushEvent; });
+    c.m_triggerInAppAction       = probe(0, function(){ return typeof window.CleverTap.triggerInAppAction; });
+    c.m_openDeepLink             = probe(0, function(){ return typeof window.CleverTap.openDeepLink; });
     /* Android's injected objects usually do not enumerate; an empty
        list here is normal and not itself a problem. */
     c.ctKeys    = probe(0, function(){ var a=[],k; for(k in window.CleverTap){a.push(k);} return a.join('|'); });
@@ -1075,6 +1078,41 @@
     try{
       var wk = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap;
       if(wk){ wk.postMessage({ action:'dismissInAppNotification' }); fired.push('webkit'); }
+    }catch(e){}
+
+    /* 6. triggerInAppAction — the one transport with actual evidence
+          behind it on this app's SDK, and the one the first draft
+          deliberately excluded by misreading why.
+
+          quality.html warns "Do NOT add triggerInAppAction — it
+          feature-detects true, then silently strands the tap so the
+          location.href branch never runs." Read carefully that is not
+          a warning that the method is broken: the tap is stranded
+          BECAUSE the method closes the in-app, and once the WebView
+          is gone the deeplink branch after it cannot run. Closing is
+          the bug there and exactly the job here.
+
+          It also proves the method EXISTS on this SDK, which is more
+          than can be said for dismissInAppNotification.
+
+          The rule it came from still stands and is unchanged: never
+          put this in the DEEPLINK chain (see dial()). Close only.
+
+          Arity has varied across SDK versions, so the documented
+          three-argument form is tried first and a bare call second;
+          a mismatch throws into the catch and costs nothing. */
+    try{
+      if(window.CleverTap && typeof window.CleverTap.triggerInAppAction === 'function'){
+        var acted = false;
+        try{
+          window.CleverTap.triggerInAppAction(
+            JSON.stringify({ type:'close' }), 'close', 'close');
+          acted = true;
+        }catch(e1){
+          try{ window.CleverTap.triggerInAppAction(); acted = true; }catch(e2){}
+        }
+        if(acted) fired.push('triggerInAppAction');
+      }
     }catch(e){}
 
     /* Report what this device had and what actually fired. This is the

@@ -202,6 +202,8 @@ function dismissCaps(){
     m_closeInAppNotification  : probe(function(){ return typeof window.CleverTap.closeInAppNotification; }),
     m_dismissInApp            : probe(function(){ return typeof window.CleverTap.dismissInApp; }),
     m_pushEvent               : probe(function(){ return typeof window.CleverTap.pushEvent; }),
+    m_triggerInAppAction      : probe(function(){ return typeof window.CleverTap.triggerInAppAction; }),
+    m_openDeepLink            : probe(function(){ return typeof window.CleverTap.openDeepLink; }),
     ctKeys                    : probe(function(){ var a=[],k; for(k in window.CleverTap){a.push(k);} return a.join('|'); }),
     webkitCT                  : probe(function(){ return !!(window.webkit && window.webkit.messageHandlers &&
                                                             window.webkit.messageHandlers.clevertap); }),
@@ -236,6 +238,22 @@ function hardClose(){
   try{
     var wk = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap;
     if(wk){ wk.postMessage({ action:'dismissInAppNotification' }); fired.push('webkit'); }
+  }catch(e){}
+  /* The transport with evidence behind it: quality.html's note that
+     triggerInAppAction "strands the tap" means it CLOSES the in-app,
+     which is the bug there and the job here — and it proves the method
+     exists on this SDK. Close only; never in a deeplink chain. */
+  try{
+    if(window.CleverTap && typeof window.CleverTap.triggerInAppAction === 'function'){
+      var acted = false;
+      try{
+        window.CleverTap.triggerInAppAction(JSON.stringify({ type:'close' }), 'close', 'close');
+        acted = true;
+      }catch(e1){
+        try{ window.CleverTap.triggerInAppAction(); acted = true; }catch(e2){}
+      }
+      if(acted) fired.push('triggerInAppAction');
+    }
   }catch(e){}
 
   var caps = dismissCaps();
