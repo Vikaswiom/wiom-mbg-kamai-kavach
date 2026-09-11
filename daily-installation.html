@@ -240,8 +240,16 @@
        and the page uses it instead — same pattern, same shape as
        docs/live-proxy/. The relay takes ?executorId= and returns the
        TAS JSON verbatim with CORS headers.
-       Leave '' to call TAS directly.                               */
-    PROXY_URL : '',
+       Leave '' to call TAS directly.
+
+       LIVE since 11 Sep 2026: TAS returns no Access-Control-Allow-Origin
+       on the by-executor endpoint, confirmed from the deployed page
+       (reason=network_or_cors, status 0 — status 0 is not an HTTP code,
+       it means the browser withheld a response that did arrive). The
+       relay in docs/tas-proxy/ fronts it. Blank this the day TAS sends
+       the header and the page goes back to calling it directly; the
+       payload is passed through untouched, so nothing else changes. */
+    PROXY_URL : 'https://script.google.com/macros/s/AKfycbygyOqRFhtEnB9ANYYuGoY5C21tczJbinbB2399xxx_hrrz1DbBBeb1CpqIlgD2a5jt2Q/exec',
 
     TOKEN      : '',
     TOKEN_MODE : 'query',
