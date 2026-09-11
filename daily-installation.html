@@ -1120,39 +1120,71 @@
     var caps = dismissCaps();
     caps.fired = fired.join(',') || 'NOTHING';
     track('Dismiss_Attempted', caps, false);
-    if(DBG) showDbg(caps);
+    if(DBG) showDbg(caps, false);
 
-    /* 6. Unverified last resort, and only when no bridge existed at
-          all — navigating to an unknown scheme can paint an error
-          page over the popup, which is worse than a stuck ✕. Skipped
-          when embedded: the wrapper owns escalation in the top frame. */
-    setTimeout(function(){
-      try{
-        if(window.parent && window.parent !== window) return;
-        if(fired.length) return;
-        window.location.href = 'clevertap://closeInApp';
-      }catch(e){}
-    }, 700);
+    /* Nothing took. Try the remaining unverified routes quietly, then
+       — critically — SAY SO ON SCREEN. A ✕ that silently does nothing
+       is indistinguishable from a ✕ that was never wired, which is
+       what made this take four rounds to pin down. If close fails, the
+       screen now reports exactly which bridge objects and method names
+       the handset exposed, so one tap answers it. */
+    if(!fired.length){
+      try{ if(typeof window.close === 'function'){ window.close(); } }catch(e){}
+      quietScheme('clevertap://closeInApp');
+      quietScheme('wzrk://close');
+
+      setTimeout(function(){
+        showDbg(caps, true);
+      }, 600);
+    }
+  }
+
+  /* A custom scheme sent through a hidden iframe fails silently when
+     nothing handles it. Navigating the top-level location to an
+     unknown scheme can paint a browser error page OVER the popup,
+     which is worse than a stuck button. */
+  function quietScheme(url){
+    try{
+      var f = document.createElement('iframe');
+      f.style.cssText = 'display:none;width:0;height:0;border:0';
+      document.body.appendChild(f);
+      f.src = url;
+      setTimeout(function(){ try{ f.parentNode.removeChild(f); }catch(e){} }, 1500);
+      return true;
+    }catch(e){ return false; }
   }
 
   /* On-screen capability readout. One CT preview on a real phone with
      ?dbg=1 tells us which transport exists, with no round trip
      through the dashboard. */
-  function showDbg(caps){
+  /* failed=true means the ✕ was pressed and nothing closed. That is
+     shown regardless of ?dbg=1: the person is already stuck, and the
+     readout is the whole diagnosis. ?dbg=1 shows it on every attempt,
+     successful or not. Remove this call before GA if a green panel on
+     a technician's phone is worse than a silent stuck button. */
+  function showDbg(caps, failed){
     try{
       var d = document.getElementById('dbgPanel');
       if(!d){
         d = document.createElement('div');
         d.id = 'dbgPanel';
         d.setAttribute('style',
-          'position:fixed;left:0;right:0;bottom:0;z-index:2147483647;max-height:52%;' +
+          'position:fixed;left:0;right:0;bottom:0;z-index:2147483647;max-height:56%;' +
           'overflow:auto;background:#000;color:#0f0;font:11px/1.45 monospace;padding:10px;');
         document.body.appendChild(d);
       }
-      var html = '<b>dismiss diagnostics</b><br>', k;
+      var html = failed
+        ? '<b style="color:#ff6">Close failed — no CleverTap bridge answered.</b><br>' +
+          '<span style="color:#aaa">Screenshot this. It names every bridge this ' +
+          'handset exposes.</span><br><br>'
+        : '<b>dismiss diagnostics</b><br>';
+      var k;
       for(k in caps){ if(Object.prototype.hasOwnProperty.call(caps,k)){
         html += k + ' = ' + escHtml(String(caps[k])) + '<br>';
       } }
+      /* If cleverTap is false here the creative is not running against
+         a real SDK at all — a dashboard/browser preview rather than a
+         handset — and no close code of any kind can work. */
       d.innerHTML = html;
     }catch(e){}
   }
