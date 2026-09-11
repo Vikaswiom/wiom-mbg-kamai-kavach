@@ -26,9 +26,12 @@
 
      Liquid is CASE-SENSITIVE: {{ Profile.technicianId }} and
      {{ Profile.TechnicianId }} are different properties, and the
-     wrong casing yields an empty string rather than an error. Confirm
-     the spelling in CleverTap under Segments > any profile > Custom
-     attributes before shipping.
+     wrong casing yields an empty string rather than an error. Four
+     spellings are tried below to cover that, but if your account uses
+     something else entirely, confirm it in CleverTap under
+     Segments > any profile > Custom attributes and add it as another
+     span — the id then rides into the page as ?technicianId= and the
+     page reports which spelling won as idSource on every event.
      ═══════════════════════════════════════════════════════════════ -->
 <style>
   html,body{margin:0;padding:0;width:100%;height:100%;background:#2d1e3e;overflow:hidden}
@@ -37,8 +40,10 @@
      background:rgba(0,0,0,.55);color:#fff;font-size:17px;line-height:34px;text-align:center;padding:0}
 </style>
 
-<span id="tid" style="display:none">{{ Profile.technicianId | default:"" }}</span>
-<span id="eid" style="display:none">{{ Profile.executorId | default:"" }}</span>
+<span id="tid"  style="display:none">{{ Profile.technicianId | default:"" }}</span>
+<span id="tid2" style="display:none">{{ Profile.technician_id | default:"" }}</span>
+<span id="eid"  style="display:none">{{ Profile.executorId | default:"" }}</span>
+<span id="eid2" style="display:none">{{ Profile.executor_id | default:"" }}</span>
 
 <iframe id="fr" allow="autoplay"></iframe>
 <button id="x" onclick="closeIt()">&#10005;</button>
@@ -55,7 +60,12 @@
     return v;
   }
 
-  var id = val('tid') || val('eid');
+  /* The app may write this profile property under any of these
+     spellings, and Liquid is case-sensitive — a single guess is the
+     most likely reason a real device opens the popup with no list.
+     First one that resolves wins; the rest substitute to '' and cost
+     nothing. */
+  var id = val('tid') || val('tid2') || val('eid') || val('eid2');
   if(!id){                                              /* browser QA */
     var q = new URLSearchParams(location.search);
     id = (q.get('technicianId') || q.get('executorId') || '').replace(/^\s+|\s+$/g,'');

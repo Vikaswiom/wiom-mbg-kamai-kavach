@@ -168,8 +168,10 @@
      the spelling in CleverTap under Segments > any profile > Custom
      attributes before shipping.
      ═══════════════════════════════════════════════════════════════ -->
-<span id="ctTech" hidden>{{ Profile.technicianId | default:"" }}</span>
-<span id="ctExec" hidden>{{ Profile.executorId | default:"" }}</span>
+<span id="ctTech"      hidden>{{ Profile.technicianId | default:"" }}</span>
+<span id="ctTechSnake" hidden>{{ Profile.technician_id | default:"" }}</span>
+<span id="ctExec"      hidden>{{ Profile.executorId | default:"" }}</span>
+<span id="ctExecSnake" hidden>{{ Profile.executor_id | default:"" }}</span>
 
 <div class="app" id="app">
   <button class="close-btn" id="closeBtn" aria-label="Close"><span class="material-symbols-outlined">close</span></button>
@@ -217,6 +219,14 @@
     TOKEN      : '',
     TOKEN_MODE : 'query',
     TOKEN_KEY  : 'access_token',
+
+    /* A popup that says "no installation today" is a pure
+       interruption. With this on, a zero-install day closes itself
+       after the Viewed event is away, so the in-app only actually
+       shows up when there is a customer to call. The campaign still
+       records that the technician was reached. Set false to show the
+       empty state instead. */
+    CLOSE_IF_EMPTY : true,
 
     TIMEOUT_MS : 9000,
     RETRIES    : 2,
@@ -300,23 +310,36 @@
     return m ? decodeURIComponent(m[1].replace(/\+/g,' ')) : '';
   }
 
+  /* The app may write this profile property under any of these
+     spellings, and Liquid is case-sensitive, so a single guess is the
+     most likely reason a real device shows "profile incomplete" while
+     the API is perfectly healthy. Each spelling has its own span
+     above; the first that resolves wins. Unused ones substitute to ''
+     and cost nothing.
+
+     ID_SRC names the one that won and rides every event, so the
+     spelling in use is visible in CT — and a change to it shows up as
+     idSource=none rather than looking like an API outage. */
+  var PROFILE_SPANS = [
+    ['ctTech',      'profile_technicianId'],
+    ['ctTechSnake', 'profile_technician_id'],
+    ['ctExec',      'profile_executorId'],
+    ['ctExecSnake', 'profile_executor_id']
+  ];
+
+  var TECH_ID = '', ID_SRC = 'none', _i, _v;
+
   /* URL param first: in the hosted deployment the wrapper has already
-     resolved the Liquid token and passed it down, and that value is
-     the more trustworthy of the two. */
-  var P_TECH = qparam('technicianId') || qparam('technicianid') ||
-               qparam('executorId')   || qparam('executorid');
-  var T_TECH = cleanToken(txt('ctTech'));
-  var T_EXEC = cleanToken(txt('ctExec'));
+     resolved the token and passed it down, and that value is the more
+     trustworthy of the two. */
+  _v = qparam('technicianId') || qparam('technicianid') ||
+       qparam('executorId')   || qparam('executorid');
+  if(_v){ TECH_ID = _v; ID_SRC = 'url_param'; }
 
-  var TECH_ID = P_TECH || T_TECH || T_EXEC;
-
-  /* Which source actually supplied it — on every event, so a silent
-     Liquid-casing typo shows up in CT as idSource=none instead of
-     looking like an API outage. */
-  var ID_SRC = P_TECH ? 'url_param'
-             : T_TECH ? 'profile_technicianId'
-             : T_EXEC ? 'profile_executorId'
-             : 'none';
+  for(_i = 0; !TECH_ID && _i < PROFILE_SPANS.length; _i++){
+    _v = cleanToken(txt(PROFILE_SPANS[_i][0]));
+    if(_v){ TECH_ID = _v; ID_SRC = PROFILE_SPANS[_i][1]; }
+  }
 
   /* Desk preview only. A real device is on https, never file:, so it
      always hits the live API. ?live=1 forces the live call from disk. */
@@ -457,7 +480,14 @@
       if(done) return; done = true;
       try{ xhr.abort(); }catch(e){}
       if(attempt < CFG.RETRIES){ attempt++; setTimeout(loadData, 700 * attempt); return; }
-      track('Api_Failed', { reason:reason, attempts:attempt + 1, viaProxy: !!CFG.PROXY_URL });
+      track('Api_Failed', {
+        reason   : reason,
+        attempts : attempt + 1,
+        viaProxy : !!CFG.PROXY_URL,
+        /* the exact URL that was called, minus the cache-buster —
+           makes a wrong id or a wrong host obvious in CT */
+        apiUrl   : buildUrl().replace(/&_t=\d+$/, '')
+      });
       view = 'error'; render();
     }
 
@@ -745,6 +775,14 @@
       source         : CFG.PROXY_URL ? 'tas_proxy' : 'tas_api'
     });
     if(noPhone) track('Phone_Missing', { missingPhone:noPhone, installCount:items.length });
+
+    /* Nothing to call = nothing worth interrupting the technician for.
+       Viewed is already away, so a zero-install day is still counted
+       in the campaign; the technician just never sees the popup. */
+    if(!items.length && CFG.CLOSE_IF_EMPTY){
+      track('Auto_Closed_Empty', {});
+      setTimeout(closeInApp, 400);
+    }
   }
 
   /* Desk-preview sample — the REAL production shape (executorId
@@ -933,6 +971,24 @@
   /* ═══════════════════════════════════════════════════════════
      9. Dismiss — carries the session summary
      ═══════════════════════════════════════════════════════════ */
+  function closeInApp(){
+    try{
+      if(window.CleverTap && typeof window.CleverTap.dismissInAppNotification === 'function'){
+        window.CleverTap.dismissInAppNotification(); return;
+      }
+    }catch(e){}
+    try{
+      var wk = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap;
+      if(wk){ wk.postMessage({ action:'dismissInAppNotification' }); return; }
+    }catch(e){}
+    try{
+      if(window.parent && window.parent !== window){
+        window.parent.postMessage({ __ct:1, action:'dismiss' }, '*'); return;
+      }
+    }catch(e){}
+    window.location.href = 'clevertap://closeInApp';
+  }
+
   function calledCount(){
     var n = 0, k;
     for(k in called){ if(Object.prototype.hasOwnProperty.call(called, k)) n++; }
@@ -952,23 +1008,7 @@
     }, false);
 
     /* Let the event leave before the WebView is torn down. */
-    setTimeout(function(){
-      try{
-        if(window.CleverTap && typeof window.CleverTap.dismissInAppNotification === 'function'){
-          window.CleverTap.dismissInAppNotification(); return;
-        }
-      }catch(e){}
-      try{
-        var wk = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap;
-        if(wk){ wk.postMessage({ action:'dismissInAppNotification' }); return; }
-      }catch(e){}
-      try{
-        if(window.parent && window.parent !== window){
-          window.parent.postMessage({ __ct:1, action:'dismiss' }, '*'); return;
-        }
-      }catch(e){}
-      window.location.href = 'clevertap://closeInApp';
-    }, 300);
+    setTimeout(closeInApp, 300);
   }
 
   /* ═══════════════════════════════════════════════════════════
