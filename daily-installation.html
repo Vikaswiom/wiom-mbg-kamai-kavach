@@ -996,22 +996,46 @@
   /* ═══════════════════════════════════════════════════════════
      9. Dismiss — carries the session summary
      ═══════════════════════════════════════════════════════════ */
+  /* EVERY transport fires and NONE of them returns early.
+     Feature-detection is not proof of success: on Android the
+     CTWebInterface object is injected into sub-frames too, so inside
+     the wrapper's iframe window.CleverTap.dismissInAppNotification
+     EXISTS and is callable, but the frame often cannot resolve which
+     in-app to dismiss — so it silently does nothing. An early return
+     there strands the tap and the ✕ appears dead. This is the same
+     trap the repo already documents for triggerInAppAction.
+
+     Dismissing an in-app that is already gone is a harmless no-op.
+     Dismissing none of them leaves the technician stuck behind a
+     popup they cannot close, so redundancy is the right trade. */
   function closeInApp(){
-    try{
-      if(window.CleverTap && typeof window.CleverTap.dismissInAppNotification === 'function'){
-        window.CleverTap.dismissInAppNotification(); return;
-      }
-    }catch(e){}
-    try{
-      var wk = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap;
-      if(wk){ wk.postMessage({ action:'dismissInAppNotification' }); return; }
-    }catch(e){}
+    /* 1. The TOP frame owns the in-app, so in the hosted deployment
+          the wrapper is the transport most likely to work. First. */
     try{
       if(window.parent && window.parent !== window){
-        window.parent.postMessage({ __ct:1, action:'dismiss' }, '*'); return;
+        window.parent.postMessage({ __ct:1, action:'dismiss' }, '*');
       }
     }catch(e){}
-    window.location.href = 'clevertap://closeInApp';
+    /* 2. Android CTWebInterface, if this frame has it. */
+    try{
+      if(window.CleverTap && typeof window.CleverTap.dismissInAppNotification === 'function'){
+        window.CleverTap.dismissInAppNotification();
+      }
+    }catch(e){}
+    /* 3. iOS message handler. */
+    try{
+      var wk = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap;
+      if(wk){ wk.postMessage({ action:'dismissInAppNotification' }); }
+    }catch(e){}
+    /* 4. Still alive a beat later => nothing above took. Escalate to
+          the URL scheme. Skipped when embedded: the wrapper runs this
+          same escalation in the top frame, where it actually works. */
+    setTimeout(function(){
+      try{
+        if(window.parent && window.parent !== window) return;
+        window.location.href = 'clevertap://closeInApp';
+      }catch(e){}
+    }, 700);
   }
 
   function calledCount(){
@@ -1020,7 +1044,11 @@
     return n;
   }
 
+  var dismissed = false;
+
   function dismiss(){
+    if(dismissed) return;
+    dismissed = true;
     var uniq = calledCount(), total = items.length;
     track('Dismissed', {
       view          : view,
@@ -1040,7 +1068,25 @@
      10. Listeners — ONE delegated handler covers every CTA, so the
          listener count stays at 1 whether there are 1 or 12 tickets.
      ═══════════════════════════════════════════════════════════ */
+  /* The wrapper draws its own ✕ in the embedded deployment. Showing
+     this one too puts two close buttons on the screen, one of them in
+     the frame that is worse at closing — so hide it and let the
+     wrapper's button drive, via requestDismiss below. */
+  var EMBEDDED = !!(window.parent && window.parent !== window);
+  if(EMBEDDED){
+    document.getElementById('closeBtn').style.display = 'none';
+  }
   document.getElementById('closeBtn').addEventListener('click', dismiss);
+
+  /* The wrapper's ✕ asks here first, so the Dismissed event still
+     carries the session summary (how many of the day's customers were
+     actually called) before the WebView is torn down. */
+  try{
+    window.addEventListener('message', function(e){
+      var d = e && e.data;
+      if(d && d.__ct === 1 && d.action === 'requestDismiss') dismiss();
+    }, false);
+  }catch(e){}
 
   document.getElementById('langToggle').addEventListener('click', function(){
     var prev = lang;

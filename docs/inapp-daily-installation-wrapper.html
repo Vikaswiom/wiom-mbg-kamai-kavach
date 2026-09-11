@@ -135,12 +135,57 @@
     if(!d || d.__ct !== 1) return;
     if(d.action === 'event'){ q.push({ event:d.event, properties:d.properties || {} }); pump(); }
     else if(d.action === 'openDeepLink' && d.url){ deepLink(d.url); }
-    else if(d.action === 'dismiss'){ closeIt(); }
+    else if(d.action === 'dismiss'){ hardClose(); }
   }, false);
 })();
 
+/* ── Closing ──────────────────────────────────────────────────────
+   Split in two on purpose.
+
+   hardClose() actually closes, and fires EVERY transport without
+   returning early: feature-detection is not proof of success, and an
+   in-app that is already gone ignores a second dismiss harmlessly,
+   whereas a chain that gives up after one silent no-op leaves the
+   technician stuck behind a popup that will not close. It ends with
+   the clevertap:// URL scheme, which the previous version had no
+   equivalent of — if neither bridge answered, nothing happened at all.
+
+   closeIt() is what the ✕ calls: it gives the page a moment to record
+   the Dismissed event (only the page knows how many of the day's
+   customers were called) and then closes regardless of whether the
+   page answers.                                                      */
+var closing = false, closed = false;
+
+function hardClose(){
+  if(closed) return;
+  closed = true;
+  try{
+    if(window.CleverTap && typeof window.CleverTap.dismissInAppNotification === 'function'){
+      window.CleverTap.dismissInAppNotification();
+    }
+  }catch(e){}
+  try{
+    var wk = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap;
+    if(wk){ wk.postMessage({ action:'dismissInAppNotification' }); }
+  }catch(e){}
+  /* Neither bridge took. Escalate rather than stranding the tap. */
+  setTimeout(function(){
+    try{ window.location.href = 'clevertap://closeInApp'; }catch(e){}
+  }, 700);
+}
+
 function closeIt(){
-  try{ if(window.CleverTap && window.CleverTap.dismissInAppNotification){ window.CleverTap.dismissInAppNotification(); return; } }catch(e){}
-  try{ window.webkit.messageHandlers.clevertap.postMessage({ action:'dismissInAppNotification' }); }catch(e){}
+  if(closing) return;
+  closing = true;
+  try{
+    var fr = document.getElementById('fr');
+    if(fr && fr.contentWindow){
+      fr.contentWindow.postMessage({ __ct:1, action:'requestDismiss' }, '*');
+    }
+  }catch(e){}
+  /* The page answers with action:'dismiss', which hard-closes. If it
+     does not answer — it failed to load, or its JS died — close
+     anyway. The ✕ must never be a dead button. */
+  setTimeout(hardClose, 500);
 }
 </script>
