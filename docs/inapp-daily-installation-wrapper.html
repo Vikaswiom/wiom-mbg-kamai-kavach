@@ -1,0 +1,177 @@
+<!-- ═══════════════════════════════════════════════════════════════
+     CleverTap in-app creative — आज का इंस्टॉलेशन (technician)
+
+     PASTE THIS WHOLE FILE into the CT custom-HTML in-app. It is a thin
+     SHELL: it resolves the technician id from the profile, loads the
+     real screen from GitHub Pages in an iframe, and relays the screen's
+     events / dial / dismiss up to the TOP frame, which is the only
+     frame that reliably owns the in-app.
+
+     Why a shell instead of pasting the screen itself: the screen lives
+     in the repo and is fixed by a git push, with no CT campaign edit
+     and no re-approval. Same split settle.html already ships under.
+
+     DO NOT add a Liquid token anywhere outside the four spans below.
+     CleverTap parses the WHOLE creative — comments and script bodies
+     included — so a token in a comment is still parsed and can refuse
+     to save. That is also why the brace pair in the script is built by
+     concatenation instead of being typed out.
+
+     Liquid is CASE-SENSITIVE and a wrong spelling yields an empty
+     string rather than an error, so four spellings are tried. Confirm
+     the real one in CleverTap under Segments > any profile > Custom
+     attributes.
+     ═══════════════════════════════════════════════════════════════ -->
+<style>
+  html,body{ margin:0; padding:0; width:100%; height:100%;
+             background:#443152; overflow:hidden; }
+  #fr{ position:fixed; inset:0; width:100%; height:100%; border:0; }
+  /* Left, to match the screen's own ✕ position. The screen hides its
+     button when embedded so only ONE ✕ is ever on screen. */
+  #x{ position:fixed; top:14px; left:14px; z-index:9;
+      width:32px; height:32px; padding:0; cursor:pointer;
+      border:1px solid rgba(255,255,255,.4); border-radius:50%;
+      background:rgba(255,255,255,.15); color:#fff;
+      font-size:15px; line-height:30px; text-align:center;
+      -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
+</style>
+
+<span id="tTech"      style="display:none">{{ Profile.technicianId | default:"" }}</span>
+<span id="tTechSnake" style="display:none">{{ Profile.technician_id | default:"" }}</span>
+<span id="tExec"      style="display:none">{{ Profile.executorId | default:"" }}</span>
+<span id="tExecSnake" style="display:none">{{ Profile.executor_id | default:"" }}</span>
+
+<iframe id="fr"></iframe>
+<button id="x" onclick="askDismiss()" aria-label="Close">&#10005;</button>
+
+<script>
+(function(){
+  var PAGE = 'https://vikaswiom.github.io/wiom-mbg-kamai-kavach/daily-installation.html';
+
+  /* ── identity ──────────────────────────────────────────────────
+     A span still holding its raw token means CT did not substitute it
+     — the property is absent or the casing is wrong. Both mean "no
+     id", and the screen then shows its own "profile incomplete" state
+     rather than calling the API with an empty id. */
+  var OPEN = '{' + '{', CLOSE = '}' + '}';
+
+  function val(id){
+    var e = document.getElementById(id);
+    var v = e ? (e.textContent || '') : '';
+    v = v.replace(/^\s+|\s+$/g, '');
+    if(v.indexOf(OPEN) > -1 || v.indexOf(CLOSE) > -1) return '';
+    var l = v.toLowerCase();
+    if(l === 'none' || l === 'null' || l === 'undefined' || l === '0') return '';
+    return v;
+  }
+  function q(k){
+    var m = new RegExp('[?&]' + k + '=([^&#]*)').exec(location.search);
+    return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : '';
+  }
+
+  var id = val('tTech') || val('tTechSnake') || val('tExec') || val('tExecSnake') ||
+           q('technicianId') || q('technicianid') || q('executorId') || q('executorid');
+
+  /* The screen is keyed on this one param and nothing else. */
+  document.getElementById('fr').src =
+    PAGE + (id ? ('?technicianId=' + encodeURIComponent(id)) : '');
+
+  /* ── CT bridge, with a queue ───────────────────────────────────
+     CTWebInterface is injected some time after first paint, so an
+     event raised early would be dropped. Anything that cannot go out
+     yet is queued and retried. */
+  var pending = [], draining = false;
+
+  function emit(ev, props){
+    try{
+      if(window.CleverTap && typeof window.CleverTap.pushEvent === 'function'){
+        props ? window.CleverTap.pushEvent(ev, JSON.stringify(props))
+              : window.CleverTap.pushEvent(ev);
+        return true;
+      }
+    }catch(e){}
+    try{
+      var w = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap;
+      if(w){ w.postMessage({ action:'recordEventWithProps', event:ev, properties:props || {} }); return true; }
+    }catch(e){}
+    return false;
+  }
+  function drain(){
+    if(draining) return;
+    draining = true;
+    var n = 0;
+    (function go(){
+      n++;
+      while(pending.length && emit(pending[0][0], pending[0][1])) pending.shift();
+      if(pending.length && n < 20){ setTimeout(go, 300); } else { draining = false; }
+    })();
+  }
+  function push(ev, props){ if(!emit(ev, props)){ pending.push([ev, props]); drain(); } }
+
+  /* ── dial ──────────────────────────────────────────────────────
+     The screen asks the top frame to dial because a tel: navigation
+     from inside the iframe is the branch most often blocked. Do NOT
+     add triggerInAppAction — it feature-detects true, then silently
+     strands the tap. */
+  function deeplink(url){
+    try{
+      if(window.CleverTap && typeof window.CleverTap.openDeepLink === 'function'){
+        window.CleverTap.openDeepLink(url); return;
+      }
+    }catch(e){}
+    try{
+      var w = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap;
+      if(w){ w.postMessage({ action:'openDeepLink', url:url }); return; }
+    }catch(e){}
+    try{ window.location.href = url; }catch(e){}
+  }
+
+  /* ── dismiss ───────────────────────────────────────────────────
+     EVERY transport fires and NONE returns early. Feature detection is
+     not proof of success — on Android the object exists in frames that
+     cannot resolve which in-app to close, so an early return leaves
+     the technician stuck behind a popup. Dismissing an in-app that is
+     already gone is a harmless no-op. */
+  function dismiss(){
+    try{
+      if(window.CleverTap && typeof window.CleverTap.dismissInAppNotification === 'function'){
+        window.CleverTap.dismissInAppNotification();
+      }
+    }catch(e){}
+    try{
+      var w = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap;
+      if(w){ w.postMessage({ action:'dismissInAppNotification' }); }
+    }catch(e){}
+    setTimeout(function(){
+      try{ window.location.href = 'clevertap://closeInApp'; }catch(e){}
+    }, 700);
+  }
+
+  /* The ✕ asks the SCREEN first, so its Dismissed event still carries
+     the session summary (how many of the day's customers were actually
+     called) before the WebView is torn down. */
+  var closing = false;
+  window.askDismiss = function(){
+    if(closing) return;
+    closing = true;
+    try{
+      document.getElementById('fr').contentWindow.postMessage({ __ct:1, action:'requestDismiss' }, '*');
+    }catch(e){}
+    setTimeout(dismiss, 350);
+  };
+
+  window.addEventListener('message', function(e){
+    var d = e && e.data;
+    if(!d || d.__ct !== 1) return;
+    if(d.action === 'event')             push(d.event, d.properties);
+    else if(d.action === 'openDeepLink') deeplink(d.url);
+    else if(d.action === 'dismiss'){ closing = true; dismiss(); }
+  }, false);
+
+  /* The shell opened. Distinct from the screen's own Opened event: if
+     this lands and Opened never does, the in-app rendered but the page
+     failed to load — which is otherwise indistinguishable in CT from
+     the campaign never firing. */
+  push('DailyInstall_Shell_Opened', { hasTechnicianId: !!id });
+})();
+</script>
