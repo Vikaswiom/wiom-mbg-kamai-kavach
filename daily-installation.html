@@ -1,0 +1,1214 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>आज का इंस्टॉलेशन</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL@24,400,0" rel="stylesheet">
+<style>
+  :root{
+    --brand:#D9008D; --brand-light:#FFB2E4; --brand-bg:#FFF0F8;
+    --brand-sec:#443152; --white:#FFFFFF; --text:#1a1a2e; --text-dim:#555;
+    --line:#EFEDF2; --green:#0E7A3A; --amber:#8A5A00; --amber-bg:#FFF4DB;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; overflow:hidden; }
+  body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans","Noto Sans Devanagari",sans-serif;
+    -webkit-font-smoothing:antialiased; }
+
+  .app{ position:fixed; inset:0; max-width:420px; margin:0 auto;
+    display:flex; flex-direction:column; overflow:hidden;
+    padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+    background:linear-gradient(160deg, #443152 0%, #2d1e3e 100%); }
+
+  .close-btn{ position:absolute; top:14px; left:14px; z-index:100;
+    width:32px; height:32px; border:1px solid rgba(255,255,255,.4);
+    background:rgba(255,255,255,.15); color:var(--white);
+    border-radius:50%; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
+  .close-btn .material-symbols-outlined{ font-size:20px; }
+
+  .clang{ position:absolute; top:14px; right:14px; z-index:100;
+    border:1px solid rgba(255,255,255,.4); background:rgba(255,255,255,.15); color:var(--white);
+    border-radius:999px; font-family:inherit; font-size:12px; font-weight:600;
+    padding:5px 12px; cursor:pointer; -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
+
+  .top{ flex-shrink:0; position:relative; color:var(--white);
+    text-align:center; padding:48px 28px 18px; overflow:hidden; }
+  .top .floating{ position:absolute; opacity:.07; pointer-events:none; }
+  .top .f1{ top:8%; left:5%; font-size:52px; transform:rotate(-12deg); }
+  .top .f2{ top:4%; right:7%; font-size:38px; transform:rotate(10deg); }
+
+  .top-icon{ width:64px; height:64px; border-radius:50%;
+    background:rgba(255,255,255,.08); border:2px dashed rgba(255,255,255,.18);
+    display:flex; align-items:center; justify-content:center; margin:0 auto 12px;
+    animation:pulse 3s ease-in-out infinite; }
+  .top-icon .material-symbols-outlined{ font-size:32px; color:var(--brand-light); }
+
+  .top-title{ font-size:21px; line-height:29px; font-weight:800; margin-bottom:10px; }
+
+  .count-pill{ display:none; align-items:center; justify-content:center; gap:7px;
+    background:var(--brand); color:var(--white); border-radius:999px;
+    padding:7px 18px; font-size:15px; font-weight:800; margin:0 auto 8px;
+    width:-webkit-fit-content; width:fit-content;
+    box-shadow:0 4px 14px rgba(217,0,141,.35); }
+  .count-pill.show{ display:inline-flex; }
+  .count-pill .material-symbols-outlined{ font-size:19px; color:var(--white); }
+
+  .top-sub{ font-size:13px; line-height:20px; color:rgba(255,255,255,.85); font-weight:600;
+    background:rgba(255,255,255,.1); display:inline-block; padding:6px 16px; border-radius:10px; }
+
+  @keyframes pulse{ 0%,100%{ transform:scale(1); opacity:1; } 50%{ transform:scale(1.06); opacity:.7; } }
+
+  .card-area{ flex:1; overflow-y:auto; padding:14px 22px 24px; -webkit-overflow-scrolling:touch; }
+
+  .card{ background:var(--white); border-radius:24px; width:100%;
+    padding:26px 22px 22px; text-align:center;
+    box-shadow:0 8px 32px rgba(0,0,0,.18); margin-bottom:18px; position:relative; }
+  .card:last-child{ margin-bottom:0; }
+  .card.done{ box-shadow:0 8px 32px rgba(0,0,0,.18), 0 0 0 2px var(--green) inset; }
+
+  .card-index{ position:absolute; top:15px; right:16px;
+    font-size:12px; font-weight:800; color:var(--brand);
+    background:var(--brand-bg); border-radius:999px; padding:4px 11px; }
+
+  .card-new{ position:absolute; top:15px; left:16px;
+    font-size:11px; font-weight:800; color:var(--white);
+    background:var(--brand); border-radius:999px; padding:4px 9px; }
+
+  .card-avatar{ width:66px; height:66px; border-radius:50%;
+    background:var(--brand-bg); display:flex; align-items:center; justify-content:center;
+    margin:6px auto 14px; }
+  .card-avatar .material-symbols-outlined{ font-size:34px; color:var(--brand); }
+
+  .card-name{ font-size:20px; font-weight:800; color:var(--text); margin-bottom:9px; word-break:break-word; }
+
+  .chip{ display:inline-flex; align-items:center; gap:5px;
+    font-size:11.5px; font-weight:700; border-radius:999px; padding:5px 11px; margin-bottom:14px; }
+  .chip .material-symbols-outlined{ font-size:14px; }
+  .chip-state{ background:#F1EEF6; color:var(--brand-sec); }
+
+  .row{ display:flex; align-items:flex-start; gap:7px; text-align:left;
+    padding:9px 0; border-top:1px solid var(--line); }
+  .row .material-symbols-outlined{ font-size:18px; color:var(--text-dim); flex-shrink:0; margin-top:1px; }
+  .row-txt{ font-size:13.5px; line-height:20px; color:var(--text-dim); word-break:break-word; }
+  .row-txt b{ color:var(--text); font-weight:700; }
+  .row-phone{ letter-spacing:.4px; }
+
+  .card-call{ display:flex; align-items:center; justify-content:center; gap:10px;
+    background:var(--brand); color:var(--white); border:0; border-radius:14px;
+    font-family:inherit; font-size:16px; font-weight:700; padding:16px 24px;
+    cursor:pointer; text-decoration:none; transition:opacity .2s; width:100%; margin-top:16px; }
+  .card-call:active{ opacity:.85; }
+  .card-call .material-symbols-outlined{ font-size:22px; color:var(--white); }
+  .card-call.called{ background:var(--green); }
+
+  .no-phone{ display:flex; align-items:center; justify-content:center; gap:8px;
+    background:var(--amber-bg); color:var(--amber); border-radius:14px;
+    font-size:13.5px; font-weight:700; padding:15px 18px; margin-top:16px; }
+  .no-phone .material-symbols-outlined{ font-size:19px; color:var(--amber); }
+
+  .sk{ background:var(--white); border-radius:24px; padding:26px 22px 22px;
+    margin-bottom:18px; box-shadow:0 8px 32px rgba(0,0,0,.18); }
+  .sk-line{ background:linear-gradient(90deg,#eceaf0 25%,#f7f6f9 50%,#eceaf0 75%);
+    background-size:200% 100%; animation:shine 1.3s linear infinite; border-radius:8px; }
+  .sk-av{ width:66px; height:66px; border-radius:50%; margin:6px auto 14px; }
+  .sk-n{ height:18px; width:55%; margin:0 auto 14px; }
+  .sk-a{ height:13px; width:82%; margin:0 auto 9px; }
+  .sk-a2{ height:13px; width:62%; margin:0 auto 20px; }
+  .sk-b{ height:52px; width:100%; border-radius:14px; }
+  @keyframes shine{ 0%{ background-position:200% 0; } 100%{ background-position:-200% 0; } }
+
+  .state{ text-align:center; padding:30px 20px; color:rgba(255,255,255,.7); }
+  .state .material-symbols-outlined{ font-size:50px; color:rgba(255,255,255,.18); margin-bottom:12px; display:block; }
+  .state-title{ font-size:16px; font-weight:800; color:var(--white); margin-bottom:6px; }
+  .state-text{ font-size:14px; line-height:22px; }
+  .retry-btn{ margin-top:18px; display:inline-flex; align-items:center; gap:8px;
+    background:var(--white); color:var(--brand-sec); border:0; border-radius:12px;
+    font-family:inherit; font-size:15px; font-weight:800; padding:13px 26px; cursor:pointer; }
+  .retry-btn .material-symbols-outlined{ font-size:19px; color:var(--brand); margin:0; }
+
+  @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important; } }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     IDENTITY
+
+     technicianId is the ONLY identity this screen uses. It is TAS's
+     executorId under a different name, it is the only thing the API
+     is keyed on, and every event carries it under both names. No
+     cspId anywhere — not from the CT profile, not off the API row.
+
+     This page runs in TWO deployment modes and needs no edit between
+     them:
+
+     A. HOSTED (recommended, and what docs/inapp-daily-installation-
+        wrapper.html uses). The page sits on GitHub Pages and the CT
+        creative is a thin iframe wrapper that passes the id down:
+            daily-installation.html?technicianId=<the CT value>
+        Identity arrives as a URL PARAM. This is the same split that
+        settle.html / quality.html already use in production — the
+        wrapper owns the Liquid token, the page owns the rendering.
+
+     B. PASTED (whole file dropped into a CT custom-HTML in-app). Then
+        no wrapper exists, so CT substitutes the token in the span
+        below and the page reads it from there.
+
+     The spans below use the Liquid token form with the pipe-default
+     filter — the form this CT account already substitutes in a live
+     creative.
+
+     DO NOT write a Liquid token anywhere else in this file. CleverTap
+     parses the WHOLE creative for tokens, HTML comments and script
+     bodies included, so a token sitting in a comment is still parsed
+     and can refuse to save. The bare pipe-sentinel style in
+     particular is a SYNTAX ERROR in this account's editor — confirmed
+     on 11 Sep 2026 — which is why no example of it appears here, and
+     why cleanToken() below builds its brace literals by concatenation
+     rather than typing them out.
+
+     Liquid is CASE-SENSITIVE: Profile.technicianId and
+     Profile.TechnicianId are different properties, and the wrong
+     casing yields an empty string rather than an error — it surfaces
+     as idSource=none on every event, not as a crash. Four spellings
+     are tried below; confirm yours in CleverTap under Segments > any
+     profile > Custom attributes before shipping.
+     ═══════════════════════════════════════════════════════════════ -->
+<span id="ctTech"      hidden>{{ Profile.technicianId | default:"" }}</span>
+<span id="ctTechSnake" hidden>{{ Profile.technician_id | default:"" }}</span>
+<span id="ctExec"      hidden>{{ Profile.executorId | default:"" }}</span>
+<span id="ctExecSnake" hidden>{{ Profile.executor_id | default:"" }}</span>
+
+<div class="app" id="app">
+  <button class="close-btn" id="closeBtn" aria-label="Close"><span class="material-symbols-outlined">close</span></button>
+  <button class="clang" id="langToggle" aria-label="Switch language">English</button>
+
+  <div class="top">
+    <span class="material-symbols-outlined floating f1">build</span>
+    <span class="material-symbols-outlined floating f2">home</span>
+    <div class="top-icon"><span class="material-symbols-outlined">home</span></div>
+    <p class="top-title" data-i18n="heroTitle">आज का इंस्टॉलेशन</p>
+    <div class="count-pill" id="countPill">
+      <span class="material-symbols-outlined">groups</span>
+      <span id="countText"></span>
+    </div>
+    <p class="top-sub" data-i18n="heroSub">कस्टमर से बात करने वालों के कनेक्शन कम कैंसिल होते हैं</p>
+  </div>
+
+  <div class="card-area" id="cardArea"></div>
+</div>
+
+<script>
+  /* ═══════════════════════════════════════════════════════════
+     1. CONFIG — the only block you edit
+     ═══════════════════════════════════════════════════════════ */
+  var CFG = {
+    BASE  : 'https://csp-tas-service.i2e1agents.in/api/internal/install/candidates/by-executor',
+
+    /* CT calls the id technicianId, TAS calls it executorId — one id,
+       two names. If TAS ever renames the query param, change this one
+       string and nothing else. */
+    PARAM : 'executorId',
+
+    /* ── CORS fallback ────────────────────────────────────────────
+       Hosting the page on Pages (mode A) gives the request a REAL
+       Origin (https://vikaswiom.github.io) instead of the in-app
+       WebView's null origin, which is the only origin TAS can
+       realistically allow-list. If TAS still does not send
+       Access-Control-Allow-Origin, put an Apps Script relay URL here
+       and the page uses it instead — same pattern, same shape as
+       docs/live-proxy/. The relay takes ?executorId= and returns the
+       TAS JSON verbatim with CORS headers.
+       Leave '' to call TAS directly.                               */
+    PROXY_URL : '',
+
+    TOKEN      : '',
+    TOKEN_MODE : 'query',
+    TOKEN_KEY  : 'access_token',
+
+    /* A popup that says "no installation today" is a pure
+       interruption. With this on, a zero-install day closes itself
+       after the Viewed event is away, so the in-app only actually
+       shows up when there is a customer to call. The campaign still
+       records that the technician was reached. Set false to show the
+       empty state instead. */
+    CLOSE_IF_EMPTY : true,
+
+    TIMEOUT_MS : 9000,
+    RETRIES    : 2,
+    MAX_CARDS  : 25,
+
+    /* Send the customer's full number on Call_Clicked. ON by request
+       — the campaign needs the dialled number in the event itself.
+       The masked form (*****3210) rides along as phoneMasked either
+       way, so dashboards that should not show a full subscriber
+       number can be built on that one instead. Set false to send only
+       the masked form.                                              */
+    SEND_FULL_PHONE : true
+  };
+
+  /* ═══════════════════════════════════════════════════════════
+     2. i18n
+     ═══════════════════════════════════════════════════════════ */
+  var STR = {
+    hi:{
+      toggle:'English',
+      heroTitle:'आज का इंस्टॉलेशन',
+      heroSub:'कस्टमर से बात करने वालों के कनेक्शन कम कैंसिल होते हैं',
+      callBtn:'कॉल करें', calledBtn:'दोबारा कॉल करें',
+      slot:'स्लॉट', allDay:'पूरे दिन', nearBy:'{x} के पास',
+      noPhone:'नंबर उपलब्ध नहीं', isNew:'नया',
+      emptyTitle:'आज कोई इंस्टॉलेशन नहीं',
+      emptyDesc:'आज के लिए कोई इंस्टॉलेशन शेड्यूल नहीं है।',
+      errTitle:'जानकारी लोड नहीं हो पाई',
+      errDesc:'इंटरनेट चेक करके दोबारा कोशिश करें।',
+      retry:'दोबारा कोशिश करें',
+      noIdTitle:'आपकी प्रोफाइल अधूरी है',
+      noIdDesc:'टेक्नीशियन ID नहीं मिली। कृपया अपने मैनेजर से संपर्क करें।',
+      doc:'आज का इंस्टॉलेशन',
+      count:function(n){ return n + ' कस्टमर आज'; },
+      state:{ TECHNICIAN_ASSIGNED:'टेक्नीशियन असाइन', SLOT_CONFIRMED:'स्लॉट कन्फर्म',
+              IN_PROGRESS:'चल रहा है', INSTALLED:'इंस्टॉल हो गया' }
+    },
+    en:{
+      toggle:'हिंदी',
+      heroTitle:"Today's Installation",
+      heroSub:'Those who talk to customers have fewer cancellations',
+      callBtn:'Call now', calledBtn:'Call again',
+      slot:'Slot', allDay:'All day', nearBy:'Near {x}',
+      noPhone:'Number not available', isNew:'New',
+      emptyTitle:'No installation today',
+      emptyDesc:'No installation is scheduled for today.',
+      errTitle:"Couldn't load your list",
+      errDesc:'Check your internet and try again.',
+      retry:'Try again',
+      noIdTitle:'Your profile is incomplete',
+      noIdDesc:'Technician ID not found. Please contact your manager.',
+      doc:"Today's Installation",
+      count:function(n){ return n + (n === 1 ? ' customer today' : ' customers today'); },
+      state:{ TECHNICIAN_ASSIGNED:'Technician assigned', SLOT_CONFIRMED:'Slot confirmed',
+              IN_PROGRESS:'In progress', INSTALLED:'Installed' }
+    }
+  };
+
+  /* ═══════════════════════════════════════════════════════════
+     3. Identity + state
+     ═══════════════════════════════════════════════════════════ */
+  function txt(id){
+    var el = document.getElementById(id);
+    return el ? (el.textContent || '') : '';
+  }
+
+  /* A span that still holds its raw token means CT did not substitute
+     it: the property is absent from the profile, the casing is wrong
+     (Liquid is case-sensitive and CT leaves the token in place rather
+     than erroring), or the page is being served from Pages, where
+     there is no CT to substitute anything. All of them mean "no id".
+
+     The brace pair is assembled at runtime rather than typed as a
+     literal: CleverTap parses script bodies too, and a bare token
+     pattern sitting in this file can stop the creative saving. */
+  var TOK_OPEN = '{' + '{', TOK_CLOSE = '}' + '}';
+
+  function cleanToken(v){
+    if(!v) return '';
+    v = String(v).replace(/^\s+|\s+$/g, '');
+    if(v.indexOf(TOK_OPEN) !== -1 || v.indexOf(TOK_CLOSE) !== -1) return '';
+    var lower = v.toLowerCase();
+    if(lower === 'none' || lower === 'null' || lower === 'undefined' || lower === '0') return '';
+    return v;
+  }
+  function qparam(k){
+    var m = new RegExp('[?&]' + k + '=([^&#]*)').exec(location.search);
+    return m ? decodeURIComponent(m[1].replace(/\+/g,' ')) : '';
+  }
+
+  /* The app may write this profile property under any of these
+     spellings, and Liquid is case-sensitive, so a single guess is the
+     most likely reason a real device shows "profile incomplete" while
+     the API is perfectly healthy. Each spelling has its own span
+     above; the first that resolves wins. Unused ones substitute to ''
+     and cost nothing.
+
+     ID_SRC names the one that won and rides every event, so the
+     spelling in use is visible in CT — and a change to it shows up as
+     idSource=none rather than looking like an API outage. */
+  var PROFILE_SPANS = [
+    ['ctTech',      'profile_technicianId'],
+    ['ctTechSnake', 'profile_technician_id'],
+    ['ctExec',      'profile_executorId'],
+    ['ctExecSnake', 'profile_executor_id']
+  ];
+
+  var TECH_ID = '', ID_SRC = 'none', _i, _v;
+
+  /* URL param first: in the hosted deployment the wrapper has already
+     resolved the token and passed it down, and that value is the more
+     trustworthy of the two. */
+  _v = qparam('technicianId') || qparam('technicianid') ||
+       qparam('executorId')   || qparam('executorid');
+  if(_v){ TECH_ID = _v; ID_SRC = 'url_param'; }
+
+  for(_i = 0; !TECH_ID && _i < PROFILE_SPANS.length; _i++){
+    _v = cleanToken(txt(PROFILE_SPANS[_i][0]));
+    if(_v){ TECH_ID = _v; ID_SRC = PROFILE_SPANS[_i][1]; }
+  }
+
+  /* Desk preview only. A real device is on https, never file:, so it
+     always hits the live API. ?live=1 forces the live call from disk. */
+  var FORCE_LIVE = (qparam('live') === '1');
+  var DEBUG = !FORCE_LIVE && (location.protocol === 'file:' || location.protocol === 'data:');
+
+  var lang    = 'hi';
+  var items   = [];
+  var meta    = {};
+  var view    = 'loading';
+  var attempt = 0;
+  var called  = {};
+
+  /* ═══════════════════════════════════════════════════════════
+     4. CleverTap event bridge
+
+     EVENT MODEL — one event name per ACTION, never per card. N
+     tickets render N call CTAs but all of them raise the single event
+     DailyInstall_Call_Clicked; the card is identified by properties
+     (position / total / candidateId). 1 ticket or 12, the CT event
+     catalogue and every segment built on it stay the same size.
+
+     EVERY clickable surface raises exactly one event, and no tap
+     raises two:
+
+       Call_Clicked     the Call CTA. Carries the WHOLE customer —
+                        name, phone (full + masked), address, landmark,
+                        area, city, pincode, slot, state, candidate and
+                        connection ids, and the position/tapIndex of the
+                        tap. Not deduped: a second call to the same
+                        customer is real signal.
+       Card_Tapped      a tap on the card BODY (reading the address
+                        rather than dialling). Same customer fields,
+                        minus the full number.
+       Dismissed        the ✕. Carries the session summary — how many
+                        of the day's customers were actually called.
+       Lang_Switched    the हिंदी/English toggle.
+       Retry_Clicked    the retry button on the error state.
+
+     Fired without a tap:
+       Opened           on load.
+       Viewed           the list rendered. One event for the whole day,
+                        with phoneKeys naming the TAS field the number
+                        came from.
+       All_Called       once, when the last uncalled card is tapped —
+                        the one event worth a campaign trigger.
+       Phone_Missing    at least one customer had no usable number.
+       Api_Failed       with reason (network_or_cors / http_NNN /
+                        timeout / bad_json).
+       No_Technician_Id the CT profile had no technicianId.
+       Id_Echo_Mismatch TAS returned a different executor's list.
+
+     Every event also carries technicianId, executorId (same value),
+     idSource and installDate.
+
+     THREE transports, tried in order. The third is what makes the
+     hosted deployment work: inside an iframe the CTWebInterface
+     object may only be injected into the TOP frame, so the page
+     relays the event to the wrapper, which owns the bridge and
+     queues until it appears.
+     ═══════════════════════════════════════════════════════════ */
+  var EV_PREFIX = 'DailyInstall_', sent = {};
+
+  function ctPush(ev, p){
+    try{
+      if(window.CleverTap && typeof window.CleverTap.pushEvent === 'function'){
+        p ? window.CleverTap.pushEvent(ev, JSON.stringify(p)) : window.CleverTap.pushEvent(ev);
+        return true;
+      }
+    }catch(e){}
+    try{
+      var wk = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap;
+      if(wk){ wk.postMessage({ action:'recordEventWithProps', event:ev, properties:p || {} }); return true; }
+    }catch(e){}
+    try{
+      if(window.parent && window.parent !== window){
+        window.parent.postMessage({ __ct:1, action:'event', event:ev, properties:p || {} }, '*');
+        return true;
+      }
+    }catch(e){}
+    return false;
+  }
+
+  /* once=true  -> deduped on the full payload (impressions, failures)
+     once=false -> every tap is real signal and must land (call taps) */
+  function track(name, p, once){
+    p = p || {};
+    /* CT's technicianId IS TAS's executorId — one id, two names. Both
+       names are sent on every event so a segment can be built on
+       whichever name the team filters on, with no lookup. */
+    p.technicianId = TECH_ID;
+    p.executorId   = TECH_ID;
+    p.idSource     = ID_SRC;
+    p.installDate  = meta.installDate || '';
+
+    var ev = EV_PREFIX + name;
+    if(once !== false){
+      var k = ev + '|' + JSON.stringify(p);
+      if(sent[k]) return;
+      sent[k] = 1;
+    }
+    if(DEBUG){ try{ console.log('[track]', ev, p); }catch(e){} }
+
+    var n = 0;
+    (function go(){ n++; if(ctPush(ev, p)) return; if(n < 6) setTimeout(go, 250 * n); })();
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     5. Fetch — XMLHttpRequest, not fetch(). Older Android WebViews in
+        the technician fleet do not ship fetch.
+     ═══════════════════════════════════════════════════════════ */
+  function buildUrl(){
+    var base = CFG.PROXY_URL || CFG.BASE;
+    var u = base + (base.indexOf('?') === -1 ? '?' : '&') +
+            encodeURIComponent(CFG.PARAM) + '=' + encodeURIComponent(TECH_ID);
+    if(CFG.TOKEN_MODE === 'query' && CFG.TOKEN){
+      u += '&' + encodeURIComponent(CFG.TOKEN_KEY) + '=' + encodeURIComponent(CFG.TOKEN);
+    }
+    return u + '&_t=' + Date.now();
+  }
+
+  function loadData(){
+    view = 'loading'; render();
+
+    if(DEBUG){ setTimeout(function(){ applyPayload(DEMO); }, 900); return; }
+
+    /* No id on the profile = never call the API. Without this guard
+       the creative would request ?executorId= and a permissive
+       backend could return someone else's customer list. */
+    if(!TECH_ID){
+      track('No_Technician_Id', {});
+      view = 'noid'; render(); return;
+    }
+
+    var xhr = new XMLHttpRequest(), done = false;
+
+    function fail(reason){
+      if(done) return; done = true;
+      try{ xhr.abort(); }catch(e){}
+      if(attempt < CFG.RETRIES){ attempt++; setTimeout(loadData, 700 * attempt); return; }
+      track('Api_Failed', {
+        reason   : reason,
+        attempts : attempt + 1,
+        viaProxy : !!CFG.PROXY_URL,
+        /* the exact URL that was called, minus the cache-buster —
+           makes a wrong id or a wrong host obvious in CT */
+        apiUrl   : buildUrl().replace(/&_t=\d+$/, '')
+      });
+      view = 'error'; render();
+    }
+
+    try{ xhr.open('GET', buildUrl(), true); }
+    catch(e){ fail('open_error'); return; }
+
+    if(CFG.TOKEN_MODE === 'header' && CFG.TOKEN){
+      try{ xhr.setRequestHeader(CFG.TOKEN_KEY, CFG.TOKEN); }catch(e){}
+    }
+    try{ xhr.withCredentials = false; }catch(e){}
+
+    xhr.timeout   = CFG.TIMEOUT_MS;
+    xhr.ontimeout = function(){ fail('timeout'); };
+    xhr.onerror   = function(){ fail('network_or_cors'); };
+
+    xhr.onreadystatechange = function(){
+      if(xhr.readyState !== 4 || done) return;
+      var st = xhr.status;
+      if(st === 204){ done = true; applyPayload({ items:[] }); return; }
+      if(st < 200 || st >= 300){ fail('http_' + st); return; }
+
+      var json;
+      try{ json = JSON.parse(xhr.responseText); }
+      catch(e){ fail('bad_json'); return; }
+
+      if(json && json.error_code){ fail('api_' + json.error_code); return; }
+
+      done = true;
+      applyPayload(json);
+    };
+
+    try{ xhr.send(); }catch(e){ fail('send_error'); }
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     6. Map the TAS response
+     ═══════════════════════════════════════════════════════════ */
+  function pick(o, keys){
+    for(var i = 0; i < keys.length; i++){
+      var v = o[keys[i]];
+      if(v !== undefined && v !== null && String(v).length) return String(v);
+    }
+    return '';
+  }
+
+  function hhmm(t){
+    if(!t) return '';
+    var p = String(t).split(':');
+    return p.length >= 2 ? p[0] + ':' + p[1] : String(t);
+  }
+
+  /* slotText() is for the SCREEN and is translated. Events need a
+     stable value that does not change when the technician toggles
+     Hindi/English, so they carry this one instead. */
+  function slotLabel(c){
+    var a = c.sStart || '', b = c.sEnd || '';
+    if(!a && !b) return '';
+    if(a.indexOf('00:00') === 0 && b.indexOf('23:59') === 0) return 'ALL_DAY';
+    return hhmm(a) + '-' + hhmm(b);
+  }
+
+  function slotText(c, s){
+    var a = c.sStart || '', b = c.sEnd || '';
+    if(!a && !b) return '';
+    /* 00:00:00 – 23:59:59 is TAS for "no real slot picked" — it has to
+       read as words, not as a literal "00:00 – 23:59". */
+    if(a.indexOf('00:00') === 0 && b.indexOf('23:59') === 0) return s.allDay;
+    return hhmm(a) + ' – ' + hhmm(b);
+  }
+
+  /* ── PHONE ────────────────────────────────────────────────────
+     Two passes, because the exact key TAS ships the number under is
+     the one thing that cannot be pinned down from outside the VPN:
+
+       1. the named keys below, in priority order;
+       2. failing that, a depth-limited walk of the whole item for any
+          key that looks like a phone — including inside the
+          JSON-ENCODED strings TAS uses for service_address, and
+          inside a nested customer{} object.
+
+     Whatever pass 2 finds, its key PATH is reported on the Viewed
+     event as phoneKeys. So the field name is verifiable from the
+     CleverTap dashboard on day one, with no code change and no
+     network access — if TAS ships it as customer_mobile you will see
+     phoneKeys=customer_mobile, and if it is nested you will see
+     customer.mobile.
+
+     normPhone() is deliberately strict: an Indian mobile is 10
+     digits starting 6-9. It strips +91 / 91 / a leading 0, and
+     rejects landlines and junk so the Call CTA never dials
+     something that cannot be dialled.                              */
+  var PHONE_PRIORITY = ['customer_mobile','customerMobile','customer_phone','customerPhone',
+                        'customer_contact','mobile_number','mobileNumber','mobile',
+                        'phone_number','phoneNumber','phone','msisdn',
+                        'contact_number','contactNumber','contact','alternate_mobile'];
+  var PHONE_RE = /(mobile|phone|msisdn|contact|whatsapp)/i;
+  /* Keys that match PHONE_RE but are never a dialable number. */
+  var PHONE_SKIP_RE = /(country|isd|code|verified|type|status|otp|id$)/i;
+
+  function normPhone(v){
+    var d = String(v === undefined || v === null ? '' : v).replace(/[^0-9]/g, '');
+    if(d.length > 10 && d.indexOf('91') === 0) d = d.substring(d.length - 10);
+    if(d.length === 11 && d.charAt(0) === '0') d = d.substring(1);
+    if(d.length === 10 && /^[6-9]/.test(d)) return d;
+    return '';
+  }
+
+  function findPhone(o){
+    var i, n;
+
+    /* Pass 1 — named keys, priority order. */
+    for(i = 0; i < PHONE_PRIORITY.length; i++){
+      var k = PHONE_PRIORITY[i];
+      if(o[k] !== undefined && o[k] !== null){
+        n = normPhone(o[k]);
+        if(n) return { num:n, key:k };
+      }
+    }
+
+    /* Pass 2 — bounded walk. */
+    var hit = null, seen = 0;
+    (function walk(node, path, depth){
+      if(hit || !node || depth > 4 || seen > 400) return;
+      if(typeof node !== 'object') return;
+      for(var kk in node){
+        if(hit) return;
+        if(!Object.prototype.hasOwnProperty.call(node, kk)) continue;
+        seen++;
+        var v = node[kk], p = path ? path + '.' + kk : kk;
+        if(v === undefined || v === null) continue;
+
+        if(typeof v === 'object'){ walk(v, p, depth + 1); continue; }
+
+        var s = String(v);
+        /* service_address and friends arrive as JSON-encoded strings. */
+        if(s.charAt(0) === '{' || s.charAt(0) === '['){
+          try{ walk(JSON.parse(s), p, depth + 1); }catch(e){}
+          continue;
+        }
+        if(PHONE_RE.test(kk) && !PHONE_SKIP_RE.test(kk)){
+          var nn = normPhone(s);
+          if(nn){ hit = { num:nn, key:p }; return; }
+        }
+      }
+    })(o, '', 0);
+
+    return hit || { num:'', key:'' };
+  }
+
+  function maskPhone(n){ return n ? ('*****' + n.substring(6)) : ''; }
+
+  /* ── service_address ──────────────────────────────────────────
+     TAS returns service_address as a JSON-ENCODED STRING, e.g.
+       "{\"home\":\"Pg Tirmula Room 501\",\"address\":\"12, Rasoolpur
+        Nawada, Sector 62\",\"locality\":\"…\",\"street\":\"…\",
+        \"landMarkType\":\"SCHOOL\",\"city\":\"Noida\"}"
+     Printing it raw puts JSON braces on the technician's screen, so
+     it is parsed and recomposed into readable lines.              */
+  function parseAddr(v){
+    if(!v) return null;
+    if(typeof v === 'object') return v;
+    var s = String(v);
+    if(s.charAt(0) !== '{') return null;
+    try{ return JSON.parse(s); }catch(e){ return null; }
+  }
+
+  /* Joins non-empty parts, dropping any already contained in one kept
+     earlier — this data repeats the sector/pincode across home /
+     address / locality. */
+  function joinUnique(parts){
+    var out = [], i, j, p, dup;
+    for(i = 0; i < parts.length; i++){
+      p = (parts[i] === undefined || parts[i] === null) ? '' : String(parts[i]);
+      p = p.replace(/^[\s,]+|[\s,]+$/g, '');
+      if(!p) continue;
+      dup = false;
+      for(j = 0; j < out.length; j++){
+        if(out[j].toLowerCase().indexOf(p.toLowerCase()) !== -1){ dup = true; break; }
+      }
+      if(!dup) out.push(p);
+    }
+    return out.join(', ');
+  }
+
+  function addressOf(o){
+    var a = parseAddr(o.service_address || o.serviceAddress);
+    if(!a) return { text: pick(o, ['service_address','serviceAddress','address']),
+                    landmark:'', area:'', city:'', pincode:'' };
+    return {
+      text     : joinUnique([a.home, a.address, a.city]),
+      city     : a.city || '',
+      /* street is the landmark's name; landMarkType OTHER is noise. */
+      landmark : (a.landMarkType && String(a.landMarkType).toUpperCase() !== 'OTHER') ? (a.street || '') : '',
+      /* The HUMAN locality lives in here. The item's top-level
+         `locality` is a numeric zone code (476, 297) identical to
+         zone_id — meaningless to a technician, so it is an event
+         property only and never rendered. */
+      area     : a.locality || '',
+      pincode  : a.pincode || ''
+    };
+  }
+
+  function normalise(raw){
+    var out = [], i;
+    for(i = 0; i < raw.length && out.length < CFG.MAX_CARDS; i++){
+      var o = raw[i];
+      if(!o || typeof o !== 'object') continue;
+      var ad = addressOf(o);
+      var ph = findPhone(o);
+      out.push({
+        id      : pick(o, ['execution_candidate_id','executionCandidateId','id']),
+        connId  : pick(o, ['connection_id','connectionId']),
+        name    : pick(o, ['customer_name','customerName','name']).replace(/\s+/g,' '),
+        phone   : ph.num,
+        phoneKey: ph.key,
+        address : ad.text,
+        landmark: ad.landmark,
+        area    : ad.area,
+        city    : ad.city,
+        pincode : ad.pincode,
+        zone    : pick(o, ['locality','zone_id','zoneId']),
+        state   : pick(o, ['current_state','currentState','state']),
+        task    : pick(o, ['task_status','taskStatus']),
+        slotDate: pick(o, ['confirmed_slot_date','confirmedSlotDate']),
+        sStart  : pick(o, ['confirmed_slot_time_range_start']),
+        sEnd    : pick(o, ['confirmed_slot_time_range_end']),
+        unseen  : parseInt(pick(o, ['unseen_attention_count','unseenAttentionCount']), 10) || 0,
+        raw     : o
+      });
+    }
+    return out;
+  }
+
+  function applyPayload(json){
+    json = json || {};
+    var list = (Object.prototype.toString.call(json.items) === '[object Array]') ? json.items
+             : (Object.prototype.toString.call(json)       === '[object Array]') ? json : [];
+
+    /* technicianId (CT) and executor_id (TAS) are the same id, so the
+       response MUST echo back what we sent. If it does not, we are
+       about to show one technician another technician's customers —
+       surface it rather than rendering it silently. */
+    var echoed = pick(json, ['executor_id','executorId']);
+    var idEchoOk = (!echoed || String(echoed) === String(TECH_ID));
+
+    meta = {
+      executorId  : echoed || TECH_ID,
+      idEchoOk    : idEchoOk,
+      installDate : pick(json, ['install_date','installDate']),
+      apiCount    : parseInt(pick(json, ['installation_count','installationCount']), 10)
+    };
+    if(isNaN(meta.apiCount)) meta.apiCount = list.length;
+
+    items  = normalise(list);
+    called = {};
+    view   = items.length ? 'list' : 'empty';
+    render();
+
+    /* ONE impression event carries the whole day, however many tickets
+       there are — including the count the API claimed, so a mismatch
+       against what actually rendered is visible in CT. */
+    var noPhone = 0, states = [], keys = [], i, c;
+    for(i = 0; i < items.length; i++){
+      c = items[i];
+      if(!c.phone) noPhone++;
+      if(c.state && states.join('|').indexOf(c.state) === -1) states.push(c.state);
+      if(c.phoneKey && keys.join('|').indexOf(c.phoneKey) === -1) keys.push(c.phoneKey);
+    }
+    if(!idEchoOk){
+      track('Id_Echo_Mismatch', { sentId:TECH_ID, returnedId:meta.executorId });
+    }
+
+    track('Viewed', {
+      installCount   : items.length,
+      apiCount       : meta.apiCount,
+      countMismatch  : (meta.apiCount !== items.length),
+      idEchoOk       : idEchoOk,
+      returnedId     : meta.executorId,
+      callableCount  : items.length - noPhone,
+      missingPhone   : noPhone,
+      /* The field name TAS actually used — read this in CT to confirm
+         the phone mapping in production. */
+      phoneKeys      : keys.join(','),
+      states         : states.join(','),
+      source         : CFG.PROXY_URL ? 'tas_proxy' : 'tas_api'
+    });
+    if(noPhone) track('Phone_Missing', { missingPhone:noPhone, installCount:items.length });
+
+    /* Nothing to call = nothing worth interrupting the technician for.
+       Viewed is already away, so a zero-install day is still counted
+       in the campaign; the technician just never sees the popup. */
+    if(!items.length && CFG.CLOSE_IF_EMPTY){
+      track('Auto_Closed_Empty', {});
+      setTimeout(closeInApp, 400);
+    }
+  }
+
+  /* DESK PREVIEW ONLY — never reachable from a handset. It is gated
+     on DEBUG, which requires a file:/data: protocol; the in-app
+     WebView is about: and the hosted page is https:, so on a device
+     the list is ALWAYS fetched live from TAS for the id CleverTap
+     supplied.
+
+     It carries no executor_id: the screen must never have an id baked
+     into it, and leaving it out also exercises the branch where TAS
+     does not echo one back. Dated today so the preview never looks
+     stale. Shape mirrors the real response, service_address included
+     as a JSON-encoded string. Rows 1-2 put the number under the flat
+     customer_mobile key; row 3 nests it under customer{} to exercise
+     the pass-2 walk. ?nophone=1 previews the no-number state.      */
+  function todayISO(){
+    var d = new Date();
+    return d.getFullYear() + '-' +
+           ('0' + (d.getMonth() + 1)).slice(-2) + '-' +
+           ('0' + d.getDate()).slice(-2);
+  }
+  var DEMO = {
+    install_date: todayISO(), installation_count:3,
+    items:[
+      { execution_candidate_id:'1f0dde60-c821', connection_id:'d702146c-875d',
+        current_state:'TECHNICIAN_ASSIGNED', task_status:'OPEN', confirmed_slot_date:todayISO(),
+        confirmed_slot_time_range_start:'00:00:00', confirmed_slot_time_range_end:'23:59:59',
+        customer_name:'Dev Yadav', customer_mobile:'9876543210',
+        service_address:"{\"home\": \"Pg Tirmula Room 501\", \"streetNumber\": \"Yadav Partha\", \"locality\": \"Rasoolpur Nawada, Industrial Area, Sector 62, 201309\", \"street\": \"Yadav Partha\", \"landMarkType\": \"OTHER\", \"address\": \"12, Rasoolpur Nawada, Industrial Area, Sector 62\", \"pincode\": \"201309\", \"city\": \"Noida\"}",
+        locality:'476', zone_id:'476', latest_attention_version:4, unseen_attention_count:1 },
+      { execution_candidate_id:'ad321293-a575', connection_id:'7b70133d-00d0',
+        current_state:'TECHNICIAN_ASSIGNED', task_status:'OPEN', confirmed_slot_date:todayISO(),
+        confirmed_slot_time_range_start:'10:00:00', confirmed_slot_time_range_end:'13:00:00',
+        customer_name:'Manish  Kumar', customer_mobile:'+91 98765 43211',
+        service_address:"{\"home\": \"House No 44\", \"streetNumber\": \"Gali No 1 Ashram Near Shiv Mandir\", \"locality\": \"Sector 63, Chhajarsi Colony, 201309\", \"street\": \"Shakshi Public School\", \"landMarkType\": \"SCHOOL\", \"address\": \"Sector 63 Rd A Block, Chotpur Colony, Sector 63\", \"pincode\": \"201309\", \"city\": \"Noida\"}",
+        locality:'297', zone_id:'297', latest_attention_version:4, unseen_attention_count:1 },
+      { execution_candidate_id:'ae444591-1045', connection_id:'8eeb313b-b5f2',
+        current_state:'TECHNICIAN_ASSIGNED', task_status:'OPEN', confirmed_slot_date:todayISO(),
+        confirmed_slot_time_range_start:'00:00:00', confirmed_slot_time_range_end:'23:59:59',
+        customer_name:'Anil Kumar', customer:{ name:'Anil Kumar', mobile:'09876543212' },
+        service_address:"{\"home\": \"F-9 Chhajarsi Colony\", \"streetNumber\": \"01 Opposite Rahul Stationary\", \"locality\": \"Goutam Buddh Nagar, Chhajarsi Colony, Sector 63, 201309\", \"street\": \"Shakshi Public School\", \"landMarkType\": \"SCHOOL\", \"address\": \"18, Goutam Buddh Nagar, Chhajarsi Colony, Sector 63\", \"pincode\": \"201309\", \"city\": \"Noida\"}",
+        locality:'476', zone_id:'476', latest_attention_version:1, unseen_attention_count:0 }
+    ]
+  };
+  if(qparam('nophone') === '1'){
+    for(var _d = 0; _d < DEMO.items.length; _d++){
+      delete DEMO.items[_d].customer_mobile; delete DEMO.items[_d].customer;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     7. Render
+     ═══════════════════════════════════════════════════════════ */
+  function escHtml(s){ var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+  function escAttr(s){
+    return (s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+                    .replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function prettyState(code, s){
+    if(!code) return '';
+    if(s.state[code]) return s.state[code];
+    return code.replace(/_/g,' ').toLowerCase().replace(/\b[a-z]/g, function(c){ return c.toUpperCase(); });
+  }
+  /* 98765 43210 — easier to read back over a noisy line than 10 run-on digits. */
+  function prettyPhone(n){ return n ? (n.substring(0,5) + ' ' + n.substring(5)) : ''; }
+
+  function renderBody(){
+    var area = document.getElementById('cardArea'), s = STR[lang], html = '', i;
+
+    if(view === 'loading'){
+      for(i = 0; i < 2; i++){
+        html += '<div class="sk"><div class="sk-line sk-av"></div><div class="sk-line sk-n"></div>' +
+                '<div class="sk-line sk-a"></div><div class="sk-line sk-a2"></div>' +
+                '<div class="sk-line sk-b"></div></div>';
+      }
+      area.innerHTML = html; return;
+    }
+
+    if(view === 'error'){
+      area.innerHTML =
+        '<div class="state"><span class="material-symbols-outlined">wifi_off</span>' +
+          '<p class="state-title">' + s.errTitle + '</p>' +
+          '<p class="state-text">' + s.errDesc + '</p>' +
+          '<button class="retry-btn" id="retryBtn">' +
+            '<span class="material-symbols-outlined">refresh</span>' + s.retry +
+          '</button></div>';
+      var rb = document.getElementById('retryBtn');
+      if(rb) rb.addEventListener('click', function(){
+        track('Retry_Clicked', { lang:lang }, false);
+        attempt = 0; loadData();
+      });
+      return;
+    }
+
+    if(view === 'noid'){
+      area.innerHTML =
+        '<div class="state"><span class="material-symbols-outlined">badge</span>' +
+          '<p class="state-title">' + s.noIdTitle + '</p>' +
+          '<p class="state-text">' + s.noIdDesc + '</p></div>';
+      return;
+    }
+
+    if(view === 'empty'){
+      area.innerHTML =
+        '<div class="state"><span class="material-symbols-outlined">event_available</span>' +
+          '<p class="state-title">' + s.emptyTitle + '</p>' +
+          '<p class="state-text">' + s.emptyDesc + '</p></div>';
+      return;
+    }
+
+    var total = items.length;
+    for(i = 0; i < total; i++){
+      var c = items[i], taps = called[c.id] || 0, slot = slotText(c, s);
+
+      html += '<div class="card' + (taps ? ' done' : '') + '" data-card="' + i + '">' +
+        (c.unseen > 0 ? '<span class="card-new">' + s.isNew + '</span>' : '') +
+        (total > 1 ? '<span class="card-index">' + (i + 1) + '/' + total + '</span>' : '') +
+        '<div class="card-avatar"><span class="material-symbols-outlined">person</span></div>' +
+        '<p class="card-name">' + escHtml(c.name) + '</p>' +
+        (c.state ? '<span class="chip chip-state">' +
+            '<span class="material-symbols-outlined">engineering</span>' +
+            escHtml(prettyState(c.state, s)) + '</span>' : '') +
+
+        (c.address ? '<div class="row"><span class="material-symbols-outlined">location_on</span>' +
+            '<span class="row-txt"><b>' + escHtml(c.address) + '</b>' +
+            (c.area ? '<br>' + escHtml(c.area) : '') +
+            '</span></div>' : '') +
+
+        (c.landmark ? '<div class="row"><span class="material-symbols-outlined">storefront</span>' +
+            '<span class="row-txt">' + s.nearBy.replace('{x}', escHtml(c.landmark)) +
+            '</span></div>' : '') +
+
+        (slot ? '<div class="row"><span class="material-symbols-outlined">schedule</span>' +
+            '<span class="row-txt">' + s.slot + ' · <b>' + escHtml(slot) + '</b></span></div>' : '') +
+
+        /* The number is shown as well as dialled — a technician on a
+           dead in-app dialler can still read it out or copy it. */
+        (c.phone ? '<div class="row"><span class="material-symbols-outlined">call</span>' +
+            '<span class="row-txt row-phone"><b>' + escHtml(prettyPhone(c.phone)) + '</b></span></div>' : '') +
+
+        (c.phone
+          ? '<a class="card-call' + (taps ? ' called' : '') + '" href="tel:' + escAttr(c.phone) + '"' +
+              ' data-idx="' + i + '" aria-label="Call ' + escAttr(c.name) + '">' +
+              '<span class="material-symbols-outlined">call</span>' +
+              (taps ? s.calledBtn : s.callBtn) + '</a>'
+          : '<div class="no-phone"><span class="material-symbols-outlined">phone_disabled</span>' +
+              s.noPhone + '</div>') +
+      '</div>';
+    }
+    area.innerHTML = html;
+  }
+
+  function render(){
+    var s = STR[lang];
+    document.documentElement.lang = lang;
+    document.title = s.doc;
+
+    var i18n = document.querySelectorAll('[data-i18n]'), i;
+    for(i = 0; i < i18n.length; i++){
+      var k = i18n[i].getAttribute('data-i18n');
+      if(s[k] !== undefined) i18n[i].textContent = s[k];
+    }
+    document.getElementById('langToggle').textContent = s.toggle;
+
+    var pill = document.getElementById('countPill');
+    if(view === 'list' && items.length){
+      document.getElementById('countText').textContent = s.count(items.length);
+      pill.className = 'count-pill show';
+    }else{
+      pill.className = 'count-pill';
+    }
+    renderBody();
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     8. Dial out of the WebView
+
+     Same chain the shipped quality.html uses for its deeplink:
+     openDeepLink -> iOS postMessage -> location.href, with the parent
+     relay added for the hosted deployment. Do NOT add
+     triggerInAppAction — it feature-detects true, then silently
+     strands the tap so the location.href branch never runs.
+     ═══════════════════════════════════════════════════════════ */
+  function dial(num){
+    var url = 'tel:' + num;
+    try{
+      if(window.CleverTap && typeof window.CleverTap.openDeepLink === 'function'){
+        window.CleverTap.openDeepLink(url);
+      }else if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap){
+        window.webkit.messageHandlers.clevertap.postMessage({ action:'openDeepLink', url:url });
+      }else if(window.parent && window.parent !== window){
+        window.parent.postMessage({ __ct:1, action:'openDeepLink', url:url }, '*');
+      }
+    }catch(e){}
+    /* Last resort — the branch that actually places the call when
+       openDeepLink is absent from this SDK's CTWebInterface. */
+    setTimeout(function(){ window.location.href = url; }, 300);
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     9. Dismiss — carries the session summary
+     ═══════════════════════════════════════════════════════════ */
+  /* EVERY transport fires and NONE of them returns early.
+     Feature-detection is not proof of success: on Android the
+     CTWebInterface object is injected into sub-frames too, so inside
+     the wrapper's iframe window.CleverTap.dismissInAppNotification
+     EXISTS and is callable, but the frame often cannot resolve which
+     in-app to dismiss — so it silently does nothing. An early return
+     there strands the tap and the ✕ appears dead. This is the same
+     trap the repo already documents for triggerInAppAction.
+
+     Dismissing an in-app that is already gone is a harmless no-op.
+     Dismissing none of them leaves the technician stuck behind a
+     popup they cannot close, so redundancy is the right trade. */
+  function closeInApp(){
+    /* 1. The TOP frame owns the in-app, so in the hosted deployment
+          the wrapper is the transport most likely to work. First. */
+    try{
+      if(window.parent && window.parent !== window){
+        window.parent.postMessage({ __ct:1, action:'dismiss' }, '*');
+      }
+    }catch(e){}
+    /* 2. Android CTWebInterface, if this frame has it. */
+    try{
+      if(window.CleverTap && typeof window.CleverTap.dismissInAppNotification === 'function'){
+        window.CleverTap.dismissInAppNotification();
+      }
+    }catch(e){}
+    /* 3. iOS message handler. */
+    try{
+      var wk = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap;
+      if(wk){ wk.postMessage({ action:'dismissInAppNotification' }); }
+    }catch(e){}
+    /* 4. Still alive a beat later => nothing above took. Escalate to
+          the URL scheme. Skipped when embedded: the wrapper runs this
+          same escalation in the top frame, where it actually works. */
+    setTimeout(function(){
+      try{
+        if(window.parent && window.parent !== window) return;
+        window.location.href = 'clevertap://closeInApp';
+      }catch(e){}
+    }, 700);
+  }
+
+  function calledCount(){
+    var n = 0, k;
+    for(k in called){ if(Object.prototype.hasOwnProperty.call(called, k)) n++; }
+    return n;
+  }
+
+  var dismissed = false;
+
+  function dismiss(){
+    if(dismissed) return;
+    dismissed = true;
+    var uniq = calledCount(), total = items.length;
+    track('Dismissed', {
+      view          : view,
+      lang          : lang,
+      installCount  : total,
+      calledCount   : uniq,
+      notCalledCount: Math.max(0, total - uniq),
+      calledAll     : (total > 0 && uniq >= total),
+      coveragePct   : total ? Math.round((uniq / total) * 100) : 0
+    }, false);
+
+    /* Let the event leave before the WebView is torn down. */
+    setTimeout(closeInApp, 300);
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     10. Listeners — ONE delegated handler covers every CTA, so the
+         listener count stays at 1 whether there are 1 or 12 tickets.
+     ═══════════════════════════════════════════════════════════ */
+  /* The wrapper draws its own ✕ in the embedded deployment. Showing
+     this one too puts two close buttons on the screen, one of them in
+     the frame that is worse at closing — so hide it and let the
+     wrapper's button drive, via requestDismiss below. */
+  var EMBEDDED = !!(window.parent && window.parent !== window);
+  if(EMBEDDED){
+    document.getElementById('closeBtn').style.display = 'none';
+  }
+  document.getElementById('closeBtn').addEventListener('click', dismiss);
+
+  /* The wrapper's ✕ asks here first, so the Dismissed event still
+     carries the session summary (how many of the day's customers were
+     actually called) before the WebView is torn down. */
+  try{
+    window.addEventListener('message', function(e){
+      var d = e && e.data;
+      if(d && d.__ct === 1 && d.action === 'requestDismiss') dismiss();
+    }, false);
+  }catch(e){}
+
+  document.getElementById('langToggle').addEventListener('click', function(){
+    var prev = lang;
+    lang = (lang === 'hi' ? 'en' : 'hi');
+    track('Lang_Switched', { from:prev, to:lang });
+    render();
+  });
+
+  document.getElementById('cardArea').addEventListener('click', function(e){
+    var el = e.target, link = null, card = null;
+    while(el && el !== this){
+      var cls = el.className ? String(el.className) : '';
+      if(!link && cls.indexOf('card-call') !== -1) link = el;
+      if(cls.indexOf('card') !== -1 && el.getAttribute && el.getAttribute('data-card') !== null){ card = el; break; }
+      el = el.parentNode;
+    }
+
+    /* A tap on the card BODY is still a tap — it is the technician
+       reading the address rather than dialling, and the campaign wants
+       both. Fired here so every clickable surface in the creative
+       raises exactly one event, with no double-count on the CTA. */
+    if(!link){
+      if(!card) return;
+      var ci = parseInt(card.getAttribute('data-card'), 10);
+      var cc = items[ci];
+      if(!cc) return;
+      /* Same ticket shape as Call_Clicked so the two are comparable
+         side by side in CT — minus the full number, which only the
+         tap that actually dials should carry. */
+      track('Card_Tapped', {
+        customerName : cc.name,
+        phoneMasked  : maskPhone(cc.phone),
+        hasPhone     : !!cc.phone,
+
+        address      : cc.address,
+        landmark     : cc.landmark,
+        area         : cc.area,
+        city         : cc.city,
+        pincode      : cc.pincode,
+
+        slot         : slotLabel(cc),
+        slotDate     : cc.slotDate,
+
+        candidateId  : cc.id,
+        connectionId : cc.connId,
+        state        : cc.state,
+        taskStatus   : cc.task,
+        zone         : cc.zone,
+        isNew        : (cc.unseen > 0),
+
+        position     : ci + 1,
+        installCount : items.length,
+        alreadyCalled: !!called[cc.id],
+        lang         : lang
+      }, false);
+      return;
+    }
+
+    if(e.preventDefault) e.preventDefault();
+
+    var i = parseInt(link.getAttribute('data-idx'), 10);
+    var c = items[i];
+    if(!c) return;
+
+    var first = !called[c.id];
+    called[c.id] = (called[c.id] || 0) + 1;
+
+    /* once=false: a second tap on the same customer is real signal and
+       must not be swallowed by the payload dedupe. */
+    var p = {
+      /* who */
+      customerName : c.name,
+      phoneMasked  : maskPhone(c.phone),
+      /* which field of the TAS payload the number came from — read
+         this in CT to confirm the mapping against the live API */
+      phoneKey     : c.phoneKey,
+
+      /* where */
+      address      : c.address,
+      landmark     : c.landmark,
+      area         : c.area,
+      city         : c.city,
+      pincode      : c.pincode,
+
+      /* when */
+      slot         : slotLabel(c),
+      slotDate     : c.slotDate,
+      slotStart    : c.sStart,
+      slotEnd      : c.sEnd,
+
+      /* which ticket */
+      candidateId  : c.id,
+      connectionId : c.connId,
+      state        : c.state,
+      taskStatus   : c.task,
+      zone         : c.zone,
+      isNew        : (c.unseen > 0),
+
+      /* the tap itself */
+      position     : i + 1,
+      installCount : items.length,
+      firstCall    : first,
+      tapIndex     : called[c.id],
+      calledSoFar  : calledCount(),
+      lang         : lang
+    };
+    if(CFG.SEND_FULL_PHONE) p.phone = c.phone;
+    track('Call_Clicked', p, false);
+
+    /* Fires exactly once per session, the moment the last uncalled
+       card is tapped — the single event worth a campaign trigger. */
+    if(items.length > 0 && calledCount() >= items.length){
+      track('All_Called', { installCount: items.length });
+    }
+
+    render();
+    dial(c.phone);
+  });
+
+  /* ═══════════════════════════════════════════════════════════
+     11. Init
+     ═══════════════════════════════════════════════════════════ */
+  track('Opened', { hasTechnicianId: !!TECH_ID, embedded: (window.parent !== window) });
+  loadData();
+</script>
