@@ -152,14 +152,21 @@
         no wrapper exists, so CT substitutes the token in the span
         below and the page reads it from there.
 
-     The span carries the SAME Liquid syntax that the shipped wrapper
-     docs/inapp-settle-wrapper.html uses and that this CT account is
-     known to substitute:  {{ Profile.cspid | default:"" }}
-     Token text lives in element TEXT, never inside a script block.
+     The spans below use the Liquid token form this CT account
+     already substitutes in a live creative, so it is the form with
+     evidence behind it rather than the safer-looking guess. Token
+     text lives in element TEXT, never inside a script block.
 
-     If your account uses the bare CT style instead, swap the span's
+     If your account is on the bare CT style instead, swap the span
      contents to {{Profile.technicianId|NONE}} — cleanToken() already
      treats NONE as missing, so nothing else changes.
+
+     Liquid is CASE-SENSITIVE: {{ Profile.technicianId }} and
+     {{ Profile.TechnicianId }} are different properties, and the
+     wrong casing yields an empty string rather than an error — which
+     surfaces as idSource=none on every event, not as a crash. Confirm
+     the spelling in CleverTap under Segments > any profile > Custom
+     attributes before shipping.
      ═══════════════════════════════════════════════════════════════ -->
 <span id="ctTech" hidden>{{ Profile.technicianId | default:"" }}</span>
 <span id="ctExec" hidden>{{ Profile.executorId | default:"" }}</span>

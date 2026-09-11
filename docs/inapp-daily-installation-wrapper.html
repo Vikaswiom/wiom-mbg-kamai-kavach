@@ -18,12 +18,11 @@
         only. This wrapper owns the bridge and relays for the iframe,
         queueing anything raised before the bridge exists.
 
-     TOKEN SYNTAX — this is the Liquid form that the shipped settle
-     wrapper already uses in this account ({{ Profile.cspid |
-     default:"" }}), so it is the form known to substitute here. If
-     your account is on the bare CT style instead, change the span to
-     {{Profile.technicianId|NONE}} — the JS treats NONE as missing, so
-     nothing else changes.
+     TOKEN SYNTAX — this Liquid form is the one this CT account
+     already substitutes in a live creative, so it is the form with
+     evidence behind it. If your account is on the bare CT style
+     instead, change the span to {{Profile.technicianId|NONE}} — the
+     JS treats NONE as missing, so nothing else changes.
 
      Liquid is CASE-SENSITIVE: {{ Profile.technicianId }} and
      {{ Profile.TechnicianId }} are different properties, and the
