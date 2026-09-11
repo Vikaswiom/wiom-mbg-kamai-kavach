@@ -1,0 +1,132 @@
+<!-- ═══════════════════════════════════════════════════════════════
+     CleverTap in-app creative — आज का इंस्टॉलेशन
+     Paste this WHOLE file into the CT campaign's custom-HTML in-app.
+
+     Same shape as the shipped docs/inapp-settle-wrapper.html: the
+     creative is a thin frame, the screen itself is the Pages page. It
+     is split that way for three reasons, all of which matter here:
+
+     1. ORIGIN. In the in-app WebView the creative runs at about:blank,
+        so its requests carry Origin: null and TAS cannot allow-list
+        them. Inside the iframe the page runs at
+        https://vikaswiom.github.io — a real origin TAS CAN allow.
+        This is the single biggest reason the API call fails from a
+        pasted one-file creative and works from the wrapper.
+     2. SHIPPING. The screen is then a normal Pages deploy: push to
+        main, live in ~1 min, no CT campaign edit and no re-approval.
+     3. BRIDGE. CTWebInterface is reliably injected into the TOP frame
+        only. This wrapper owns the bridge and relays for the iframe,
+        queueing anything raised before the bridge exists.
+
+     TOKEN SYNTAX — this is the Liquid form that the shipped settle
+     wrapper already uses in this account ({{ Profile.cspid |
+     default:"" }}), so it is the form known to substitute here. If
+     your account is on the bare CT style instead, change the span to
+     {{Profile.technicianId|NONE}} — the JS treats NONE as missing, so
+     nothing else changes.
+
+     Liquid is CASE-SENSITIVE: {{ Profile.technicianId }} and
+     {{ Profile.TechnicianId }} are different properties, and the
+     wrong casing yields an empty string rather than an error. Confirm
+     the spelling in CleverTap under Segments > any profile > Custom
+     attributes before shipping.
+     ═══════════════════════════════════════════════════════════════ -->
+<style>
+  html,body{margin:0;padding:0;width:100%;height:100%;background:#2d1e3e;overflow:hidden}
+  #fr{position:fixed;inset:0;width:100%;height:100%;border:0}
+  #x{position:fixed;top:10px;right:10px;z-index:9;width:34px;height:34px;border:0;border-radius:50%;
+     background:rgba(0,0,0,.55);color:#fff;font-size:17px;line-height:34px;text-align:center;padding:0}
+</style>
+
+<span id="tid" style="display:none">{{ Profile.technicianId | default:"" }}</span>
+<span id="eid" style="display:none">{{ Profile.executorId | default:"" }}</span>
+
+<iframe id="fr" allow="autoplay"></iframe>
+<button id="x" onclick="closeIt()">&#10005;</button>
+
+<script>
+(function(){
+  var PAGE = 'https://vikaswiom.github.io/wiom-mbg-kamai-kavach/daily-installation.html';
+
+  function val(id){
+    var e = document.getElementById(id), v = (e && e.textContent || '').replace(/^\s+|\s+$/g,'');
+    if(v.indexOf('{') > -1) return '';                  /* unresolved token (local test) */
+    var l = v.toLowerCase();
+    if(l === 'none' || l === 'null' || l === 'undefined' || l === '0') return '';
+    return v;
+  }
+
+  var id = val('tid') || val('eid');
+  if(!id){                                              /* browser QA */
+    var q = new URLSearchParams(location.search);
+    id = (q.get('technicianId') || q.get('executorId') || '').replace(/^\s+|\s+$/g,'');
+  }
+  document.getElementById('fr').src = PAGE + (id ? ('?technicianId=' + encodeURIComponent(id)) : '');
+
+  /* ── CT bridge, owned by the top frame ──────────────────────────
+     The iframe postMessages here; we forward. Anything raised before
+     the bridge is injected is queued, not dropped — the page fires
+     DailyInstall_Opened immediately on load and the bridge is not
+     always up by then. */
+  var q = [], flushing = false;
+
+  function bridgeEvent(ev, props){
+    try{
+      if(window.CleverTap && typeof window.CleverTap.pushEvent === 'function'){
+        props ? window.CleverTap.pushEvent(ev, JSON.stringify(props))
+              : window.CleverTap.pushEvent(ev);
+        return true;
+      }
+    }catch(e){}
+    try{
+      var wk = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap;
+      if(wk){ wk.postMessage({ action:'recordEventWithProps', event:ev, properties:props || {} }); return true; }
+    }catch(e){}
+    return false;
+  }
+
+  function flush(){
+    while(q.length){
+      if(!bridgeEvent(q[0].event, q[0].properties)) return false;
+      q.shift();
+    }
+    return true;
+  }
+
+  function pump(){
+    if(flushing) return;
+    flushing = true;
+    var n = 0;
+    (function go(){
+      if(flush() || n++ >= 12){ flushing = false; return; }
+      setTimeout(go, 250 * Math.min(n, 4));
+    })();
+  }
+
+  function deepLink(url){
+    try{
+      if(window.CleverTap && typeof window.CleverTap.openDeepLink === 'function'){
+        window.CleverTap.openDeepLink(url); return;
+      }
+      var wk = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap;
+      if(wk){ wk.postMessage({ action:'openDeepLink', url:url }); return; }
+    }catch(e){}
+    /* Do NOT add triggerInAppAction — it feature-detects true, then
+       silently strands the tap so this branch never runs. */
+    window.location.href = url;
+  }
+
+  window.addEventListener('message', function(e){
+    var d = e && e.data;
+    if(!d || d.__ct !== 1) return;
+    if(d.action === 'event'){ q.push({ event:d.event, properties:d.properties || {} }); pump(); }
+    else if(d.action === 'openDeepLink' && d.url){ deepLink(d.url); }
+    else if(d.action === 'dismiss'){ closeIt(); }
+  }, false);
+})();
+
+function closeIt(){
+  try{ if(window.CleverTap && window.CleverTap.dismissInAppNotification){ window.CleverTap.dismissInAppNotification(); return; } }catch(e){}
+  try{ window.webkit.messageHandlers.clevertap.postMessage({ action:'dismissInAppNotification' }); }catch(e){}
+}
+</script>
