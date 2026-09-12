@@ -741,7 +741,43 @@
       }
     })(o, '', 0);
 
-    return hit || { num:'', key:'' };
+    if(hit) return hit;
+
+    /* Pass 3 — SHAPE, not name. Pass 2 only looks at keys whose NAME
+       says phone, so a number shipped as customer_number / cust_no /
+       primary_no is invisible to it and the technician gets a card with
+       nobody to call. normPhone is strict enough to carry the search on
+       its own: exactly ten digits starting 6-9 after stripping +91/0.
+       Nothing else in this payload has that shape — ids are UUIDs, zone
+       codes are 3 digits, pincodes 6, counts 1-2, dates have dashes.
+
+       Reported as shape:<path> rather than the bare path, so a number
+       found this way is visibly a guess in CleverTap and can be promoted
+       into PHONE_PRIORITY once the real key name is confirmed. */
+    var SHAPE_SKIP = /(^|[._])(id|uuid|pin|pincode|zip|zone|lat|lng|amount|price|count|version)([._]|$)/i;
+    var shaped = null; seen = 0;
+    (function walk(node, path, depth){
+      if(shaped || !node || depth > 4 || seen > 400) return;
+      if(typeof node !== 'object') return;
+      for(var kk in node){
+        if(shaped) return;
+        if(!Object.prototype.hasOwnProperty.call(node, kk)) continue;
+        seen++;
+        var v = node[kk], p = path ? path + '.' + kk : kk;
+        if(v === undefined || v === null) continue;
+        if(typeof v === 'object'){ walk(v, p, depth + 1); continue; }
+        var str = String(v);
+        if(str.charAt(0) === '{' || str.charAt(0) === '['){
+          try{ walk(JSON.parse(str), p, depth + 1); }catch(e){}
+          continue;
+        }
+        if(SHAPE_SKIP.test(p)) continue;
+        var nn = normPhone(str);
+        if(nn){ shaped = { num:nn, key:'shape:' + p }; return; }
+      }
+    })(o, '', 0);
+
+    return shaped || { num:'', key:'' };
   }
 
   function maskPhone(n){ return n ? ('*****' + n.substring(6)) : ''; }
@@ -985,6 +1021,68 @@
       '</div>';
   }
 
+  /* ── ?debug=1 payload inspector ────────────────────────────────
+     The exact key TAS ships the number under cannot be pinned down from
+     outside the VPN, and phoneKeys only rides the Viewed event — which a
+     plain browser link has no CleverTap to receive. So when a card comes
+     back with no number, this prints the shape of what TAS actually sent.
+
+     KEY NAMES ONLY — never values. Any value holding 7+ digits is marked
+     with its digit count instead, which is enough to spot a phone number
+     whatever it is called, without putting a subscriber number on screen
+     or into a screenshot. A key the name-matcher missed shows up here as
+     an unexplained <10 digits>. */
+  function keyPaths(o){
+    var out = [], seen = 0;
+    (function walk(node, path, depth){
+      if(!node || depth > 5 || seen > 500) return;
+      if(typeof node !== 'object') return;
+      for(var kk in node){
+        if(!Object.prototype.hasOwnProperty.call(node, kk)) continue;
+        seen++;
+        var v = node[kk], pth = path ? path + '.' + kk : kk;
+        if(v === undefined || v === null){ out.push(pth + ' = null'); continue; }
+        if(typeof v === 'object'){ walk(v, pth, depth + 1); continue; }
+        var str = String(v);
+        if(str.charAt(0) === '{' || str.charAt(0) === '['){
+          var parsed = null;
+          try{ parsed = JSON.parse(str); }catch(e){}
+          if(parsed){ walk(parsed, pth, depth + 1); continue; }
+        }
+        var digits = str.replace(/[^0-9]/g, '');
+        out.push(pth + (digits.length >= 7 ? '   <<< ' + digits.length + ' DIGITS' : ''));
+      }
+    })(o, '', 0);
+    return out;
+  }
+
+  function listDiagHtml(){
+    if(!DEBUG_UI || !items.length) return '';
+    var noPhone = 0, keys = [], i;
+    for(i = 0; i < items.length; i++){
+      if(!items[i].phone) noPhone++;
+      if(items[i].phoneKey && keys.join('|').indexOf(items[i].phoneKey) === -1) keys.push(items[i].phoneKey);
+    }
+    /* Inspect the first card WITHOUT a number — that is the one that
+       needs explaining — and fall back to the first card otherwise. */
+    var subject = null;
+    for(i = 0; i < items.length; i++){ if(!items[i].phone){ subject = items[i]; break; } }
+    if(!subject) subject = items[0];
+
+    var paths = subject.raw ? keyPaths(subject.raw) : [];
+    return '<div class="diag">' +
+      '<b>cards</b> ' + items.length + '   <b>with number</b> ' + (items.length - noPhone) +
+        '   <b>without</b> ' + noPhone + '<br>' +
+      '<b>phoneKeys matched</b> ' + escHtml(keys.length ? keys.join(', ') : 'NONE') + '<br>' +
+      '<b>source</b> ' + (CFG.PROXY_URL ? 'tas_proxy' : 'tas_api') + '<br><br>' +
+      '<b>keys TAS sent for ' + escHtml(subject.name || 'card 1') + '</b><br>' +
+      escHtml(paths.join('\n')).replace(/\n/g, '<br>') +
+      '<span class="hint">Key names only — no values. A line marked ' +
+      '&lt;&lt;&lt; 10 DIGITS that is not already in phoneKeys is the number ' +
+      'under a name the matcher does not know yet. Send me that line.</span>' +
+      '</div>';
+  }
+
   function renderBody(){
     var area = document.getElementById('cardArea'), s = STR[lang], html = '', i;
 
@@ -1030,6 +1128,7 @@
     }
 
     var total = items.length;
+    html += listDiagHtml();
     for(i = 0; i < total; i++){
       var c = items[i], taps = called[c.id] || 0, slot = slotText(c, s);
 
