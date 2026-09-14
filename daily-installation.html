@@ -134,6 +134,22 @@
   .diag .hint{ display:block; margin-top:8px; color:rgba(255,255,255,.65);
     font-family:inherit; font-size:11px; }
 
+  .evmon{ position:fixed; left:0; right:0; bottom:0; z-index:9999;
+    max-height:42vh; display:flex; flex-direction:column;
+    background:#120d18; color:#e8e2f0; border-top:2px solid #D9008D;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:10.5px; line-height:15px; cursor:pointer; }
+  .evmon.mini .evbody{ display:none; }
+  .evhead{ flex-shrink:0; padding:7px 12px; background:#1d1426;
+    border-bottom:1px solid #33254a; font-size:11px; }
+  .evhead b{ color:#FFB2E4; }
+  .evtap{ float:right; opacity:.45; }
+  .evbody{ overflow-y:auto; padding:6px 12px 12px; }
+  .evrow{ padding:3px 0; border-bottom:1px solid rgba(255,255,255,.06); word-break:break-all; }
+  .evt{ color:#7d6f8d; }
+  .evvia{ display:block; color:#5FD08A; }
+  .evrow.dead .evvia{ color:#F0C061; }
+
   /* ── icon font guard ──────────────────────────────────────────
      Material Symbols renders its icons as LIGATURES, so the element
      text is the literal word "person" / "call" / "location_on". If the
@@ -493,24 +509,76 @@
      ═══════════════════════════════════════════════════════════ */
   var EV_PREFIX = 'DailyInstall_', sent = {};
 
+  /* Returns the NAME of the transport that took the event, not just
+     true. Every caller still treats it as a boolean (a non-empty string
+     is truthy), but the name makes it possible to say WHERE an event
+     went — or that nothing took it, which is the normal case in a plain
+     browser tab and the thing people testing the public link most often
+     mistake for a bug. */
   function ctPush(ev, p){
     try{
       if(window.CleverTap && typeof window.CleverTap.pushEvent === 'function'){
         p ? window.CleverTap.pushEvent(ev, JSON.stringify(p)) : window.CleverTap.pushEvent(ev);
-        return true;
+        return 'android_ctwebinterface';
       }
     }catch(e){}
     try{
       var wk = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap;
-      if(wk){ wk.postMessage({ action:'recordEventWithProps', event:ev, properties:p || {} }); return true; }
+      if(wk){ wk.postMessage({ action:'recordEventWithProps', event:ev, properties:p || {} }); return 'ios_messagehandler'; }
     }catch(e){}
     try{
       if(window.parent && window.parent !== window){
         window.parent.postMessage({ __ct:1, action:'event', event:ev, properties:p || {} }, '*');
-        return true;
+        return 'wrapper_postmessage';
       }
     }catch(e){}
     return false;
+  }
+
+  /* ── ?debug=1 event monitor ────────────────────────────────────
+     CleverTap events are invisible from a browser: there is no SDK in
+     the tab to receive them, so a correctly firing event looks exactly
+     like an event that never fired. This logs each one and says which
+     transport accepted it, so the event logic can be checked from a
+     desk without an app build — and so "not delivered" reads as the
+     expected browser result rather than a fault. */
+  var evLog = [];
+
+  function logEvent(ev, via){
+    evLog.push({ ev:ev, via:via, t:new Date() });
+    paintMonitor();
+  }
+
+  function paintMonitor(){
+    if(!DEBUG_UI) return;
+    var box = document.getElementById('evMon');
+    if(!box){
+      box = document.createElement('div');
+      box.id = 'evMon';
+      box.className = 'evmon';
+      document.body.appendChild(box);
+      box.addEventListener('click', function(){
+        box.className = (box.className.indexOf('mini') === -1) ? 'evmon mini' : 'evmon';
+      });
+    }
+    var delivered = 0, i, rows = '';
+    for(i = 0; i < evLog.length; i++) if(evLog[i].via) delivered++;
+    for(i = evLog.length - 1; i >= 0; i--){
+      var e = evLog[i];
+      var hhmmss = ('0' + e.t.getHours()).slice(-2) + ':' +
+                   ('0' + e.t.getMinutes()).slice(-2) + ':' +
+                   ('0' + e.t.getSeconds()).slice(-2);
+      rows += '<div class="evrow' + (e.via ? '' : ' dead') + '">' +
+                '<span class="evt">' + hhmmss + '</span> ' +
+                escHtml(e.ev) +
+                '<span class="evvia">' + (e.via ? escHtml(e.via) : 'not delivered — no CleverTap here') + '</span>' +
+              '</div>';
+    }
+    box.innerHTML =
+      '<div class="evhead">events fired <b>' + evLog.length + '</b>' +
+        '  ·  delivered to CleverTap <b>' + delivered + '</b>' +
+        '<span class="evtap">tap to collapse</span></div>' +
+      '<div class="evbody">' + rows + '</div>';
   }
 
   /* once=true  -> deduped on the full payload (impressions, failures)
@@ -534,7 +602,15 @@
     if(DEBUG){ try{ console.log('[track]', ev, p); }catch(e){} }
 
     var n = 0;
-    (function go(){ n++; if(ctPush(ev, p)) return; if(n < 6) setTimeout(go, 250 * n); })();
+    (function go(){
+      n++;
+      var via = ctPush(ev, p);
+      if(via){ logEvent(ev, via); return; }
+      /* The bridge is injected some time after first paint, so an early
+         event is retried rather than dropped. Six tries over ~5s. */
+      if(n < 6){ setTimeout(go, 250 * n); return; }
+      logEvent(ev, '');
+    })();
   }
 
   /* ═══════════════════════════════════════════════════════════
