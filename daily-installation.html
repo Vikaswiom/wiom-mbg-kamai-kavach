@@ -211,16 +211,26 @@
      are tried below; confirm yours in CleverTap under Segments > any
      profile > Custom attributes before shipping.
      ═══════════════════════════════════════════════════════════════ -->
-<span id="ctAcc1" hidden>{{ Profile.accountId | default:"v" }}</span>
-<span id="ctAcc2" hidden>{{ Profile.accountid | default:"" }}</span>
-<span id="ctAcc3" hidden>{{ Profile.account_id | default:"" }}</span>
-<span id="ctAcc4" hidden>{{ Profile.AccountId | default:"" }}</span>
-<span id="ctTec1" hidden>{{ Profile.technicianId | default:"" }}</span>
-<span id="ctTec2" hidden>{{ Profile.technicianid | default:"" }}</span>
-<span id="ctTec3" hidden>{{ Profile.technician_id | default:"" }}</span>
-<span id="ctExe1" hidden>{{ Profile.executorId | default:"" }}</span>
-<span id="ctExe2" hidden>{{ Profile.executorid | default:"" }}</span>
-<span id="ctExe3" hidden>{{ Profile.executor_id | default:"" }}</span>
+<span id="ctB1" hidden>{{Profile.accountId}}</span>
+<span id="ctB2" hidden>{{Profile.accountid}}</span>
+<span id="ctB3" hidden>{{Profile.account_id}}</span>
+<span id="ctB4" hidden>{{Profile.AccountId}}</span>
+<span id="ctB5" hidden>{{Profile.technicianId}}</span>
+<span id="ctB6" hidden>{{Profile.technicianid}}</span>
+<span id="ctB7" hidden>{{Profile.technician_id}}</span>
+<span id="ctB8" hidden>{{Profile.executorId}}</span>
+<span id="ctB9" hidden>{{Profile.executorid}}</span>
+<span id="ctB10" hidden>{{Profile.executor_id}}</span>
+<span id="ctF1" hidden>{{ Profile.accountId | default:"" }}</span>
+<span id="ctF2" hidden>{{ Profile.accountid | default:"" }}</span>
+<span id="ctF3" hidden>{{ Profile.account_id | default:"" }}</span>
+<span id="ctF4" hidden>{{ Profile.AccountId | default:"" }}</span>
+<span id="ctF5" hidden>{{ Profile.technicianId | default:"" }}</span>
+<span id="ctF6" hidden>{{ Profile.technicianid | default:"" }}</span>
+<span id="ctF7" hidden>{{ Profile.technician_id | default:"" }}</span>
+<span id="ctF8" hidden>{{ Profile.executorId | default:"" }}</span>
+<span id="ctF9" hidden>{{ Profile.executorid | default:"" }}</span>
+<span id="ctF10" hidden>{{ Profile.executor_id | default:"" }}</span>
 
 <div class="app" id="app">
   <button class="close-btn" id="closeBtn" aria-label="Close"><span class="material-symbols-outlined">close</span></button>
@@ -249,7 +259,7 @@
      "profile incomplete" screen, so a screenshot of a failure says
      which version is actually pasted into CleverTap — otherwise an
      un-repasted creative and a real bug look identical. */
-  var BUILD = '2026-09-22-e';
+  var BUILD = '2026-09-22-f';
 
   var CFG = {
     BASE  : 'https://csp-gateway-service.i2e1agents.in/public/install/candidates/by-executor',
@@ -439,13 +449,40 @@
      CleverTap identifies the user by — feeding either to the gateway as
      an executorId would fetch the wrong person's customers rather than
      fail cleanly. */
+  /* TWO FORMS, not just ten names. A device reported
+     token_not_substituted with all ten filtered tokens left raw, which
+     means CleverTap ran no substitution at all on this creative — so
+     the property NAME was never the problem and no name would have
+     worked. All ten used the pipe-default filter, so the FORM is the
+     suspect: this editor appears to leave an expression it cannot parse
+     completely untouched.
+
+     The bare brace form with no filter is therefore tried first for
+     every name, with
+     the filtered form behind it. idSource names both the property and
+     the form that won (profile_accountid / profile_accountid_d), so one
+     fire settles which syntax this account substitutes. */
   var PROFILE_SPANS = [
-    ['ctAcc1', 'profile_accountId'],   ['ctAcc2', 'profile_accountid'],
-    ['ctAcc3', 'profile_account_id'],  ['ctAcc4', 'profile_AccountId'],
-    ['ctTec1', 'profile_technicianId'],['ctTec2', 'profile_technicianid'],
-    ['ctTec3', 'profile_technician_id'],
-    ['ctExe1', 'profile_executorId'],  ['ctExe2', 'profile_executorid'],
-    ['ctExe3', 'profile_executor_id']
+    ['ctB1', 'profile_accountId'],
+    ['ctB2', 'profile_accountid'],
+    ['ctB3', 'profile_account_id'],
+    ['ctB4', 'profile_AccountId'],
+    ['ctB5', 'profile_technicianId'],
+    ['ctB6', 'profile_technicianid'],
+    ['ctB7', 'profile_technician_id'],
+    ['ctB8', 'profile_executorId'],
+    ['ctB9', 'profile_executorid'],
+    ['ctB10', 'profile_executor_id'],
+    ['ctF1', 'profile_accountId_d'],
+    ['ctF2', 'profile_accountid_d'],
+    ['ctF3', 'profile_account_id_d'],
+    ['ctF4', 'profile_AccountId_d'],
+    ['ctF5', 'profile_technicianId_d'],
+    ['ctF6', 'profile_technicianid_d'],
+    ['ctF7', 'profile_technician_id_d'],
+    ['ctF8', 'profile_executorId_d'],
+    ['ctF9', 'profile_executorid_d'],
+    ['ctF10', 'profile_executor_id_d']
   ];
 
   var TECH_ID = '', ID_SRC = 'none', _i, _v;
@@ -1310,9 +1347,22 @@
     for(i = 0; i < PROFILE_SPANS.length; i++){
       if(document.getElementById(PROFILE_SPANS[i][0])) present++;
     }
+    /* Report the two forms separately: if bare substitutes and
+       filtered does not, that is the whole answer. */
+    var bare = 'none', filt = 'none';
+    for(i = 0; i < PROFILE_SPANS.length; i++){
+      var sh = shapeOf(txt(PROFILE_SPANS[i][0]), true);
+      if(PROFILE_SPANS[i][1].indexOf('_d') === PROFILE_SPANS[i][1].length - 2){
+        if(filt === 'none' || sh === 'value') filt = sh;
+      }else{
+        if(bare === 'none' || sh === 'value') bare = sh;
+      }
+    }
     return '<div class="diag" style="margin-top:22px;text-align:left">' +
       '<b>build</b> ' + BUILD + '<br>' +
       '<b>spans</b> ' + present + '<br>' +
+      '<b>bare</b> ' + escHtml(bare) + '<br>' +
+      '<b>filter</b> ' + escHtml(filt) + '<br>' +
       '<b>token</b> ' + escHtml(SPAN_SHAPE) + '<br>' +
       '<b>url</b> ' + escHtml(URL_SHAPE) + '<br>' +
       '<b>frame</b> ' + (window.parent !== window ? 'yes (wrapper)' : 'no (pasted directly)') +
