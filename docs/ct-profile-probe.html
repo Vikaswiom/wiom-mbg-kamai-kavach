@@ -1,0 +1,73 @@
+<!-- ═══════════════════════════════════════════════════════════════
+     CleverTap PROFILE TOKEN PROBE — throwaway diagnostic creative
+
+     Paste this as a custom-HTML in-app, fire it at a technician, and
+     read the screen. It prints what CleverTap actually substitutes for
+     each candidate property name, so the real one is visible in one
+     fire instead of one campaign per guess.
+
+     Liquid is CASE-SENSITIVE and a wrong name resolves to an empty
+     string rather than an error, which is why guessing costs a whole
+     test cycle each time. Note the one creative already live in this
+     account uses Profile.cspid — LOWERCASE — so lowercase spellings are
+     as likely as camelCase here.
+
+     Reading it:
+       a number (10374, 11744)  -> that is the property. Use it.
+       (unset)                  -> no such property on this profile
+       a raw {{...}}            -> this field does not run Liquid at all
+
+     DELETE this creative once the answer is known. It is a debug tool
+     and shows raw profile values on a technician's screen.
+     ═══════════════════════════════════════════════════════════════ -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html,body{ margin:0; padding:0; background:#16121c; color:#f0ebf5;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  .p{ padding:22px 18px 30px; }
+  h1{ font-size:15px; margin:0 0 4px; color:#FFB2E4; }
+  .sub{ font-size:11.5px; color:#9a8fa8; margin:0 0 16px; line-height:16px; }
+  table{ width:100%; border-collapse:collapse; font-size:12px; }
+  td{ padding:7px 6px; border-bottom:1px solid #2b2435; vertical-align:top; }
+  td.k{ color:#9a8fa8; white-space:nowrap; padding-right:10px; }
+  td.v{ color:#7CE8A8; font-weight:600; word-break:break-all; }
+  .note{ margin-top:16px; font-size:11px; line-height:16px; color:#9a8fa8; }
+  .x{ position:fixed; top:10px; right:10px; width:30px; height:30px; padding:0;
+      border:1px solid rgba(255,255,255,.35); border-radius:50%;
+      background:rgba(255,255,255,.12); color:#fff; font-size:14px; }
+</style>
+
+<button class="x" onclick="bye()">&#10005;</button>
+<div class="p">
+  <h1>CleverTap profile probe</h1>
+  <p class="sub">Which property holds the technician id?<br>
+     A number = use that one. <b>(unset)</b> = no such property.</p>
+
+  <table>
+    <tr><td class="k">accountId</td><td class="v">[{{ Profile.accountId | default:"(unset)" }}]</td></tr>
+    <tr><td class="k">accountid</td><td class="v">[{{ Profile.accountid | default:"(unset)" }}]</td></tr>
+    <tr><td class="k">account_id</td><td class="v">[{{ Profile.account_id | default:"(unset)" }}]</td></tr>
+    <tr><td class="k">AccountId</td><td class="v">[{{ Profile.AccountId | default:"(unset)" }}]</td></tr>
+    <tr><td class="k">technicianId</td><td class="v">[{{ Profile.technicianId | default:"(unset)" }}]</td></tr>
+    <tr><td class="k">technicianid</td><td class="v">[{{ Profile.technicianid | default:"(unset)" }}]</td></tr>
+    <tr><td class="k">technician_id</td><td class="v">[{{ Profile.technician_id | default:"(unset)" }}]</td></tr>
+    <tr><td class="k">executorId</td><td class="v">[{{ Profile.executorId | default:"(unset)" }}]</td></tr>
+    <tr><td class="k">executor_id</td><td class="v">[{{ Profile.executor_id | default:"(unset)" }}]</td></tr>
+    <tr><td class="k">cspid</td><td class="v">[{{ Profile.cspid | default:"(unset)" }}]</td></tr>
+    <tr><td class="k">Identity</td><td class="v">[{{ Profile.Identity | default:"(unset)" }}]</td></tr>
+  </table>
+
+  <p class="note">
+    The square brackets are printed by this page, not by CleverTap — they
+    make a value with stray spaces, or an empty substitution, visible.
+    Delete this creative once you have the answer.
+  </p>
+</div>
+
+<script>
+  function bye(){
+    try{ if(window.CleverTap && window.CleverTap.dismissInAppNotification){ window.CleverTap.dismissInAppNotification(); } }catch(e){}
+    try{ window.webkit.messageHandlers.clevertap.postMessage({action:'dismissInAppNotification'}); }catch(e){}
+    setTimeout(function(){ try{ window.location.href='clevertap://closeInApp'; }catch(e){} }, 600);
+  }
+</script>
