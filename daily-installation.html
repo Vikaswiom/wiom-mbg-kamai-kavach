@@ -211,10 +211,7 @@
      are tried below; confirm yours in CleverTap under Segments > any
      profile > Custom attributes before shipping.
      ═══════════════════════════════════════════════════════════════ -->
-<span id="ctTech"      hidden>{{ Profile.technicianId | default:"" }}</span>
-<span id="ctTechSnake" hidden>{{ Profile.technician_id | default:"" }}</span>
-<span id="ctExec"      hidden>{{ Profile.executorId | default:"" }}</span>
-<span id="ctExecSnake" hidden>{{ Profile.executor_id | default:"" }}</span>
+<span id="ctAcct" hidden>{{ Profile.accountId | default:"v" }}</span>
 
 <div class="app" id="app">
   <button class="close-btn" id="closeBtn" aria-label="Close"><span class="material-symbols-outlined">close</span></button>
@@ -386,6 +383,13 @@
     if(v.indexOf(TOK_OPEN) !== -1 || v.indexOf(TOK_CLOSE) !== -1) return '';
     var lower = v.toLowerCase();
     if(lower === 'none' || lower === 'null' || lower === 'undefined' || lower === '0') return '';
+    /* The CT token carries default:"v", so a profile with no accountId
+       substitutes the literal "v" rather than an empty string. Without
+       this it would sail through as an id and be sent to the gateway as
+       executorId=v. Length is the general guard behind it: a technician
+       id is numeric and several digits (10374, 11744), never one
+       character, so no single-character value is ever a real id. */
+    if(v.length < 2) return '';
     return v;
   }
   function qparam(k){
@@ -404,10 +408,7 @@
      spelling in use is visible in CT — and a change to it shows up as
      idSource=none rather than looking like an API outage. */
   var PROFILE_SPANS = [
-    ['ctTech',      'profile_technicianId'],
-    ['ctTechSnake', 'profile_technician_id'],
-    ['ctExec',      'profile_executorId'],
-    ['ctExecSnake', 'profile_executor_id']
+    ['ctAcct', 'profile_accountId']
   ];
 
   var TECH_ID = '', ID_SRC = 'none', _i, _v;
@@ -432,17 +433,23 @@
      like an outage. Rather than make the campaign guess correctly, the
      URL can carry every spelling at once:
 
-       ...?technicianId={{Profile.technicianId}}
-          &technician_id={{Profile.technician_id}}
-          &executorId={{Profile.executorId}}
-          &executor_id={{Profile.executor_id}}
+         ...?accountId=<the CT token for Profile.accountId>
 
-     whichever one the profile actually has resolves; the rest arrive
-     empty and cost nothing. The winner's name rides every event as
+     and more than one spelling may be passed at once if the property
+     name is ever in doubt — whichever resolves wins, the rest arrive
+     empty and cost nothing. No example token is written out here: this
+     file may be pasted whole into a CleverTap creative, which parses
+     script bodies and comments too, and a token in a comment is still
+     parsed and can stop the creative saving. The winner's name rides every event as
      idSource (url_technicianId, url_executor_id, ...), so the FIRST
      working event tells you the real property name for good, and the
      URL can then be trimmed to just that one. */
-  var URL_KEYS = ['technicianId','technicianid','technician_id',
+  /* accountId first — it is the property CleverTap actually holds the
+     technician's id under. The older names are kept behind it so a link
+     already out in a campaign keeps working; nothing is gained by
+     breaking them. */
+  var URL_KEYS = ['accountId','accountid','account_id',
+                  'technicianId','technicianid','technician_id',
                   'executorId','executorid','executor_id'];
   var RAW_URL = '', URL_KEY = '';
   for(_i = 0; _i < URL_KEYS.length; _i++){
@@ -476,6 +483,8 @@
     if(t.indexOf(TOK_OPEN) !== -1 || t.indexOf(TOK_CLOSE) !== -1) return 'token_not_substituted';
     var l = t.toLowerCase();
     if(l === 'none' || l === 'null' || l === 'undefined' || l === '0') return 'placeholder_' + l;
+    /* default:"v" landed, i.e. the profile has no accountId at all */
+    if(t.length < 2) return 'default_sentinel_' + l;
     return 'value';
   }
 

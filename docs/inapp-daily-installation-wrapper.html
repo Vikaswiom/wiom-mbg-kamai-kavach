@@ -17,10 +17,11 @@
      to save. That is also why the brace pair in the script is built by
      concatenation instead of being typed out.
 
-     Liquid is CASE-SENSITIVE and a wrong spelling yields an empty
-     string rather than an error, so four spellings are tried. Confirm
-     the real one in CleverTap under Segments > any profile > Custom
-     attributes.
+     The technician's id lives on the CleverTap profile under
+     accountId. Liquid is CASE-SENSITIVE and a wrong spelling yields an
+     empty string rather than an error, so if this ever stops resolving
+     check the exact name under Segments > any profile > Custom
+     attributes before assuming an outage.
      ═══════════════════════════════════════════════════════════════ -->
 <style>
   html,body{ margin:0; padding:0; width:100%; height:100%;
@@ -36,10 +37,7 @@
       -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
 </style>
 
-<span id="tTech"      style="display:none">{{ Profile.technicianId | default:"" }}</span>
-<span id="tTechSnake" style="display:none">{{ Profile.technician_id | default:"" }}</span>
-<span id="tExec"      style="display:none">{{ Profile.executorId | default:"" }}</span>
-<span id="tExecSnake" style="display:none">{{ Profile.executor_id | default:"" }}</span>
+<span id="tAcct" style="display:none">{{ Profile.accountId | default:"v" }}</span>
 
 <iframe id="fr"></iframe>
 <button id="x" onclick="askDismiss()" aria-label="Close">&#10005;</button>
@@ -62,6 +60,12 @@
     if(v.indexOf(OPEN) > -1 || v.indexOf(CLOSE) > -1) return '';
     var l = v.toLowerCase();
     if(l === 'none' || l === 'null' || l === 'undefined' || l === '0') return '';
+    /* The token carries a one-character default, so a profile with no
+       accountId substitutes that literal instead of an empty string.
+       A real technician id is numeric and several digits long, never
+       one character — so treat any single character as "no id" and let
+       the screen say the profile is incomplete. */
+    if(v.length < 2) return '';
     return v;
   }
   function q(k){
@@ -69,16 +73,11 @@
     return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : '';
   }
 
-  /* Four spellings, because Liquid is case-sensitive and a wrong guess
-     resolves to an empty string rather than erroring. Whichever the
-     profile actually has wins; the rest substitute to nothing.
-
-     The winning spelling is passed DOWN as the parameter name, so the
-     screen reports idSource=url_technician_id (or whichever) and the
-     first working event names the real profile property for good. Pass
-     everything as technicianId and that information is lost. */
-  var SPANS = [['tTech','technicianId'], ['tTechSnake','technician_id'],
-               ['tExec','executorId'],   ['tExecSnake','executor_id']];
+  /* The id comes from Profile.accountId. The spelling that resolved is
+     passed DOWN as the parameter name, so the screen reports
+     idSource=url_accountId and the profile property in use is visible
+     on every event rather than being assumed. */
+  var SPANS = [['tAcct','accountId']];
   var id = '', key = '', i;
 
   for(i = 0; i < SPANS.length; i++){
@@ -87,7 +86,7 @@
   }
   /* Query fallback is for opening this file directly while testing. */
   if(!id){
-    var QK = ['technicianId','technician_id','executorId','executor_id'];
+    var QK = ['accountId','technicianId','technician_id','executorId','executor_id'];
     for(i = 0; i < QK.length; i++){
       var qv = q(QK[i]);
       if(qv){ id = qv; key = QK[i]; break; }
