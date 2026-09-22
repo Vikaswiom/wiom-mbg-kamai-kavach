@@ -69,12 +69,33 @@
     return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : '';
   }
 
-  var id = val('tTech') || val('tTechSnake') || val('tExec') || val('tExecSnake') ||
-           q('technicianId') || q('technicianid') || q('executorId') || q('executorid');
+  /* Four spellings, because Liquid is case-sensitive and a wrong guess
+     resolves to an empty string rather than erroring. Whichever the
+     profile actually has wins; the rest substitute to nothing.
 
-  /* The screen is keyed on this one param and nothing else. */
+     The winning spelling is passed DOWN as the parameter name, so the
+     screen reports idSource=url_technician_id (or whichever) and the
+     first working event names the real profile property for good. Pass
+     everything as technicianId and that information is lost. */
+  var SPANS = [['tTech','technicianId'], ['tTechSnake','technician_id'],
+               ['tExec','executorId'],   ['tExecSnake','executor_id']];
+  var id = '', key = '', i;
+
+  for(i = 0; i < SPANS.length; i++){
+    var v = val(SPANS[i][0]);
+    if(v){ id = v; key = SPANS[i][1]; break; }
+  }
+  /* Query fallback is for opening this file directly while testing. */
+  if(!id){
+    var QK = ['technicianId','technician_id','executorId','executor_id'];
+    for(i = 0; i < QK.length; i++){
+      var qv = q(QK[i]);
+      if(qv){ id = qv; key = QK[i]; break; }
+    }
+  }
+
   document.getElementById('fr').src =
-    PAGE + (id ? ('?technicianId=' + encodeURIComponent(id)) : '');
+    PAGE + (id ? ('?' + key + '=' + encodeURIComponent(id)) : '');
 
   /* ── CT bridge, with a queue ───────────────────────────────────
      CTWebInterface is injected some time after first paint, so an
@@ -172,6 +193,16 @@
      this lands and Opened never does, the in-app rendered but the page
      failed to load — which is otherwise indistinguishable in CT from
      the campaign never firing. */
-  push('DailyInstall_Shell_Opened', { hasTechnicianId: !!id });
+  push('DailyInstall_Shell_Opened', {
+    hasTechnicianId : !!id,
+    /* which profile property resolved — the answer to "what is the
+       property actually called", visible without opening the screen */
+    idKey           : key || 'none',
+    /* carried here too: if the page never loads, this is the ONLY event
+       that fires, and without the id it says something failed but not
+       who it failed for */
+    technicianId    : id,
+    executorId      : id
+  });
 })();
 </script>
