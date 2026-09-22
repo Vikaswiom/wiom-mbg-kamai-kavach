@@ -426,10 +426,35 @@
      the gateway for executorId={{...}}, turning a misconfigured campaign
      into a confusing API error instead of the "profile incomplete"
      screen that names the actual problem. */
-  var RAW_URL = qparam('technicianId') || qparam('technicianid') ||
-                qparam('executorId')   || qparam('executorid');
+  /* SIX spellings, not one. Liquid is case-sensitive and a wrong guess
+     resolves to an empty string rather than erroring, so a campaign
+     built on the wrong property name fails silently and looks exactly
+     like an outage. Rather than make the campaign guess correctly, the
+     URL can carry every spelling at once:
+
+       ...?technicianId={{Profile.technicianId}}
+          &technician_id={{Profile.technician_id}}
+          &executorId={{Profile.executorId}}
+          &executor_id={{Profile.executor_id}}
+
+     whichever one the profile actually has resolves; the rest arrive
+     empty and cost nothing. The winner's name rides every event as
+     idSource (url_technicianId, url_executor_id, ...), so the FIRST
+     working event tells you the real property name for good, and the
+     URL can then be trimmed to just that one. */
+  var URL_KEYS = ['technicianId','technicianid','technician_id',
+                  'executorId','executorid','executor_id'];
+  var RAW_URL = '', URL_KEY = '';
+  for(_i = 0; _i < URL_KEYS.length; _i++){
+    var _q = qparam(URL_KEYS[_i]);
+    if(!_q) continue;
+    /* remember the first one present, so the failure shape is reportable */
+    if(!RAW_URL){ RAW_URL = _q; URL_KEY = URL_KEYS[_i]; }
+    /* but the first one that actually RESOLVES wins */
+    if(cleanToken(_q)){ RAW_URL = _q; URL_KEY = URL_KEYS[_i]; break; }
+  }
   _v = cleanToken(RAW_URL);
-  if(_v){ TECH_ID = _v; ID_SRC = 'url_param'; }
+  if(_v){ TECH_ID = _v; ID_SRC = 'url_' + URL_KEY; }
 
   for(_i = 0; !TECH_ID && _i < PROFILE_SPANS.length; _i++){
     _v = cleanToken(txt(PROFILE_SPANS[_i][0]));
@@ -454,8 +479,10 @@
     return 'value';
   }
 
-  var URL_PRESENT = qpresent('technicianId') || qpresent('technicianid') ||
-                    qpresent('executorId')   || qpresent('executorid');
+  var URL_PRESENT = false;
+  for(_i = 0; _i < URL_KEYS.length; _i++){
+    if(qpresent(URL_KEYS[_i])){ URL_PRESENT = true; break; }
+  }
   var URL_SHAPE   = shapeOf(RAW_URL, URL_PRESENT);
 
   /* Same question for the four profile spans, which is where identity
@@ -689,6 +716,7 @@
       track('No_Technician_Id', {
         /* what the campaign actually put in the URL */
         urlShape  : URL_SHAPE,
+        urlKey    : URL_KEY || '(none present)',
         /* what CleverTap substituted into the pasted-creative spans */
         spanShape : SPAN_SHAPE,
         embedded  : (window.parent !== window)
