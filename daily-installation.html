@@ -245,6 +245,12 @@
   /* ═══════════════════════════════════════════════════════════
      1. CONFIG — the only block you edit
      ═══════════════════════════════════════════════════════════ */
+  /* Bumped on every change to the creative. It is printed on the
+     "profile incomplete" screen, so a screenshot of a failure says
+     which version is actually pasted into CleverTap — otherwise an
+     un-repasted creative and a real bug look identical. */
+  var BUILD = '2026-09-22-e';
+
   var CFG = {
     BASE  : 'https://csp-gateway-service.i2e1agents.in/public/install/candidates/by-executor',
 
@@ -709,6 +715,7 @@
     p.executorId   = TECH_ID;
     p.idSource     = ID_SRC;
     p.installDate  = meta.installDate || '';
+    p.build        = BUILD;
 
     var ev = EV_PREFIX + name;
     if(once !== false){
@@ -1283,6 +1290,36 @@
       '</div>';
   }
 
+  /* Shown on the "profile incomplete" screen ALWAYS, not behind
+     ?debug=1. That screen only ever appears when the creative is
+     misconfigured, and a technician seeing it can do nothing either
+     way — so the space is better spent turning a screenshot of the
+     failure into a complete diagnosis than on blank margin.
+
+       spans   how many identity spans exist in this creative. The
+               current build has 10; a 1 means an older creative is
+               still pasted in CleverTap.
+       token   what CleverTap did with them:
+                 token_not_substituted  this field does not run Liquid
+                 default_sentinel_v     Liquid ran; NO property matched
+                 param_empty            substituted an empty string
+       url     the same question for the URL parameter
+       frame   yes = running inside the wrapper, no = pasted directly */
+  function noidDiag(){
+    var present = 0, i;
+    for(i = 0; i < PROFILE_SPANS.length; i++){
+      if(document.getElementById(PROFILE_SPANS[i][0])) present++;
+    }
+    return '<div class="diag" style="margin-top:22px;text-align:left">' +
+      '<b>build</b> ' + BUILD + '<br>' +
+      '<b>spans</b> ' + present + '<br>' +
+      '<b>token</b> ' + escHtml(SPAN_SHAPE) + '<br>' +
+      '<b>url</b> ' + escHtml(URL_SHAPE) + '<br>' +
+      '<b>frame</b> ' + (window.parent !== window ? 'yes (wrapper)' : 'no (pasted directly)') +
+      '<span class="hint">Screenshot this block — it names the cause.</span>' +
+      '</div>';
+  }
+
   function renderBody(){
     var area = document.getElementById('cardArea'), s = STR[lang], html = '', i;
 
@@ -1315,7 +1352,8 @@
       area.innerHTML =
         '<div class="state"><span class="material-symbols-outlined">badge</span>' +
           '<p class="state-title">' + s.noIdTitle + '</p>' +
-          '<p class="state-text">' + s.noIdDesc + '</p></div>';
+          '<p class="state-text">' + s.noIdDesc + '</p>' +
+          noidDiag() + '</div>';
       return;
     }
 
