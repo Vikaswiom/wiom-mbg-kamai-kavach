@@ -1602,6 +1602,18 @@
   /* ═══════════════════════════════════════════════════════════
      11. Init
      ═══════════════════════════════════════════════════════════ */
+  /* Tell the wrapper this frame is actually alive. The wrapper cannot
+     learn that from iframe.onload — a blocked or failed navigation
+     fires onload too, for the error page — so without an explicit ping
+     from inside the document, a creative whose iframe never loaded
+     looks identical to one that loaded fine, and the wrapper's blank
+     screen fallback would never show. */
+  try{
+    if(window.parent && window.parent !== window){
+      window.parent.postMessage({ __ct:1, action:'alive' }, '*');
+    }
+  }catch(e){}
+
   track('Opened', { hasTechnicianId: !!TECH_ID, embedded: (window.parent !== window) });
   loadData();
 </script>

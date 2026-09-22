@@ -23,10 +23,26 @@
      check the exact name under Segments > any profile > Custom
      attributes before assuming an outage.
      ═══════════════════════════════════════════════════════════════ -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>
-  html,body{ margin:0; padding:0; width:100%; height:100%;
+  html,body{ margin:0; padding:0; width:100%; height:100%; min-height:100vh;
              background:#443152; overflow:hidden; }
-  #fr{ position:fixed; inset:0; width:100%; height:100%; border:0; }
+  /* Long-hand offsets as well as the shorthand: `inset` is recent and
+     the technician fleet runs some old Android WebViews, where an
+     unsupported shorthand would leave this fixed box at zero size and
+     the creative would render as a blank screen. */
+  #fr{ position:fixed; inset:0; top:0; right:0; bottom:0; left:0;
+       width:100%; height:100%; border:0; }
+  /* Shown only if the iframe never loads — see the watchdog below. A
+     creative that fails must SAY so; a blank screen is the one outcome
+     that tells nobody anything. */
+  #fb{ display:none; position:fixed; top:0; right:0; bottom:0; left:0; inset:0;
+       padding:56px 26px; color:#fff; text-align:center;
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Devanagari",sans-serif; }
+  #fb b{ display:block; font-size:18px; font-weight:800; margin-bottom:10px; }
+  #fb span{ font-size:14px; line-height:21px; color:rgba(255,255,255,.8); }
+  #fb code{ display:block; margin-top:16px; font-size:11px; line-height:16px;
+            color:rgba(255,255,255,.55); word-break:break-all; }
   /* Left, to match the screen's own ✕ position. The screen hides its
      button when embedded so only ONE ✕ is ever on screen. */
   #x{ position:fixed; top:14px; left:14px; z-index:9;
@@ -40,6 +56,11 @@
 <span id="tAcct" style="display:none">{{ Profile.accountId | default:"v" }}</span>
 
 <iframe id="fr"></iframe>
+<div id="fb">
+  <b>स्क्रीन लोड नहीं हो पाई</b>
+  <span>इंटरनेट चेक करके दोबारा कोशिश करें।<br>Screen could not load.</span>
+  <code id="fbu"></code>
+</div>
 <button id="x" onclick="askDismiss()" aria-label="Close">&#10005;</button>
 
 <script>
@@ -93,8 +114,39 @@
     }
   }
 
-  document.getElementById('fr').src =
-    PAGE + (id ? ('?' + key + '=' + encodeURIComponent(id)) : '');
+  var SRC = PAGE + (id ? ('?' + key + '=' + encodeURIComponent(id)) : '');
+  var fr = document.getElementById('fr');
+  fr.src = SRC;
+
+  /* WATCHDOG. An iframe that is blocked — by the WebView, a CSP, or no
+     network — leaves this creative showing its own background and
+     nothing else, which reads as "the campaign is broken" with no way
+     to tell why. If the frame has not loaded in 8s, say so on screen
+     and raise an event so the failure is visible in CleverTap too. */
+  /* Gated on a ping the SCREEN sends from inside its own document, not
+     on iframe.onload — onload fires for a blocked navigation too, for
+     the error page it renders instead, so it reports success for the
+     exact failure this watchdog exists to catch. */
+  var frLoaded = false;
+  fr.onerror = function(){ showFallback('frame_error'); };
+
+  function showFallback(why){
+    if(frLoaded) return;
+    var fb = document.getElementById('fb');
+    if(fb){
+      fb.style.display = 'block';
+      var u = document.getElementById('fbu');
+      if(u) u.appendChild(document.createTextNode(SRC));
+    }
+    push('DailyInstall_Shell_Frame_Failed', {
+      reason : why,
+      idKey  : key || 'none',
+      hasTechnicianId : !!id,
+      technicianId : id,
+      executorId   : id
+    });
+  }
+  setTimeout(function(){ showFallback('timeout_8s'); }, 8000);
 
   /* ── CT bridge, with a queue ───────────────────────────────────
      CTWebInterface is injected some time after first paint, so an
@@ -183,6 +235,7 @@
   window.addEventListener('message', function(e){
     var d = e && e.data;
     if(!d || d.__ct !== 1) return;
+    if(d.action === 'alive'){ frLoaded = true; return; }
     if(d.action === 'event')             push(d.event, d.properties);
     else if(d.action === 'openDeepLink') deeplink(d.url);
     else if(d.action === 'dismiss'){ closing = true; dismiss(); }
