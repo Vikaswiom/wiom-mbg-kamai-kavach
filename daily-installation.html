@@ -240,7 +240,7 @@
      1. CONFIG — the only block you edit
      ═══════════════════════════════════════════════════════════ */
   var CFG = {
-    BASE  : 'https://csp-tas-service.i2e1agents.in/api/internal/install/candidates/by-executor',
+    BASE  : 'https://csp-gateway-service.i2e1agents.in/public/install/candidates/by-executor',
 
     /* CT calls the id technicianId, TAS calls it executorId — one id,
        two names. If TAS ever renames the query param, change this one
@@ -448,6 +448,14 @@
   var PROXY_OVERRIDE = qparam('proxy');
   if(PROXY_OVERRIDE && PROXY_OVERRIDE.indexOf('https://script.google.com/') !== 0) PROXY_OVERRIDE = '';
   if(PROXY_OVERRIDE) CFG.PROXY_URL = PROXY_OVERRIDE;
+
+  /* ?direct=1 ignores PROXY_URL and calls CFG.BASE straight. The relay
+     exists only because the OLD endpoint sent no CORS header; a gateway
+     published under /public/ may well send one, and if it does the relay
+     is dead weight — an extra hop and a second thing to keep deployed.
+     This is how that gets answered without a redeploy: open the screen
+     with &direct=1&debug=1 and read the result. */
+  if(qparam('direct') === '1') CFG.PROXY_URL = '';
   var DEBUG = FORCE_DEMO ||
               (!FORCE_LIVE && (location.protocol === 'file:' || location.protocol === 'data:'));
 

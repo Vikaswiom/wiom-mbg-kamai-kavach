@@ -42,7 +42,11 @@
  * below, and the token stays server-side instead of sitting in the page.
  */
 
-var TAS = 'https://csp-tas-service.i2e1agents.in/api/internal/install/candidates/by-executor';
+/* Changed 22 Sep 2026 to the public gateway. NOTE: editing this file
+ * does NOT change the deployed relay — Apps Script serves the copy
+ * pasted into the editor. Re-paste and redeploy, or the relay keeps
+ * calling the old host. */
+var TAS = 'https://csp-gateway-service.i2e1agents.in/public/install/candidates/by-executor';
 
 function doGet(e) {
   var id = ((e && e.parameter && e.parameter.executorId) || '').replace(/[^A-Za-z0-9_-]/g, '');

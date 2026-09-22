@@ -5,9 +5,9 @@
 The screen loaded. The API call is what failed.
 
 `daily-installation.html` is served from `vikaswiom.github.io` and calls
-`csp-tas-service.i2e1agents.in` from the browser. That is a **cross-origin**
+`csp-gateway-service.i2e1agents.in` from the browser. That is a **cross-origin**
 request, so the browser only hands the response to the page if TAS replies with
-an `Access-Control-Allow-Origin` header. TAS does not send one — the path is
+an `Access-Control-Allow-Origin` header. TAS does not send one — the old path was
 `/api/internal/`, so nobody expected a browser origin — and the browser
 therefore fetches the response and throws it away.
 
