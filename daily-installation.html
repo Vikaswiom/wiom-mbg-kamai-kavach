@@ -221,16 +221,6 @@
 <span id="ctB8" hidden>{{Profile.executorId}}</span>
 <span id="ctB9" hidden>{{Profile.executorid}}</span>
 <span id="ctB10" hidden>{{Profile.executor_id}}</span>
-<span id="ctF1" hidden>{{ Profile.accountId | default:"" }}</span>
-<span id="ctF2" hidden>{{ Profile.accountid | default:"" }}</span>
-<span id="ctF3" hidden>{{ Profile.account_id | default:"" }}</span>
-<span id="ctF4" hidden>{{ Profile.AccountId | default:"" }}</span>
-<span id="ctF5" hidden>{{ Profile.technicianId | default:"" }}</span>
-<span id="ctF6" hidden>{{ Profile.technicianid | default:"" }}</span>
-<span id="ctF7" hidden>{{ Profile.technician_id | default:"" }}</span>
-<span id="ctF8" hidden>{{ Profile.executorId | default:"" }}</span>
-<span id="ctF9" hidden>{{ Profile.executorid | default:"" }}</span>
-<span id="ctF10" hidden>{{ Profile.executor_id | default:"" }}</span>
 
 <div class="app" id="app">
   <button class="close-btn" id="closeBtn" aria-label="Close"><span class="material-symbols-outlined">close</span></button>
@@ -259,7 +249,7 @@
      "profile incomplete" screen, so a screenshot of a failure says
      which version is actually pasted into CleverTap — otherwise an
      un-repasted creative and a real bug look identical. */
-  var BUILD = '2026-09-22-f';
+  var BUILD = '2026-09-22-g';
 
   var CFG = {
     BASE  : 'https://csp-gateway-service.i2e1agents.in/public/install/candidates/by-executor',
@@ -472,17 +462,7 @@
     ['ctB7', 'profile_technician_id'],
     ['ctB8', 'profile_executorId'],
     ['ctB9', 'profile_executorid'],
-    ['ctB10', 'profile_executor_id'],
-    ['ctF1', 'profile_accountId_d'],
-    ['ctF2', 'profile_accountid_d'],
-    ['ctF3', 'profile_account_id_d'],
-    ['ctF4', 'profile_AccountId_d'],
-    ['ctF5', 'profile_technicianId_d'],
-    ['ctF6', 'profile_technicianid_d'],
-    ['ctF7', 'profile_technician_id_d'],
-    ['ctF8', 'profile_executorId_d'],
-    ['ctF9', 'profile_executorid_d'],
-    ['ctF10', 'profile_executor_id_d']
+    ['ctB10', 'profile_executor_id']
   ];
 
   var TECH_ID = '', ID_SRC = 'none', _i, _v;
