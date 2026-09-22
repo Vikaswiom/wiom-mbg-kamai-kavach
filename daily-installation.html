@@ -211,7 +211,16 @@
      are tried below; confirm yours in CleverTap under Segments > any
      profile > Custom attributes before shipping.
      ═══════════════════════════════════════════════════════════════ -->
-<span id="ctAcct" hidden>{{ Profile.accountId | default:"v" }}</span>
+<span id="ctAcc1" hidden>{{ Profile.accountId | default:"v" }}</span>
+<span id="ctAcc2" hidden>{{ Profile.accountid | default:"" }}</span>
+<span id="ctAcc3" hidden>{{ Profile.account_id | default:"" }}</span>
+<span id="ctAcc4" hidden>{{ Profile.AccountId | default:"" }}</span>
+<span id="ctTec1" hidden>{{ Profile.technicianId | default:"" }}</span>
+<span id="ctTec2" hidden>{{ Profile.technicianid | default:"" }}</span>
+<span id="ctTec3" hidden>{{ Profile.technician_id | default:"" }}</span>
+<span id="ctExe1" hidden>{{ Profile.executorId | default:"" }}</span>
+<span id="ctExe2" hidden>{{ Profile.executorid | default:"" }}</span>
+<span id="ctExe3" hidden>{{ Profile.executor_id | default:"" }}</span>
 
 <div class="app" id="app">
   <button class="close-btn" id="closeBtn" aria-label="Close"><span class="material-symbols-outlined">close</span></button>
@@ -407,8 +416,30 @@
      ID_SRC names the one that won and rides every event, so the
      spelling in use is visible in CT — and a change to it shows up as
      idSource=none rather than looking like an API outage. */
+  /* EVERY plausible spelling, tried in order. Liquid is case-sensitive
+     and a wrong name resolves to an empty string rather than erroring,
+     so a single guess is the difference between a working screen and
+     "profile incomplete" — with nothing on screen to say which. Ten
+     tokens cost nothing: the ones that do not exist substitute to '' and
+     are skipped.
+
+     The winner's name rides every event as idSource
+     (profile_accountid, profile_technician_id, ...), so the first
+     working fire names the real property for good and this list can be
+     cut back to that one.
+
+     cspid and Identity are deliberately NOT here. cspid is the CSP's id,
+     a different entity from the technician, and Identity is whatever
+     CleverTap identifies the user by — feeding either to the gateway as
+     an executorId would fetch the wrong person's customers rather than
+     fail cleanly. */
   var PROFILE_SPANS = [
-    ['ctAcct', 'profile_accountId']
+    ['ctAcc1', 'profile_accountId'],   ['ctAcc2', 'profile_accountid'],
+    ['ctAcc3', 'profile_account_id'],  ['ctAcc4', 'profile_AccountId'],
+    ['ctTec1', 'profile_technicianId'],['ctTec2', 'profile_technicianid'],
+    ['ctTec3', 'profile_technician_id'],
+    ['ctExe1', 'profile_executorId'],  ['ctExe2', 'profile_executorid'],
+    ['ctExe3', 'profile_executor_id']
   ];
 
   var TECH_ID = '', ID_SRC = 'none', _i, _v;
@@ -448,7 +479,7 @@
      technician's id under. The older names are kept behind it so a link
      already out in a campaign keeps working; nothing is gained by
      breaking them. */
-  var URL_KEYS = ['accountId','accountid','account_id',
+  var URL_KEYS = ['accountId','accountid','account_id','AccountId',
                   'technicianId','technicianid','technician_id',
                   'executorId','executorid','executor_id'];
   var RAW_URL = '', URL_KEY = '';

@@ -53,7 +53,16 @@
       -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
 </style>
 
-<span id="tAcct" style="display:none">{{ Profile.accountId | default:"v" }}</span>
+<span id="tAcc1" style="display:none">{{ Profile.accountId | default:"v" }}</span>
+<span id="tAcc2" style="display:none">{{ Profile.accountid | default:"" }}</span>
+<span id="tAcc3" style="display:none">{{ Profile.account_id | default:"" }}</span>
+<span id="tAcc4" style="display:none">{{ Profile.AccountId | default:"" }}</span>
+<span id="tTec1" style="display:none">{{ Profile.technicianId | default:"" }}</span>
+<span id="tTec2" style="display:none">{{ Profile.technicianid | default:"" }}</span>
+<span id="tTec3" style="display:none">{{ Profile.technician_id | default:"" }}</span>
+<span id="tExe1" style="display:none">{{ Profile.executorId | default:"" }}</span>
+<span id="tExe2" style="display:none">{{ Profile.executorid | default:"" }}</span>
+<span id="tExe3" style="display:none">{{ Profile.executor_id | default:"" }}</span>
 
 <iframe id="fr"></iframe>
 <div id="fb">
@@ -98,7 +107,12 @@
      passed DOWN as the parameter name, so the screen reports
      idSource=url_accountId and the profile property in use is visible
      on every event rather than being assumed. */
-  var SPANS = [['tAcct','accountId']];
+  var SPANS = [['tAcc1','accountId'],   ['tAcc2','accountid'],
+               ['tAcc3','account_id'],  ['tAcc4','AccountId'],
+               ['tTec1','technicianId'],['tTec2','technicianid'],
+               ['tTec3','technician_id'],
+               ['tExe1','executorId'],  ['tExe2','executorid'],
+               ['tExe3','executor_id']];
   var id = '', key = '', i;
 
   for(i = 0; i < SPANS.length; i++){
