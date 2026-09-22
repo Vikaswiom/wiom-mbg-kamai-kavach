@@ -426,13 +426,44 @@
      the gateway for executorId={{...}}, turning a misconfigured campaign
      into a confusing API error instead of the "profile incomplete"
      screen that names the actual problem. */
-  _v = cleanToken(qparam('technicianId') || qparam('technicianid') ||
-                  qparam('executorId')   || qparam('executorid'));
+  var RAW_URL = qparam('technicianId') || qparam('technicianid') ||
+                qparam('executorId')   || qparam('executorid');
+  _v = cleanToken(RAW_URL);
   if(_v){ TECH_ID = _v; ID_SRC = 'url_param'; }
 
   for(_i = 0; !TECH_ID && _i < PROFILE_SPANS.length; _i++){
     _v = cleanToken(txt(PROFILE_SPANS[_i][0]));
     if(_v){ TECH_ID = _v; ID_SRC = PROFILE_SPANS[_i][1]; }
+  }
+
+  /* idSource=none says an id was not resolved. It does not say whether
+     the campaign omitted the parameter, sent it empty, or sent a Liquid
+     token CleverTap never substituted — three different fixes that look
+     identical on the screen and identical in every event. This names
+     which one it was. */
+  function qpresent(k){
+    return new RegExp('[?&]' + k + '=').test(location.search);
+  }
+  function shapeOf(v, present){
+    if(!present) return 'param_absent';
+    var t = String(v === undefined || v === null ? '' : v).replace(/^\s+|\s+$/g, '');
+    if(!t) return 'param_empty';
+    if(t.indexOf(TOK_OPEN) !== -1 || t.indexOf(TOK_CLOSE) !== -1) return 'token_not_substituted';
+    var l = t.toLowerCase();
+    if(l === 'none' || l === 'null' || l === 'undefined' || l === '0') return 'placeholder_' + l;
+    return 'value';
+  }
+
+  var URL_PRESENT = qpresent('technicianId') || qpresent('technicianid') ||
+                    qpresent('executorId')   || qpresent('executorid');
+  var URL_SHAPE   = shapeOf(RAW_URL, URL_PRESENT);
+
+  /* Same question for the four profile spans, which is where identity
+     comes from in the pasted-creative deployment. */
+  var SPAN_SHAPE = 'param_empty', _sh;
+  for(_i = 0; _i < PROFILE_SPANS.length; _i++){
+    _sh = shapeOf(txt(PROFILE_SPANS[_i][0]), true);
+    if(_sh !== 'param_empty'){ SPAN_SHAPE = _sh; break; }
   }
 
   /* Preview switches. A real device is on https, never file:, so the
@@ -655,7 +686,13 @@
        the creative would request ?executorId= and a permissive
        backend could return someone else's customer list. */
     if(!TECH_ID){
-      track('No_Technician_Id', {});
+      track('No_Technician_Id', {
+        /* what the campaign actually put in the URL */
+        urlShape  : URL_SHAPE,
+        /* what CleverTap substituted into the pasted-creative spans */
+        spanShape : SPAN_SHAPE,
+        embedded  : (window.parent !== window)
+      });
       view = 'noid'; render(); return;
     }
 
