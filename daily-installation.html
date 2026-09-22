@@ -414,9 +414,20 @@
 
   /* URL param first: in the hosted deployment the wrapper has already
      resolved the token and passed it down, and that value is the more
-     trustworthy of the two. */
-  _v = qparam('technicianId') || qparam('technicianid') ||
-       qparam('executorId')   || qparam('executorid');
+     trustworthy of the two.
+
+     Run through cleanToken like the profile spans are. A campaign that
+     builds the URL from a Liquid token substitutes it BEFORE the page
+     ever loads, so when that substitution fails — wrong casing (Liquid
+     is case-sensitive and fails to an empty string, not an error), the
+     property missing from the profile, or a campaign field that does
+     not run Liquid at all — the raw token arrives here as the literal
+     value. Without this guard the page would accept it as an id and ask
+     the gateway for executorId={{...}}, turning a misconfigured campaign
+     into a confusing API error instead of the "profile incomplete"
+     screen that names the actual problem. */
+  _v = cleanToken(qparam('technicianId') || qparam('technicianid') ||
+                  qparam('executorId')   || qparam('executorid'));
   if(_v){ TECH_ID = _v; ID_SRC = 'url_param'; }
 
   for(_i = 0; !TECH_ID && _i < PROFILE_SPANS.length; _i++){
