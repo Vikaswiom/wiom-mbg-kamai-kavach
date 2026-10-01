@@ -54,6 +54,21 @@ html,body{background:var(--screen);overflow-x:hidden;}
 .settle.na{background:var(--amber-bg);border-color:var(--amberline);}
 .settle.na .ph,.settle.na .title{color:var(--amber);} .settle.na .row.total .amt{color:var(--amber);}
 .settle .body b{color:var(--text);}
+/* collapsible settlement card — collapsed shows the outcome line + chevron,
+   tap reveals the explanation and the money rows */
+.settle details{margin:0;}
+.settle summary{display:flex;align-items:flex-start;gap:12px;cursor:pointer;list-style:none;
+  -webkit-tap-highlight-color:transparent;}
+.settle summary::-webkit-details-marker{display:none;}
+.settle summary::marker{content:'';}
+.settle summary .sum-l{flex:1;min-width:0;}
+.settle summary .title{margin-bottom:0;}
+.settle details[open] summary{margin-bottom:10px;}
+.settle details[open] summary .title{margin-bottom:0;}
+.settle .chev{flex:none;width:17px;height:17px;margin-top:9px;transition:transform .22s ease;}
+.settle details[open] .chev{transform:rotate(180deg);}
+.settle.ok .chev{color:var(--green);} .settle.applied .chev{color:var(--purple);}
+.settle.na .chev{color:var(--amber);} .settle.days .chev{color:var(--maroon);}
 /* दिनों-का-हिसाब (pro-rata explainer) card */
 .settle.days{background:#F1EEF6;border-color:var(--stroke2);}
 .settle.days .ph,.settle.days .title{color:var(--maroon);} .settle.days .row.total .amt{color:var(--maroon);}
@@ -164,6 +179,10 @@ function settle(d){
           secured:secured,fewleads:fewleads,kase:kase,floor:F,ji:ji,rateNote:rateNote};
 }
 
+/* chevron for the collapsible settlement card (inherits the card's tone colour) */
+var CHEV='<svg class="chev" viewBox="0 0 24 24" fill="none" aria-hidden="true">'+
+  '<path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
 function rowsHTML(rows){
   return '<div class="rows">'+rows.map(function(r){
     return '<div class="row'+(r[2]||'')+'"><span class="lab">'+r[0]+'</span><span class="amt">'+r[1]+'</span></div>';
@@ -265,8 +284,11 @@ function render(d){
       '<div class="earn-amt">'+earnHero+'</div>'+
       '<div class="earn-sub'+((!m.secured&&m.kase!=='noleads')?' mut':'')+'">'+earnSub+'</div></div>'+
     standHTML+
-    '<div class="settle '+s.tone+'"><div class="ph">'+s.ph+'</div>'+
-      '<div class="title">'+s.title+'</div><div class="body">'+s.body+'</div>'+rowsHTML(s.rows)+'</div>'+
+    '<div class="settle '+s.tone+'"><details><summary>'+
+        '<div class="sum-l"><div class="ph">'+s.ph+'</div><div class="title">'+s.title+'</div></div>'+
+        CHEV+
+      '</summary>'+
+      '<div class="body">'+s.body+'</div>'+rowsHTML(s.rows)+'</details></div>'+
     prorataHTML+
     ctaHTML+
     endedHTML();
