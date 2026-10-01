@@ -94,6 +94,16 @@ html,body{background:var(--screen);overflow-x:hidden;}
 .ended .eb b{color:var(--text);font-weight:800;}
 .ended .ethanks{font-size:12.5px;line-height:1.65;font-weight:600;color:#4a2a86;margin-top:11px;
   border-top:1px solid #e0cefa;padding-top:11px;}
+.ended .eh2{font-size:12.5px;font-weight:800;color:#3a1a70;margin-top:14px;}
+.ended .rows{margin-top:9px;background:#fff;border-radius:11px;padding:4px 12px;}
+.ended .row{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:9px 0;font-size:12.5px;border-top:1px solid var(--line);}
+.ended .row:first-child{border-top:0;}
+.ended .row .lab{color:var(--t2);font-weight:600;}
+.ended .row .amt{font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.ended .row.total{border-top:1.5px solid var(--stroke2);}
+.ended .row.total .lab{color:var(--text);font-weight:800;}
+.ended .row.total .amt{font-size:18px;font-weight:800;letter-spacing:-.5px;color:var(--purple);}
 </style></head>
 <body>
 <div class="demo" id="demo" hidden></div>
@@ -291,7 +301,7 @@ function render(d){
       '<div class="body">'+s.body+'</div>'+rowsHTML(s.rows)+'</details></div>'+
     prorataHTML+
     ctaHTML+
-    endedHTML();
+    endedHTML(cspIdFromUrl());
 }
 
 /* ── program-closed notice ────────────────────────────────────────────────────
@@ -305,12 +315,52 @@ function programEnded(){
   var ist=new Date(Date.now()+330*60000);                 /* IST "now" */
   return ist.getUTCFullYear()>2026 || (ist.getUTCFullYear()===2026 && ist.getUTCMonth()>=9);
 }
-function endedHTML(){
+/* every program month's snapshot + its adjudication list, for the closing total */
+var ALLM={};
+async function loadAllMonths(){
+  await Promise.all(['july','aug','sep'].map(async function(k){
+    var o={data:{},holds:{}};
+    try{ var r=await fetch(MONTHS[k].file,{cache:'no-store'}); if(r.ok) o.data=(await r.json()).data||{}; }catch(e){}
+    try{ var h=await fetch('settle-overrides-'+k+'.json',{cache:'no-store'});
+         if(h.ok) o.holds=(await h.json()).holds||{}; }catch(e){}
+    ALLM[k]=o;
+  }));
+}
+/* run the REAL settle() against another month by swapping MO around the call —
+   so each cycle is totalled under the rule it was actually paid on (July's
+   two-tier rate + pro-rata floor, Aug/Sep flat ₹300 and no pro-rata) rather
+   than a second copy of the money maths that could drift from the screen. */
+function settleFor(k, rec){
+  var save=MO;
+  MO=MONTHS[k];
+  try{ return settle(rec); } finally{ MO=save; }
+}
+/* ₹ earned in each of the three cycles + the programme total. A month the CSP
+   has no record in, or one whose payment was withheld (removed/hold), is ₹0. */
+function programRows(id){
+  if(!id || !ALLM.sep) return null;
+  var rows=[], sum=0, any=false;
+  [['sep','सितंबर · आख़िरी साइकिल'],['aug','अगस्त'],['july','जुलाई']].forEach(function(pair){
+    var k=pair[0], m=ALLM[k]||{data:{},holds:{}};
+    var rec=m.data[id], held=m.holds[id], t=0;
+    if(rec){ any=true; if(!held) t=settleFor(k, withOverlay(id, rec)).total; }
+    sum+=t;
+    rows.push([pair[1]+(held?' · भुगतान रोका गया':''), '₹'+inr(t)]);
+  });
+  if(!any) return null;
+  rows.push(['तीनों महीनों से कुल कमाई','₹'+inr(sum),' total']);
+  return rows;
+}
+
+function endedHTML(id){
   if(!programEnded()) return '';
+  var pr=programRows(id);
+  var totalHTML = pr ? ('<div class="eh2">तीनों महीनों की कुल कमाई</div>'+rowsHTML(pr)) : '';
   return '<div class="ended">'+
     '<div class="eh">व्योम की तरफ़ से यह प्रोग्राम अब बंद हो गया है</div>'+
     '<div class="eb">1–30 सितंबर की यह साइकिल इस प्रोग्राम की <b>आख़िरी साइकिल</b> थी — और यही <b>आख़िरी भुगतान</b> है. आगे कोई नई साइकिल नहीं है.</div>'+
-    '<div class="ethanks">आपकी मेहनत के लिए शुक्रिया 🙏 नेटवर्क अच्छा रखिए — वही आपके ग्राहक और कमाई बनाए रखता है.</div></div>';
+    '<div class="ethanks">आपकी मेहनत के लिए शुक्रिया 🙏 नेटवर्क अच्छा रखिए — वही आपके ग्राहक और कमाई बनाए रखता है.</div>'+
+    totalHTML+'</div>';
 }
 
 /* ── data ── */
@@ -364,6 +414,8 @@ function mountDemo(){
   /* month adjudication overrides (settle-overrides-<month>.json) — CSPs whose
      payment for the displayed month is withheld (removed) or under review
      (hold) must never see settlement money on this screen */
+  await loadOverlay();                        /* July's two-tier rate + pro-rata dates */
+  if(programEnded()) await loadAllMonths();   /* for the closing three-cycle total */
   var hold=null;
   try{ var hr=await fetch('settle-overrides-'+MO.file.slice(5,-5)+'.json',{cache:'no-store'});
        if(hr.ok){ hold=((await hr.json()).holds||{})[id]||null; } }catch(e){}
@@ -376,10 +428,9 @@ function mountDemo(){
       '<div class="settle na"><div class="ph">🛡 '+MO.name+' का हिसाब</div>'+
       '<div class="title">'+ht+'</div><div class="body">'+hb+'</div>'+
       rowsHTML([['कुल — वॉलेट में','₹0',' total']])+'</div>'+
-      endedHTML();
+      endedHTML(id);
     return;
   }
-  await loadOverlay();
   var d=await getCsp();
   if(!d){ document.getElementById('body').innerHTML='<div class="skel">इस महीने का हिसाब अभी तैयार नहीं है.<br>App में दोबारा खोलें, या helpline पर call करें.</div>'; return; }
   render(d);
