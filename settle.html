@@ -72,6 +72,13 @@ html,body{background:var(--screen);overflow-x:hidden;}
 .cta-cycle{display:block;text-align:center;background:var(--purple);color:#fff;border-radius:14px;
   padding:13px 15px;font-size:14px;font-weight:800;text-decoration:none;letter-spacing:.2px;}
 .cta-cycle small{display:block;font-weight:600;font-size:11px;color:#e9dcfb;margin-top:2px;}
+/* program-closed notice — the MG program ended with the September 2026 cycle */
+.ended{background:var(--purpbg);border:1px solid #e6d6fa;border-radius:16px;padding:15px 16px;}
+.ended .eh{font-size:16px;font-weight:800;color:var(--purple);line-height:1.35;letter-spacing:-.2px;}
+.ended .eb{font-size:12.5px;line-height:1.65;font-weight:500;color:#3a2a55;margin-top:9px;}
+.ended .eb b{color:var(--text);font-weight:800;}
+.ended .ethanks{font-size:12.5px;line-height:1.65;font-weight:600;color:#4a2a86;margin-top:11px;
+  border-top:1px solid #e0cefa;padding-top:11px;}
 </style></head>
 <body>
 <div class="demo" id="demo" hidden></div>
@@ -261,7 +268,27 @@ function render(d){
     '<div class="settle '+s.tone+'"><div class="ph">'+s.ph+'</div>'+
       '<div class="title">'+s.title+'</div><div class="body">'+s.body+'</div>'+rowsHTML(s.rows)+'</div>'+
     prorataHTML+
-    ctaHTML;
+    ctaHTML+
+    endedHTML();
+}
+
+/* ── program-closed notice ────────────────────────────────────────────────────
+   MG ended with the September 2026 cycle: Sep was the last cycle and the last
+   payout. Shown on every settled month (the program is closed, whichever month
+   you are looking at). ?ended=0 hides it for a screenshot; ?ended=1 forces it. */
+function programEnded(){
+  var q=new URLSearchParams(location.search).get('ended');
+  if(q==='1') return true;
+  if(q==='0') return false;
+  var ist=new Date(Date.now()+330*60000);                 /* IST "now" */
+  return ist.getUTCFullYear()>2026 || (ist.getUTCFullYear()===2026 && ist.getUTCMonth()>=9);
+}
+function endedHTML(){
+  if(!programEnded()) return '';
+  return '<div class="ended">'+
+    '<div class="eh">व्योम की तरफ़ से यह प्रोग्राम अब बंद हो गया है</div>'+
+    '<div class="eb">1–30 सितंबर की यह साइकिल इस प्रोग्राम की <b>आख़िरी साइकिल</b> थी — और यही <b>आख़िरी भुगतान</b> है. आगे कोई नई साइकिल नहीं है.</div>'+
+    '<div class="ethanks">आपकी मेहनत के लिए शुक्रिया 🙏 नेटवर्क अच्छा रखिए — वही आपके ग्राहक और कमाई बनाए रखता है.</div></div>';
 }
 
 /* ── data ── */
@@ -306,7 +333,9 @@ function mountDemo(){
 (async function(){
   var q=new URLSearchParams(location.search);
   var isRunning=runningMonth() && MONTHS[runningMonth()].ym===MO.ym;
-  document.getElementById('subhdr').textContent=MO.name+' का हिसाब'+(isRunning?' · चालू (महीने के अंत में फाइनल)':'');
+  document.getElementById('subhdr').textContent=MO.name+' का हिसाब'
+    +(isRunning?' · चालू (महीने के अंत में फाइनल)':'')
+    +((!isRunning && programEnded() && MO.ym==='2026-09')?' · आख़िरी हिसाब':'');
   var id=cspIdFromUrl();
   if(q.get('case') && DEMO[q.get('case')]){ render(DEMO[q.get('case')]); return; }
   if(!id || q.get('demo')==='1'){ mountDemo(); return; }
@@ -324,7 +353,8 @@ function mountDemo(){
     document.getElementById('body').innerHTML =
       '<div class="settle na"><div class="ph">🛡 '+MO.name+' का हिसाब</div>'+
       '<div class="title">'+ht+'</div><div class="body">'+hb+'</div>'+
-      rowsHTML([['कुल — वॉलेट में','₹0',' total']])+'</div>';
+      rowsHTML([['कुल — वॉलेट में','₹0',' total']])+'</div>'+
+      endedHTML();
     return;
   }
   await loadOverlay();

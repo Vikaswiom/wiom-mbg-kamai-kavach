@@ -1,5 +1,17 @@
 # Kamai Kavach — Working Context (settlement + freeze)
 
+> ## 🏁 PROGRAM CLOSED — September 2026 was the last cycle (30-Sep-2026)
+> MG/Kamai Kavach has ended. **September was the final cycle and the final payout.** All three
+> screens now carry a closed-program notice (purple card: *"व्योम की तरफ़ से यह प्रोग्राम अब बंद हो गया है"*),
+> and from 1-Oct the **banner no longer draws a live cycle** — it shows the closure plus a button to
+> September's final हिसाब (`settle.html?month=sep&cspId=X`). Driven by an IST date check
+> (`>= 1-Oct-2026`); `?ended=0` hides it and `?ended=1` forces it, for screenshots.
+> The settle screens already default to the last completed month, so a bare link lands on September.
+> **Final cycle: 3,248 installs / 4,698 tech-assigned = 69 %, 361 of 477 floor-eligible,
+> ₹9.74L earned + ₹27.98L top-up = ₹37.72L** (before any September adjudication —
+> `settle-overrides-sep.json` does not exist yet; only August has one).
+
+
 Practical handoff so this project can be picked up on **any machine**. For the number
 spec see [`docs/CALCULATIONS.md`](./docs/CALCULATIONS.md) and the payout ruleset
 [`docs/MG-payout-logic.md`](./docs/MG-payout-logic.md); this file is the *operational*

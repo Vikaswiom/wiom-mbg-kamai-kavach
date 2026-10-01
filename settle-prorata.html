@@ -67,6 +67,11 @@ html,body{background:var(--screen);overflow-x:hidden;}
   background:#fff;color:var(--t2);border:1px solid var(--stroke2);}
 .demo button[aria-pressed="true"]{background:var(--maroon);border-color:var(--maroon);color:#fff;}
 .demo .note{width:100%;font-size:11px;color:var(--t3);padding-top:2px;}
+.ended{background:var(--purpbg);border:1px solid #e6d6fa;border-radius:16px;padding:15px 16px;}
+.ended .eh{font-size:16px;font-weight:800;color:var(--purple);line-height:1.35;}
+.ended .eb{font-size:12.5px;line-height:1.65;font-weight:500;color:#3a2a55;margin-top:9px;}
+.ended .ethanks{font-size:12.5px;line-height:1.65;font-weight:600;color:#4a2a86;margin-top:11px;
+  border-top:1px solid #e0cefa;padding-top:11px;}
 .skel{color:var(--t3);font-size:12.5px;font-weight:600;text-align:center;padding:34px 14px;line-height:1.7;}
 /* bottom CTA → current running cycle's live हिसाब */
 .cta-cycle{display:block;text-align:center;background:var(--purple);color:#fff;border-radius:14px;
@@ -157,6 +162,16 @@ function settle(d){
           secured:secured,fewleads:fewleads,kase:kase,floor:F,ji:ji,rateNote:rateNote};
 }
 
+function endedHTML(){
+  var q=new URLSearchParams(location.search).get('ended');
+  var ist=new Date(Date.now()+330*60000);
+  var over = q==='1' || (q!=='0' && (ist.getUTCFullYear()>2026 || (ist.getUTCFullYear()===2026 && ist.getUTCMonth()>=9)));
+  if(!over) return '';
+  return '<div class="ended">'+
+    '<div class="eh">व्योम की तरफ़ से यह प्रोग्राम अब बंद हो गया है</div>'+
+    '<div class="eb">1–30 सितंबर की यह साइकिल इस प्रोग्राम की आख़िरी साइकिल थी — और यही आख़िरी भुगतान है. आगे कोई नई साइकिल नहीं है.</div>'+
+    '<div class="ethanks">आपकी मेहनत के लिए शुक्रिया 🙏 नेटवर्क अच्छा रखिए — वही आपके ग्राहक और कमाई बनाए रखता है.</div></div>';
+}
 function rowsHTML(rows){
   return '<div class="rows">'+rows.map(function(r){
     return '<div class="row'+(r[2]||'')+'"><span class="lab">'+r[0]+'</span><span class="amt">'+r[1]+'</span></div>';
@@ -264,7 +279,8 @@ function render(d){
     '<div class="settle '+s.tone+'"><div class="ph">'+s.ph+'</div>'+
       '<div class="title">'+s.title+'</div><div class="body">'+s.body+'</div>'+rowsHTML(s.rows)+'</div>'+
     prorataHTML+
-    ctaHTML;
+    ctaHTML+
+    endedHTML();
 }
 
 /* ── data ── */

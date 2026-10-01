@@ -43,6 +43,16 @@ html,body{background:var(--screen);}
 .prevrow .pr-t{font-size:12.5px;font-weight:700;color:var(--text);flex:1;}.prevrow .pr-t b{color:var(--t2);font-weight:600;}
 .prevrow .pr-sum{font-size:12px;font-weight:800;color:var(--purple);white-space:nowrap;}
 .prevrow .pr-arr{color:var(--t3);font-weight:800;}
+/* program-closed state — MG ended with the September 2026 cycle */
+.ended{background:var(--purpbg);border:1px solid #e6d6fa;border-radius:16px;padding:15px 16px;}
+.ended .eh{font-size:16px;font-weight:800;color:var(--purple);line-height:1.35;letter-spacing:-.2px;}
+.ended .eb{font-size:12.5px;line-height:1.65;font-weight:500;color:#3a2a55;margin-top:9px;}
+.ended .eb b{color:var(--text);font-weight:800;}
+.ended .ethanks{font-size:12.5px;line-height:1.65;font-weight:600;color:#4a2a86;margin-top:11px;
+  border-top:1px solid #e0cefa;padding-top:11px;}
+.endcta{display:block;text-align:center;background:var(--purple);color:#fff;border-radius:14px;
+  padding:13px 15px;font-size:14px;font-weight:800;text-decoration:none;letter-spacing:.2px;}
+.endcta small{display:block;font-weight:600;font-size:11px;color:#e9dcfb;margin-top:2px;}
 </style></head><body><div class=wrap><div class=hdr><span class=t>गारंटी कमाई</span></div><div class=subhdr><span><span id=v_month>—</span> का हिसाब</span><span>इस महीने <span id=v_days>0</span> दिन बाकी</span></div><div class=body><div class=card><div class=k>इस महीने नए कनेक्शन से कमाया</div><div class=earn-amt>₹<span id=v_installpay>0</span></div><div class=earn-sub id=v_earnsub>↑ हर नए कनेक्शन पर ₹300 · कोई ऊपरी सीमा नहीं</div></div><div class="card f-amber" id=whcard><div class=k>आप कहाँ हैं</div><div class=wyh-top><span class=wyh-pct><span id=v_pct>0</span><span id=v_pctsign>%</span></span><span class=wyh-need60>/ 60% या अधिक चाहिए</span></div><div class=bar><div class=fill id=v_fill style="width:0%"></div><div class=mk></div></div><div class=wyh-need id=v_needline>—</div><div class=wyh-line id=v_subline>—</div></div><div class="act " id=actcard><div class=h>🔥 अगला कनेक्शन ज़रूर लगाएं</div><div class=s id=thead>खुले टिकट — पहले ये लगाएं:</div><div class=tkt id=trow1><span class=tn>इंस्टॉल <span id=d1n></span></span></div><div class=tkt id=trow2><span class=tn>इंस्टॉल <span id=d2n></span></span></div><div class=notkt id=notkt>अभी कोई खुला टिकट नहीं — जो आए, उसी दिन समय तय करें।</div></div><div class=prot id=guar><div class=ph>🛡 आपकी सुरक्षा</div><div class=big>₹10,000 <span>तक कमाई पूरी होगी</span></div><div class=when>कब लागू? — दोनों बातें ज़रूरी</div><div class=cond><div class=cl><span class=em>🔧</span>आपका 60% पूरा हो</div><span class=cp>आपका वादा</span></div><div class=cond><div class=cl><span class=em>📉</span>फिर भी कमाई ₹10,000 से कम रहे</div><span class=cp>व्योम की कमी</span></div><div class=sb>साफ़ बात</div><div class=li>· सिर्फ़ नए कनेक्शन की कमाई गिनी जाएगी<br>· बाकी आमदनी इससे अलग</div></div><a class=prevrow id=prevrow hidden></a></div></div>
 
 <!-- ============================================================================
@@ -223,7 +233,31 @@ async function renderPrev(cspId){
     dropped  :{installs:17,denom:29,pending:1,committed:0,new_leads:2,tickets:[]},  // 10 · 60% से नीचे आए (59%)
     noleads  :{installs:0,denom:0,pending:0,committed:0,tickets:[]}
   };
+  // ── PROGRAM CLOSED ────────────────────────────────────────────────────────
+  // MG ended with the September 2026 cycle. From 1-Oct there is no running
+  // month, so the live banner would keep drawing an "October" cycle off a
+  // data.json the pipeline no longer windows — show the closure instead, and
+  // point at September's final हिसाब. ?case= still previews; ?ended=0 bypasses.
   var _c=new URLSearchParams(location.search).get('case');
+  var _e=new URLSearchParams(location.search).get('ended');
+  var _ist=new Date(Date.now()+330*60000);
+  var _over = _e==='1' || (_e!=='0' && (_ist.getUTCFullYear()>2026 ||
+              (_ist.getUTCFullYear()===2026 && _ist.getUTCMonth()>=9)));
+  if(_over && !_c){
+    var _id=cspIdFromUrl();
+    var sub=document.querySelector('.subhdr');
+    if(sub) sub.innerHTML='<span>सितंबर — आख़िरी हिसाब</span><span>प्रोग्राम बंद</span>';
+    document.querySelector('.body').innerHTML=
+      '<div class="ended">'+
+        '<div class="eh">व्योम की तरफ़ से यह प्रोग्राम अब बंद हो गया है</div>'+
+        '<div class="eb">1–30 सितंबर की यह साइकिल इस प्रोग्राम की <b>आख़िरी साइकिल</b> थी — और यही <b>आख़िरी भुगतान</b> है. आगे कोई नई साइकिल नहीं है.</div>'+
+        '<div class="ethanks">आपकी मेहनत के लिए शुक्रिया 🙏 नेटवर्क अच्छा रखिए — वही आपके ग्राहक और कमाई बनाए रखता है.</div>'+
+      '</div>'+
+      (_id?'<a class="endcta" href="settle.html?month=sep&cspId='+encodeURIComponent(_id)+'">'+
+           'सितंबर का आख़िरी हिसाब देखें →<small>आपकी कमाई और गारंटी का पूरा ब्यौरा</small></a>':'');
+    try{ if(window.console) console.log('[MBG event] MBG_View_programended csp='+_id); }catch(e){}
+    return;
+  }
   var d = (_c && CASES[_c]) ? CASES[_c] : await getCspData();
   var m = computeMBG(d);
   renderPrev((cspIdFromUrl()||'').toLowerCase());   // "पिछले महीने का हिसाब · <month>" row (Aug+)
