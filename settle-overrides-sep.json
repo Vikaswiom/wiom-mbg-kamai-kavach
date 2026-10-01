@@ -1,0 +1,26 @@
+{
+ "note": "September adjudication (01-Oct-2026). consent = PSF->SD consent not signed; probation = failed the August probation. Both mean the September payment was NOT released. Read by the settle screens for month=sep.",
+ "holds": {
+  "a0b6f7": "consent",
+  "a0b9a1": "consent",
+  "a0c0b6": "consent",
+  "a0b6e7": "probation",
+  "a0b8y2": "consent",
+  "a0c0b9": "consent",
+  "a0b6u7": "consent",
+  "a0c0j1": "consent",
+  "a0b9v1": "consent",
+  "a0b6y3": "consent",
+  "a0b6r1": "consent",
+  "a0b8q5": "probation",
+  "a0b7g5": "consent",
+  "a0b5m6": "consent",
+  "a0b8r4": "consent",
+  "a0b6u5": "consent",
+  "a0b9q4": "consent",
+  "a0b9e1": "consent",
+  "a0b9f2": "consent",
+  "a0b6u9": "consent",
+  "a0b5p0": "consent"
+ }
+}

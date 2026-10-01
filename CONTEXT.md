@@ -7,9 +7,17 @@
 > September's final हिसाब (`settle.html?month=sep&cspId=X`). Driven by an IST date check
 > (`>= 1-Oct-2026`); `?ended=0` hides it and `?ended=1` forces it, for screenshots.
 > The settle screens already default to the last completed month, so a bare link lands on September.
-> **Final cycle: 3,248 installs / 4,698 tech-assigned = 69 %, 361 of 477 floor-eligible,
-> ₹9.74L earned + ₹27.98L top-up = ₹37.72L** (before any September adjudication —
-> `settle-overrides-sep.json` does not exist yet; only August has one).
+> **Final cycle — ADJUDICATED (sheet received 01-Oct-2026, now the source of truth):**
+> **2,782 installs / 3,785 denominator, ₹8,28,000 earned + ₹25,18,400 top-up = ₹33,46,400**
+> across **431 CSPs**. September reads **`data-sep-final.json`** (per-CSP installs/denom exactly as
+> adjudicated), with **`settle-overrides-sep.json`** zeroing the **21 withheld** — 19 `consent`
+> (PSF→SD consent not signed) and 2 `probation` (failed the August probation), each with its own
+> copy on the screen. The screens' own `settle()` reproduces the sheet's earned/top-up/total for
+> **all 410 non-withheld rows** and the on-screen total equals ₹33,46,400 exactly — verified per CSP.
+> The computed snapshot stays at `data-sep.json` for provenance; nothing reads it now.
+> ⚠️ **64 of the 477 enrolled CSPs are absent from the sheet** (25 removed + 1 hold in the August
+> adjudication, 38 with no adjudication record). They render "हिसाब अभी तैयार नहीं" for September
+> and ₹0 in the closing three-cycle table — correct for the removed, worth a check for the 38.
 
 
 Practical handoff so this project can be picked up on **any machine**. For the number

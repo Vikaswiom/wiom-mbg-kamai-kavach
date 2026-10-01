@@ -121,7 +121,7 @@ var PROXY_URL = "";
 /* Aug ruling (31-Aug): flat300 = every install pays ₹300 (two-tier ₹750/₹1000 paused,
    also Sep per the earlier ym<'2026-08' guard); noProrata = full ₹10,000 floor for
    everyone in Aug (no day-weighting by join date). July stays as settled. */
-var MONTHS={july:{name:'जुलाई',days:31,file:'data-july.json',ym:'2026-07'},aug:{name:'अगस्त',days:31,file:'data-aug.json',ym:'2026-08',flat300:true,noProrata:true},sep:{name:'सितंबर',days:30,file:'data-sep.json',ym:'2026-09',flat300:true}};
+var MONTHS={july:{name:'जुलाई',days:31,file:'data-july.json',ym:'2026-07'},aug:{name:'अगस्त',days:31,file:'data-aug.json',ym:'2026-08',flat300:true,noProrata:true},sep:{name:'सितंबर',days:30,file:'data-sep-final.json',ym:'2026-09',flat300:true}};
 /* default month = the LAST COMPLETED program month — settlement is a month-END
    screen, so during Aug the bare link shows July's payout, from 1-Sep it shows
    August's, from 1-Oct September's. ?month=july|aug|sep still overrides. */
@@ -420,10 +420,19 @@ function mountDemo(){
   try{ var hr=await fetch('settle-overrides-'+MO.file.slice(5,-5)+'.json',{cache:'no-store'});
        if(hr.ok){ hold=((await hr.json()).holds||{})[id]||null; } }catch(e){}
   if(hold){
-    var ht = hold==='removed' ? MO.name+' का भुगतान जारी नहीं हुआ' : MO.name+' का भुगतान अभी रोका गया है';
-    var hb = hold==='removed'
-      ? 'समीक्षा के बाद '+MO.name+' का भुगतान जारी नहीं किया गया और प्रोग्राम सदस्यता रोक दी गई है। कोई सवाल हो तो helpline पर संपर्क करें।'
-      : MO.name+' का भुगतान समीक्षा में है — टीम जल्द आपसे संपर्क करेगी। कोई सवाल हो तो helpline पर संपर्क करें।';
+    /* withholding reasons. removed/hold came from the August adjudication;
+       consent/probation are September's (settle-overrides-sep.json). */
+    var HOLDTXT={
+      removed:   [MO.name+' का भुगतान जारी नहीं हुआ',
+                  'समीक्षा के बाद '+MO.name+' का भुगतान जारी नहीं किया गया और प्रोग्राम सदस्यता रोक दी गई है। कोई सवाल हो तो helpline पर संपर्क करें।'],
+      hold:      [MO.name+' का भुगतान अभी रोका गया है',
+                  MO.name+' का भुगतान समीक्षा में है — टीम जल्द आपसे संपर्क करेगी। कोई सवाल हो तो helpline पर संपर्क करें।'],
+      consent:   [MO.name+' का भुगतान जारी नहीं हुआ',
+                  'PSF से SD की सहमति (consent) दर्ज नहीं हुई, इसलिए '+MO.name+' का भुगतान जारी नहीं किया गया। कोई सवाल हो तो helpline पर संपर्क करें।'],
+      probation: [MO.name+' का भुगतान जारी नहीं हुआ',
+                  'अगस्त की probation अवधि पूरी नहीं हुई, इसलिए '+MO.name+' का भुगतान जारी नहीं किया गया। कोई सवाल हो तो helpline पर संपर्क करें।']
+    };
+    var htxt=HOLDTXT[hold]||HOLDTXT.hold, ht=htxt[0], hb=htxt[1];
     document.getElementById('body').innerHTML =
       '<div class="settle na"><div class="ph">🛡 '+MO.name+' का हिसाब</div>'+
       '<div class="title">'+ht+'</div><div class="body">'+hb+'</div>'+
