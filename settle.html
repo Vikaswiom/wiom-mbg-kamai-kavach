@@ -121,7 +121,7 @@ var PROXY_URL = "";
 /* Aug ruling (31-Aug): flat300 = every install pays ₹300 (two-tier ₹750/₹1000 paused,
    also Sep per the earlier ym<'2026-08' guard); noProrata = full ₹10,000 floor for
    everyone in Aug (no day-weighting by join date). July stays as settled. */
-var MONTHS={july:{name:'जुलाई',days:31,file:'data-july.json',ym:'2026-07'},aug:{name:'अगस्त',days:31,file:'data-aug.json',ym:'2026-08',flat300:true,noProrata:true},sep:{name:'सितंबर',days:30,file:'data-sep-final.json',ym:'2026-09',flat300:true}};
+var MONTHS={july:{key:'july',name:'जुलाई',days:31,file:'data-july.json',ym:'2026-07'},aug:{key:'aug',name:'अगस्त',days:31,file:'data-aug.json',ym:'2026-08',flat300:true,noProrata:true},sep:{key:'sep',name:'सितंबर',days:30,file:'data-sep-final.json',ym:'2026-09',flat300:true}};
 /* default month = the LAST COMPLETED program month — settlement is a month-END
    screen, so during Aug the bare link shows July's payout, from 1-Sep it shows
    August's, from 1-Oct September's. ?month=july|aug|sep still overrides. */
@@ -417,7 +417,10 @@ function mountDemo(){
   await loadOverlay();                        /* July's two-tier rate + pro-rata dates */
   if(programEnded()) await loadAllMonths();   /* for the closing three-cycle total */
   var hold=null;
-  try{ var hr=await fetch('settle-overrides-'+MO.file.slice(5,-5)+'.json',{cache:'no-store'});
+  /* NEVER derive this from MO.file — September's data file is data-sep-final.json,
+     and slicing that gave settle-overrides-sep-final.json (404), which silently
+     dropped every withholding and showed withheld CSPs settlement money. */
+  try{ var hr=await fetch('settle-overrides-'+MO.key+'.json',{cache:'no-store'});
        if(hr.ok){ hold=((await hr.json()).holds||{})[id]||null; } }catch(e){}
   if(hold){
     /* withholding reasons. removed/hold came from the August adjudication;
