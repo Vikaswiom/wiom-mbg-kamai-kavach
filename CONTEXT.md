@@ -15,6 +15,13 @@
 > copy on the screen. The screens' own `settle()` reproduces the sheet's earned/top-up/total for
 > **all 410 non-withheld rows** and the on-screen total equals ₹33,46,400 exactly — verified per CSP.
 > The computed snapshot stays at `data-sep.json` for provenance; nothing reads it now.
+> **02-Oct CORRECTION (timezone cutoff):** the 30-Sep "frozen" snapshot actually stopped at
+> 18:30 IST, not 23:59:59 (ref complaint 790856460735 / Shine Network). The corrected re-run
+> moved **3 CSPs over the 60% gate**: **a0b6e2** 4/7→5/8, **a0b8p6** 4/7→5/8, **a0b6q9**
+> 8/14→9/15 — each now settles at ₹10,000 (`data-sep-final.json` updated in place, 02-Oct;
+> top-up owed ₹8,500+₹8,500+₹7,300 = **₹24,300**). The 3 gain-only CSPs (Shine Network,
+> Manish, Webnet, +₹300 each, already auto-paid) were **deliberately left unchanged** per the
+> correction brief. The sheet totals quoted above predate this correction.
 > ⚠️ **64 of the 477 enrolled CSPs are absent from the sheet** (25 removed + 1 hold in the August
 > adjudication, 38 with no adjudication record). They render "हिसाब अभी तैयार नहीं" for September
 > and ₹0 in the closing three-cycle table — correct for the removed, worth a check for the 38.
