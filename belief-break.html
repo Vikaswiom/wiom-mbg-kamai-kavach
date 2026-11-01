@@ -165,7 +165,7 @@ var EMBED=(window.parent&&window.parent!==window);
    web app that appends a row to a Google Sheet (code: docs/belief-break-apps-script.gs).
    Paste the deployed /exec URL below. ?gas=<url> overrides it for testing.
    text/plain + sendBeacon = no CORS preflight, and survives the dismiss. */
-var GAS_URL='PASTE_APPS_SCRIPT_EXEC_URL_HERE';
+var GAS_URL='https://script.google.com/macros/s/AKfycbwrUxjDUHV7iP--JJhkXz_uQ-LQYbDufMEGuXsQjjbLk5PJB_npn3Io155blIS1UDnQ/exec';
 function qp(k){var m=new RegExp('[?&]'+k+'=([^&#]*)').exec(location.search);return m?decodeURIComponent(m[1].replace(/\+/g,' ')):''}
 var CSP_ID=qp('cspId')||qp('cspid')||'';
 var GAS=qp('gas')||GAS_URL;
