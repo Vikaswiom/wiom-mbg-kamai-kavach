@@ -1,0 +1,200 @@
+<!DOCTYPE html><html lang="hi"><head><meta charset="utf-8"><title>Belief Break</title><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800&display=swap">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:'Noto Sans Devanagari','Nirmala UI','Segoe UI',sans-serif;color:#1A1426;background:#fff}
+.sc{display:flex;position:fixed;inset:0;flex-direction:column;background:radial-gradient(120% 55% at 50% 0,#FFE3F3 0,#FFF6FB 45%,#fff 75%);padding:28px 16px calc(16px + env(safe-area-inset-bottom))}
+.sc.ok{background:radial-gradient(120% 55% at 50% 0,#DCF2E7 0,#F4FBF7 45%,#fff 75%)}
+.sc[hidden]{display:none}
+.b{flex:1;display:flex;flex-direction:column;overflow-y:auto;overscroll-behavior:contain}
+.sp{flex:1;min-height:12px}
+
+/* top bar */
+.topbar{display:flex;justify-content:flex-end;align-items:center;margin-bottom:8px;min-height:36px}
+.lang{display:flex;align-items:center;gap:5px;border:0;background:#E8E4F0;color:#665E75;font-size:13px;font-weight:700;border-radius:999px;padding:7px 14px;cursor:pointer;transition:background-color .15s}
+.lang:active{background:#DDD8E6}
+.lang svg{width:16px;height:16px}
+
+/* edu */
+.ann{width:64px;height:64px;margin:0 auto 24px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.ann svg{width:30px;height:30px}
+.ann.pink{background:#FFE3F3;color:#D9008D}
+.ann.green{background:#DCF2E7;color:#008043}
+.h{text-align:center;font-size:clamp(21px,7.2vw,27px);font-weight:800;line-height:1.4;letter-spacing:-.01em;margin:0 -4px 10px;padding:0 4px}.h .hl{color:#D9008D}
+.sub{text-align:center;font-size:17px;line-height:1.55;color:#443D54;margin:0 12px 16px}
+
+/* reassurance card */
+.note{background:#fff;border:1.5px solid #F0EAF4;border-radius:16px;padding:14px 16px;margin:0 4px 16px;box-shadow:0 4px 14px rgba(26,20,38,.06);display:flex;gap:10px;align-items:flex-start}
+.note svg{flex:none;width:20px;height:20px;color:#008043;margin-top:2px}
+.note .nt{font-size:15px;line-height:1.55;font-weight:700;color:#1A1426;text-align:left}
+
+.ask{text-align:center;font-size:17px;font-weight:800;margin:0 12px 14px}
+
+/* CTAs */
+.btn{display:block;width:100%;border:0;cursor:pointer;font:inherit;font-weight:800;font-size:16px;line-height:1.4;border-radius:999px;padding:15px 18px;text-align:center;transition:transform .12s,background-color .15s}
+.btn:active{transform:scale(.985)}
+.btn.p{background:#D9008D;color:#fff}
+.btn.p:active{background:#BE007C}
+.btn.s{background:#fff;color:#D9008D;border:2px solid #D9008D;margin-top:10px}
+.btn.s:active{background:#FFF6FB}
+.lock{margin-top:12px;text-align:center;font-size:12.5px;color:#9A93A8}
+
+/* toast */
+.toast{position:fixed;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));background:#2D2539;color:#FAF9FC;border-radius:12px;padding:13px 16px;font-size:13.5px;line-height:1.5;opacity:0;transform:translateY(12px);transition:all .25s ease;pointer-events:none;z-index:40}
+.toast.show{opacity:1;transform:translateY(0)}
+
+.sc .b>*{animation:up .3s ease-out both}
+@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body>
+
+<!-- ============ SCREEN 1 · Belief Break (blocking: no close) ============ -->
+<div class="sc" id="main">
+<div class="topbar">
+<button class="lang" type="button" onclick="toggleLang()"><svg viewBox="0 0 24 24" fill="none"><path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z" fill="currentColor"/></svg><span class="langLbl">English</span></button>
+</div>
+<div class="b">
+<div class="sp"></div>
+<div class="ann pink" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path fill="currentColor" d="M12 2L1 21h22L12 2zm0 4.5L19.53 19H4.47L12 6.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z"/></svg></div>
+<div class="h" data-k="title"><span class="hl">1 नवंबर से</span> आपको नई बुकिंग मिलनी रुक गई हैं</div>
+<div class="sub" data-k="body">आपकी सेवा स्थिति काफ़ी टाइम से ख़राब होने की वजह से नई बुकिंग नहीं मिल रही है</div>
+<div class="note"><svg viewBox="0 0 24 24" fill="none"><path fill="currentColor" d="M12 2L4 5v6c0 5.1 3.4 9.8 8 11 4.6-1.2 8-5.9 8-11V5l-8-3zm-1.2 13.6l-3.2-3.2 1.4-1.4 1.8 1.8 4.6-4.6 1.4 1.4-6 6z"/></svg><div class="nt" data-k="note">इसका आपके मौजूदा ग्राहकों पर कोई असर नहीं पड़ेगा। उनकी सेवाएँ पहले की तरह जारी रहेंगी।</div></div>
+<div class="ask" data-k="ask">आप आगे क्या करना चाहते हैं?</div>
+<div class="sp"></div>
+</div>
+<button class="btn p" type="button" id="opt1" onclick="respond(1)" data-k="opt1">मैं सुधार करके नई बुकिंग चाहता हूँ</button>
+<button class="btn s" type="button" id="opt2" onclick="respond(2)" data-k="opt2">मैं सिर्फ़ मौजूदा ग्राहकों की सेवा जारी रखना चाहता हूँ</button>
+<div class="lock" data-k="lock">जवाब देने के बाद ही ऐप इस्तेमाल किया जा सकेगा</div>
+</div>
+
+<!-- ============ SCREEN 2 · Confirmation: improve & get new bookings ============ -->
+<div class="sc ok" id="c1" hidden>
+<div class="topbar">
+<button class="lang" type="button" onclick="toggleLang()"><svg viewBox="0 0 24 24" fill="none"><path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z" fill="currentColor"/></svg><span class="langLbl">English</span></button>
+</div>
+<div class="b">
+<div class="sp"></div>
+<div class="ann green" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
+<div class="h" data-k="c1title">आपका जवाब मिल गया है!</div>
+<div class="sub" data-k="c1body1">आप फिर से नई बुकिंग पाना चाहते हैं, यह हमने नोट कर लिया है।</div>
+<div class="sub" data-k="c1body2">हमारी टीम 48 घंटे के अंदर आपसे संपर्क करेगी। हम मिलकर आपकी सेवा स्थिति ठीक करने में मदद करेंगे।</div>
+<div class="sp"></div>
+</div>
+<button class="btn p" type="button" onclick="done(1)" data-k="ok">ठीक है</button>
+</div>
+
+<!-- ============ SCREEN 3 · Confirmation: existing customers only ============ -->
+<div class="sc ok" id="c2" hidden>
+<div class="topbar">
+<button class="lang" type="button" onclick="toggleLang()"><svg viewBox="0 0 24 24" fill="none"><path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z" fill="currentColor"/></svg><span class="langLbl">English</span></button>
+</div>
+<div class="b">
+<div class="sp"></div>
+<div class="ann green" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
+<div class="h" data-k="c2title">आपका जवाब मिल गया है!</div>
+<div class="sub" data-k="c2body">आप नई बुकिंग नहीं चाहते। मौजूदा ग्राहकों की सेवाएँ पहले की तरह जारी रहेंगी। उन पर कोई असर नहीं पड़ेगा।</div>
+<div class="sp"></div>
+</div>
+<button class="btn p" type="button" onclick="done(2)" data-k="ok">ठीक है</button>
+</div>
+
+<div class="toast" id="toast">आपका जवाब सेव नहीं हो पाया। कृपया फिर से कोशिश कीजिए।</div>
+
+<script>
+var PREFIX='CSP_NonCompliantNudge_';
+var lang='hi';
+
+var txt={
+  hi:{
+    title:'<span class="hl">1 नवंबर से</span> आपको नई बुकिंग मिलनी रुक गई हैं',
+    body:'आपकी सेवा स्थिति काफ़ी टाइम से ख़राब होने की वजह से नई बुकिंग नहीं मिल रही है',
+    note:'इसका आपके मौजूदा ग्राहकों पर कोई असर नहीं पड़ेगा। उनकी सेवाएँ पहले की तरह जारी रहेंगी।',
+    ask:'आप आगे क्या करना चाहते हैं?',
+    opt1:'मैं सुधार करके नई बुकिंग चाहता हूँ',
+    opt2:'मैं सिर्फ़ मौजूदा ग्राहकों की सेवा जारी रखना चाहता हूँ',
+    lock:'जवाब देने के बाद ही ऐप इस्तेमाल किया जा सकेगा',
+    c1title:'आपका जवाब मिल गया है!',
+    c1body1:'आप फिर से नई बुकिंग पाना चाहते हैं, यह हमने नोट कर लिया है।',
+    c1body2:'हमारी टीम 48 घंटे के अंदर आपसे संपर्क करेगी। हम मिलकर आपकी सेवा स्थिति ठीक करने में मदद करेंगे।',
+    c2title:'आपका जवाब मिल गया है!',
+    c2body:'आप नई बुकिंग नहीं चाहते। मौजूदा ग्राहकों की सेवाएँ पहले की तरह जारी रहेंगी। उन पर कोई असर नहीं पड़ेगा।',
+    ok:'ठीक है',
+    err:'आपका जवाब सेव नहीं हो पाया। कृपया फिर से कोशिश कीजिए।',
+    toggle:'English'
+  },
+  en:{
+    title:'You have <span class="hl">not been receiving new bookings</span> since 1 November',
+    body:'Your service status has been poor for quite some time, which is why you are not receiving new bookings.',
+    note:'This will not affect your existing customers. Their services will continue as usual.',
+    ask:'What would you like to do next?',
+    opt1:'I want to improve and receive new bookings',
+    opt2:'I only want to continue serving my existing customers',
+    lock:'You can use the app only after you respond',
+    c1title:'We’ve received your response!',
+    c1body1:'We’ve noted that you want to receive new bookings again.',
+    c1body2:'Our team will contact you within 48 hours. We’ll work together to improve your service status.',
+    c2title:'We’ve noted your decision',
+    c2body:'We’ve noted that you don’t want to receive new bookings. Your existing customers’ services will continue as usual. They will not be affected.',
+    ok:'Okay',
+    err:'Couldn’t save your response, please try again.',
+    toggle:'हिन्दी'
+  }
+};
+
+function applyLang(){
+  var t=txt[lang];
+  document.querySelectorAll('[data-k]').forEach(function(el){el.innerHTML=t[el.getAttribute('data-k')]});
+  document.querySelectorAll('.langLbl').forEach(function(el){el.textContent=t.toggle});
+  document.getElementById('toast').textContent=t.err;
+  document.documentElement.lang=(lang==='hi')?'hi':'en';
+}
+function toggleLang(){
+  lang=(lang==='hi')?'en':'hi';
+  applyLang();
+  track(PREFIX+'Lang_'+lang.toUpperCase());
+}
+
+/* CleverTap bridge. Works pasted directly into a CT custom-HTML in-app
+   AND hosted on Pages inside docs/inapp-belief-break-wrapper.html:
+   Android CTWebInterface -> iOS messageHandler -> parent wrapper relay.
+   The bridge can be injected after first paint, so unsent events queue. */
+var EMBED=(window.parent&&window.parent!==window);
+function emit(name,props){
+  props=props||{};props.lang=lang;props.embedded=EMBED;
+  try{if(window.CleverTap&&typeof window.CleverTap.pushEvent==='function'){window.CleverTap.pushEvent(name,JSON.stringify(props));return 1}}catch(e){}
+  try{var w=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.clevertap;if(w){w.postMessage({action:'recordEventWithProps',event:name,properties:props});return 1}}catch(e){}
+  try{if(EMBED){window.parent.postMessage({__ct:1,action:'event',event:name,properties:props},'*');return 1}}catch(e){}
+  return 0;
+}
+var pending=[],draining=false;
+function drain(){if(draining)return;draining=true;var n=0;(function go(){n++;while(pending.length&&emit(pending[0][0],pending[0][1]))pending.shift();if(pending.length&&n<20){setTimeout(go,300)}else{draining=false}})()}
+function track(name,props){if(!emit(name,props)){pending.push([name,props]);drain()}}
+
+/* Dismiss: fire EVERY transport, never return early (feature detection is
+   not proof the in-app closed). */
+function cl(){
+  try{if(window.CleverTap&&typeof window.CleverTap.dismissInAppNotification==='function')window.CleverTap.dismissInAppNotification()}catch(e){}
+  try{var w=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.clevertap;if(w)w.postMessage({action:'dismissInAppNotification'})}catch(e){}
+  try{if(EMBED)window.parent.postMessage({__ct:1,action:'dismiss'},'*')}catch(e){}
+  setTimeout(function(){try{window.location.href='clevertap://closeInApp'}catch(e){}},700);
+}
+
+function show(id){
+  ['main','c1','c2'].forEach(function(s){document.getElementById(s).hidden=(s!==id)});
+}
+
+function respond(n){
+  track(PREFIX+(n===1?'Improve_Tapped':'ExistingOnly_Tapped'),{response:(n===1?'improve_continue':'existing_only')});
+  show(n===1?'c1':'c2');
+}
+
+function done(n){
+  track(PREFIX+'Okay_Tapped',{response:(n===1?'improve_continue':'existing_only')});
+  cl();
+}
+
+track(PREFIX+'Shown');
+try{if(EMBED)window.parent.postMessage({__ct:1,action:'alive'},'*')}catch(e){}
+</script>
+</body></html>

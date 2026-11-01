@@ -1,0 +1,97 @@
+<!-- ═══════════════════════════════════════════════════════════════
+     CleverTap in-app creative — Belief Break (CSP non-compliant nudge)
+
+     PASTE THIS WHOLE FILE into the CT custom-HTML in-app. It loads the
+     real screen (belief-break.html) from GitHub Pages in an iframe and
+     relays its events / dismiss to the TOP frame, which owns the CT
+     bridge. Fix the screen with a git push; no campaign edit needed.
+
+     The screen is BLOCKING: there is deliberately no close button here.
+     The only way out is answering and tapping "ठीक है", which asks this
+     shell to dismiss.
+
+     Alternative: belief-break.html can also be pasted directly into the
+     creative — its own bridge handles Android + iOS without a wrapper.
+     ═══════════════════════════════════════════════════════════════ -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  html,body{ margin:0; padding:0; width:100%; height:100%; min-height:100vh;
+             background:#fff; overflow:hidden; }
+  #fr{ position:fixed; inset:0; top:0; right:0; bottom:0; left:0;
+       width:100%; height:100%; border:0; }
+  #fb{ display:none; position:fixed; top:0; right:0; bottom:0; left:0; inset:0;
+       padding:56px 26px; color:#1A1426; text-align:center;
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Devanagari",sans-serif; }
+  #fb b{ display:block; font-size:18px; font-weight:800; margin-bottom:10px; }
+  #fb span{ font-size:14px; line-height:21px; color:#665E75; }
+  #fb button{ margin-top:24px; border:0; border-radius:999px; padding:12px 28px;
+              background:#D9008D; color:#fff; font-size:15px; font-weight:800; }
+</style>
+
+<iframe id="fr"></iframe>
+<div id="fb">
+  <b>स्क्रीन लोड नहीं हो पाई</b>
+  <span>इंटरनेट चेक करके दोबारा कोशिश करें।<br>Screen could not load.</span>
+  <button onclick="dismiss()">ठीक है</button>
+</div>
+
+<script>
+var PAGE = 'https://vikaswiom.github.io/wiom-mbg-kamai-kavach/belief-break.html';
+var fr = document.getElementById('fr');
+fr.src = PAGE;
+
+/* ── CT bridge with a queue (bridge can appear after first paint) ── */
+var pending = [], draining = false;
+function emit(ev, props){
+  try{
+    if(window.CleverTap && typeof window.CleverTap.pushEvent === 'function'){
+      props ? window.CleverTap.pushEvent(ev, JSON.stringify(props)) : window.CleverTap.pushEvent(ev);
+      return true;
+    }
+  }catch(e){}
+  try{
+    var w = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap;
+    if(w){ w.postMessage({ action:'recordEventWithProps', event:ev, properties:props || {} }); return true; }
+  }catch(e){}
+  return false;
+}
+function drain(){
+  if(draining) return; draining = true; var n = 0;
+  (function go(){
+    n++;
+    while(pending.length && emit(pending[0][0], pending[0][1])) pending.shift();
+    if(pending.length && n < 20){ setTimeout(go, 300); } else { draining = false; }
+  })();
+}
+function push(ev, props){ if(!emit(ev, props)){ pending.push([ev, props]); drain(); } }
+
+/* ── dismiss: fire every transport, never return early ── */
+function dismiss(){
+  try{ if(window.CleverTap && typeof window.CleverTap.dismissInAppNotification === 'function') window.CleverTap.dismissInAppNotification(); }catch(e){}
+  try{
+    var w = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clevertap;
+    if(w) w.postMessage({ action:'dismissInAppNotification' });
+  }catch(e){}
+  setTimeout(function(){ try{ window.location.href = 'clevertap://closeInApp'; }catch(e){} }, 700);
+}
+
+/* ── watchdog: the screen pings 'alive' from inside its own document ── */
+var frLoaded = false;
+function showFallback(why){
+  if(frLoaded) return;
+  document.getElementById('fb').style.display = 'block';
+  push('CSP_NonCompliantNudge_Shell_Frame_Failed', { reason: why });
+}
+fr.onerror = function(){ showFallback('frame_error'); };
+setTimeout(function(){ showFallback('timeout_8s'); }, 8000);
+
+window.addEventListener('message', function(e){
+  var d = e && e.data;
+  if(!d || d.__ct !== 1) return;
+  if(d.action === 'alive'){ frLoaded = true; document.getElementById('fb').style.display = 'none'; }
+  else if(d.action === 'event') push(d.event, d.properties);
+  else if(d.action === 'dismiss') dismiss();
+}, false);
+
+push('CSP_NonCompliantNudge_Shell_Opened', {});
+</script>
