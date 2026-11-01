@@ -160,8 +160,27 @@ function toggleLang(){
    Android CTWebInterface -> iOS messageHandler -> parent wrapper relay.
    The bridge can be injected after first paint, so unsent events queue. */
 var EMBED=(window.parent&&window.parent!==window);
+
+/* Google Apps Script logger: every event is also POSTed to an Apps Script
+   web app that appends a row to a Google Sheet (code: docs/belief-break-apps-script.gs).
+   Paste the deployed /exec URL below. ?gas=<url> overrides it for testing.
+   text/plain + sendBeacon = no CORS preflight, and survives the dismiss. */
+var GAS_URL='PASTE_APPS_SCRIPT_EXEC_URL_HERE';
+function qp(k){var m=new RegExp('[?&]'+k+'=([^&#]*)').exec(location.search);return m?decodeURIComponent(m[1].replace(/\+/g,' ')):''}
+var CSP_ID=qp('cspId')||qp('cspid')||'';
+var GAS=qp('gas')||GAS_URL;
+var SID=Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+function gas(name,props){
+  if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(GAS))return;
+  var body=JSON.stringify({event:name,cspId:CSP_ID,session:SID,ts:new Date().toISOString(),
+    lang:props.lang,response:props.response||'',embedded:props.embedded,
+    platform:/iPhone|iPad|iPod/.test(navigator.userAgent)?'ios':(/Android/.test(navigator.userAgent)?'android':'web'),
+    ua:navigator.userAgent});
+  try{if(navigator.sendBeacon&&navigator.sendBeacon(GAS,new Blob([body],{type:'text/plain;charset=utf-8'})))return}catch(e){}
+  try{fetch(GAS,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'text/plain;charset=utf-8'},body:body})}catch(e){}
+}
 function emit(name,props){
-  props=props||{};props.lang=lang;props.embedded=EMBED;
+  props=props||{};props.lang=lang;props.embedded=EMBED;if(CSP_ID)props.cspId=CSP_ID;
   try{if(window.CleverTap&&typeof window.CleverTap.pushEvent==='function'){window.CleverTap.pushEvent(name,JSON.stringify(props));return 1}}catch(e){}
   try{var w=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.clevertap;if(w){w.postMessage({action:'recordEventWithProps',event:name,properties:props});return 1}}catch(e){}
   try{if(EMBED){window.parent.postMessage({__ct:1,action:'event',event:name,properties:props},'*');return 1}}catch(e){}
@@ -169,7 +188,7 @@ function emit(name,props){
 }
 var pending=[],draining=false;
 function drain(){if(draining)return;draining=true;var n=0;(function go(){n++;while(pending.length&&emit(pending[0][0],pending[0][1]))pending.shift();if(pending.length&&n<20){setTimeout(go,300)}else{draining=false}})()}
-function track(name,props){if(!emit(name,props)){pending.push([name,props]);drain()}}
+function track(name,props){props=props||{};if(!emit(name,props)){pending.push([name,props]);drain()}gas(name,props)}
 
 /* Dismiss: fire EVERY transport, never return early (feature detection is
    not proof the in-app closed). */

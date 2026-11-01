@@ -28,6 +28,10 @@
               background:#D9008D; color:#fff; font-size:15px; font-weight:800; }
 </style>
 
+<span id="c1" style="display:none">{{ Profile.cspid | default:"" }}</span>
+<span id="c2" style="display:none">{{ Profile.cspId | default:"" }}</span>
+<span id="c3" style="display:none">{{ Profile.csp_id | default:"" }}</span>
+
 <iframe id="fr"></iframe>
 <div id="fb">
   <b>स्क्रीन लोड नहीं हो पाई</b>
@@ -37,8 +41,18 @@
 
 <script>
 var PAGE = 'https://vikaswiom.github.io/wiom-mbg-kamai-kavach/belief-break.html';
+/* CSP id from the profile, passed down as ?cspId= so the Google Sheet
+   rows say WHO answered. A span still holding its raw token = no value. */
+var OPEN = '{' + '{';
+function val(id){
+  var e = document.getElementById(id), v = e ? (e.textContent || '').replace(/^\s+|\s+$/g, '') : '';
+  if(v.indexOf(OPEN) > -1) return '';
+  var l = v.toLowerCase();
+  return (l === 'none' || l === 'null' || l === 'undefined') ? '' : v;
+}
+var CSP = val('c1') || val('c2') || val('c3');
 var fr = document.getElementById('fr');
-fr.src = PAGE;
+fr.src = PAGE + (CSP ? ('?cspId=' + encodeURIComponent(CSP)) : '');
 
 /* ── CT bridge with a queue (bridge can appear after first paint) ── */
 var pending = [], draining = false;
@@ -80,7 +94,7 @@ var frLoaded = false;
 function showFallback(why){
   if(frLoaded) return;
   document.getElementById('fb').style.display = 'block';
-  push('CSP_NonCompliantNudge_Shell_Frame_Failed', { reason: why });
+  push('CSP_NonCompliantNudge_Shell_Frame_Failed', { reason: why, cspId: CSP });
 }
 fr.onerror = function(){ showFallback('frame_error'); };
 setTimeout(function(){ showFallback('timeout_8s'); }, 8000);
@@ -93,5 +107,5 @@ window.addEventListener('message', function(e){
   else if(d.action === 'dismiss') dismiss();
 }, false);
 
-push('CSP_NonCompliantNudge_Shell_Opened', {});
+push('CSP_NonCompliantNudge_Shell_Opened', { cspId: CSP, hasCspId: !!CSP });
 </script>
